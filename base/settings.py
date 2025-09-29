@@ -30,7 +30,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-&qzu2&8m#nn4h9atg5#$j88_jy
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    'wozapauto.serverbase.store'
+]
 
 
 # Application definition

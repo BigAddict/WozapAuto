@@ -5,3 +5,5 @@ redis
 requests
 pydantic
 django-components
+pillow
+gunicorn
