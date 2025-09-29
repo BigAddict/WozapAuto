@@ -1,0 +1,294 @@
+{% extends 'core/base.html' %}
+{% load component_tags %}
+
+{% block title %}Components Demo - WozapAuto{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Components Demo</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-puzzle me-2"></i>
+                    Django Cotton Components Demo
+                </h1>
+                <a href="{% url 'home' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Button Components -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-mouse me-2"></i>
+                        Button Components
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6>Basic Buttons</h6>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% component "button" variant="primary" content="Primary Button" %}
+                                {% component "button" variant="secondary" content="Secondary Button" %}
+                                {% component "button" variant="success" content="Success Button" %}
+                                {% component "button" variant="danger" content="Danger Button" %}
+                            </div>
+                            
+                            <h6>Outline Buttons</h6>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% component "button" variant="primary" outline=True content="Primary Outline" %}
+                                {% component "button" variant="secondary" outline=True content="Secondary Outline" %}
+                                {% component "button" variant="success" outline=True content="Success Outline" %}
+                            </div>
+                            
+                            <h6>Button Sizes</h6>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% component "button" variant="primary" size="sm" content="Small" %}
+                                {% component "button" variant="primary" size="md" content="Medium" %}
+                                {% component "button" variant="primary" size="lg" content="Large" %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6>WhatsApp Style Buttons</h6>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% component "button" variant="primary" whatsapp_style=True icon="bi-whatsapp" content="Connect WhatsApp" %}
+                                {% component "button" variant="success" whatsapp_style=True icon="bi-check-circle" content="Connected" %}
+                            </div>
+                            
+                            <h6>Loading States</h6>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% component "button" variant="primary" loading=True content="Loading..." %}
+                                {% component "button" variant="secondary" disabled=True content="Disabled" %}
+                            </div>
+                            
+                            <h6>With Icons</h6>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% component "button" variant="primary" icon="bi-plus" content="Add New" %}
+                                {% component "button" variant="info" icon="bi-gear" content="Settings" %}
+                                {% component "button" variant="warning" icon="bi-download" content="Export" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Components -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-input-cursor-text me-2"></i>
+                        Form Components
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6>Form Fields</h6>
+                            <form>
+                                {% component "form_field" name="instanceName" label="Instance Name" type="text" placeholder="Enter instance name" required=True help_text="Choose a unique name for your WhatsApp instance" %}
+                                {% component "form_field" name="phoneNumber" label="Phone Number" type="tel" placeholder="+1234567890" required=True %}
+                                {% component "form_field" name="description" label="Description" type="textarea" placeholder="Enter description" rows=3 %}
+                            </form>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6>Input Groups</h6>
+                            <form>
+                                {% component "input_group" name="phoneNumber" label="Phone Number" type="tel" prefix="+" placeholder="1234567890" required=True %}
+                                {% component "input_group" name="website" label="Website" type="url" prefix="https://" placeholder="example.com" %}
+                                {% component "input_group" name="price" label="Price" type="number" prefix="$" suffix=".00" placeholder="0" %}
+                            </form>
+                            
+                            <h6 class="mt-4">Radio Groups</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="method" value="qr" id="method_qr">
+                                        <label class="form-check-label" for="method_qr">
+                                            <i class="bi bi-qrcode me-2"></i>
+                                            QR Code
+                                            <small class="d-block text-muted">Scan QR code with WhatsApp</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="method" value="pairing" id="method_pairing">
+                                        <label class="form-check-label" for="method_pairing">
+                                            <i class="bi bi-key me-2"></i>
+                                            Pairing Code
+                                            <small class="d-block text-muted">Enter 8-digit code</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Components -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-card-text me-2"></i>
+                        Card Components
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6>Basic Cards</h6>
+                            {% component "card" title="Basic Card" subtitle="Card subtitle" %}
+                                This is a basic card with Bootstrap styling and custom effects.
+                            {% endcomponent %}
+                            
+                            <h6 class="mt-4">Glassmorphism Card</h6>
+                            {% component "card" title="Glass Card" glassmorphism=True %}
+                                This card has a glassmorphism effect.
+                            {% endcomponent %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6>Connection Card</h6>
+                            {% component "connection_card" 
+                                instance_name="Demo WhatsApp"
+                                connection_status="online"
+                                messages_count=42
+                                last_activity="2 minutes ago"
+                                connection_id=1
+                                show_stats=True
+                                show_actions=True %}
+                            {% endcomponent %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Statistics Cards
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            {% component "stat_card" title="Total Messages" value="1,234" change=12.5 icon="bi-chat-dots" color="primary" %}
+                        </div>
+                        <div class="col-md-3">
+                            {% component "stat_card" title="Active Connections" value="5" change=0 icon="bi-whatsapp" color="success" %}
+                        </div>
+                        <div class="col-md-3">
+                            {% component "stat_card" title="Response Rate" value="98.5%" change=2.1 icon="bi-graph-up" color="info" %}
+                        </div>
+                        <div class="col-md-3">
+                            {% component "stat_card" title="Avg Response Time" value="2.3s" change=-5.2 icon="bi-clock" color="warning" %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Integration Notes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-success">
+                <h5 class="alert-heading">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Bootstrap 5.0.2 + Django Cotton Integration Complete!
+                </h5>
+                <p class="mb-0">
+                    This demo showcases the successful integration of Bootstrap 5.0.2 with Django Cotton components. 
+                    All components maintain the WhatsApp-inspired design while leveraging Bootstrap's proven patterns and utilities.
+                </p>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Features Implemented:</h6>
+                        <ul class="mb-0">
+                            <li>Bootstrap 5.0.2 CDN integration</li>
+                            <li>Custom WhatsApp theme</li>
+                            <li>Django Cotton component architecture</li>
+                            <li>Reusable form components</li>
+                            <li>Enhanced card components</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Benefits Achieved:</h6>
+                        <ul class="mb-0">
+                            <li>Faster development with pre-built components</li>
+                            <li>Consistent UI patterns</li>
+                            <li>Maintainable component architecture</li>
+                            <li>Preserved custom styling and effects</li>
+                            <li>Bootstrap accessibility features</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Demo interactions for components
+    console.log('Django Cotton Components Demo loaded successfully!');
+    
+    // Add click handlers for demo buttons
+    document.querySelectorAll('[data-action]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const action = this.dataset.action;
+            console.log(`Demo action: ${action}`);
+            
+            // Show demo alert
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-info alert-dismissible fade show';
+            alert.innerHTML = `
+                <i class="bi bi-info-circle me-2"></i>
+                Demo action: ${action}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.container-fluid');
+            container.insertBefore(alert, container.firstChild);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 3000);
+        });
+    });
+});
+</script>
+{% endblock %}

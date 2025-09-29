@@ -1,0 +1,52 @@
+<div class="mb-3">
+    {% if label %}
+        <label for="{{ id }}" class="form-label">
+            {{ label }}
+            {% if required %}<span class="text-danger">*</span>{% endif %}
+        </label>
+    {% endif %}
+    
+    <div class="input-group">
+        {% if prefix or prefix_icon %}
+            <span class="input-group-text">
+                {% if prefix_icon %}
+                    <i class="{{ prefix_icon }}"></i>
+                {% else %}
+                    {{ prefix }}
+                {% endif %}
+            </span>
+        {% endif %}
+        
+        <input 
+            type="{{ type }}"
+            class="form-control{% if is_invalid %} is-invalid{% endif %}{% if is_valid %} is-valid{% endif %}{% if class_name %} {{ class_name }}{% endif %}"
+            id="{{ id }}"
+            name="{{ name }}"
+            {% if value %}value="{{ value }}"{% endif %}
+            {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+            {% if required %}required{% endif %}
+            {% if disabled %}disabled{% endif %}
+            {% if min %}min="{{ min }}"{% endif %}
+            {% if max %}max="{{ max }}"{% endif %}
+            {% if step %}step="{{ step }}"{% endif %}
+            {% if pattern %}pattern="{{ pattern }}"{% endif %}>
+            
+        {% if suffix or suffix_icon %}
+            <span class="input-group-text">
+                {% if suffix_icon %}
+                    <i class="{{ suffix_icon }}"></i>
+                {% else %}
+                    {{ suffix }}
+                {% endif %}
+            </span>
+        {% endif %}
+    </div>
+    
+    {% if help_text %}
+        <div class="form-text">{{ help_text }}</div>
+    {% endif %}
+    
+    {% if error_message %}
+        <div class="invalid-feedback">{{ error_message }}</div>
+    {% endif %}
+</div>

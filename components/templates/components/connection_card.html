@@ -1,0 +1,63 @@
+<div class="card connection-card hover-lift{% if class_name %} {{ class_name }}{% endif %}">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-whatsapp me-2"></i>
+            {{ instance_name }}
+        </h5>
+        <span class="badge {% if connection_status == 'online' %}bg-success{% elif connection_status == 'offline' %}bg-danger{% elif connection_status == 'connecting' %}bg-warning{% else %}bg-secondary{% endif %}">
+            <span class="status-indicator status-{{ connection_status }}"></span>
+            {{ connection_status|title }}
+        </span>
+    </div>
+    
+    <div class="card-body">
+        {% if show_stats %}
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="stat-item text-center">
+                        <div class="stat-number text-primary">{{ messages_count }}</div>
+                        <div class="stat-label text-muted">Messages</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-item text-center">
+                        <div class="stat-number text-success">
+                            {% if connection_status == 'online' %}Active{% else %}Inactive{% endif %}
+                        </div>
+                        <div class="stat-label text-muted">Status</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-item text-center">
+                        <div class="stat-number text-info">
+                            {% if last_activity %}
+                                {{ last_activity }}
+                            {% else %}
+                                Never
+                            {% endif %}
+                        </div>
+                        <div class="stat-label text-muted">Last Activity</div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% component "slot" %}
+    </div>
+    
+    {% if show_actions %}
+        <div class="card-footer">
+            <div class="btn-group w-100" role="group">
+                <button class="btn btn-outline-primary" data-action="manage" data-connection="{{ connection_id|default:'' }}">
+                    <i class="bi bi-gear me-1"></i>Manage
+                </button>
+                <button class="btn btn-outline-info" data-action="test" data-connection="{{ connection_id|default:'' }}">
+                    <i class="bi bi-play-circle me-1"></i>Test
+                </button>
+                <button class="btn btn-outline-danger" data-action="delete" data-connection="{{ connection_id|default:'' }}">
+                    <i class="bi bi-trash me-1"></i>Delete
+                </button>
+            </div>
+        </div>
+    {% endif %}
+</div>

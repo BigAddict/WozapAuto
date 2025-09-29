@@ -1,0 +1,312 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        animation: modalSlideIn 0.3s ease-out;
+    }
+    
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .modal-header {
+        padding: 20px 30px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h2 {
+        margin: 0;
+        color: #1f2937;
+        font-size: 20px;
+        font-weight: 600;
+    }
+    
+    .modal-header .close {
+        color: #9ca3af;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    
+    .modal-header .close:hover {
+        color: #6b7280;
+    }
+    
+    .modal-body {
+        padding: 30px;
+    }
+    
+    .modal-footer {
+        padding: 20px 30px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+    
+    /* QR Code Styles */
+    .qr-container {
+        text-align: center;
+    }
+    
+    .qr-instructions {
+        background: #f0f9ff;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        text-align: left;
+    }
+    
+    .qr-instructions h3 {
+        margin-top: 0;
+        color: #0369a1;
+        font-size: 16px;
+    }
+    
+    .qr-instructions ol {
+        color: #0c4a6e;
+        margin: 0;
+        padding-left: 20px;
+    }
+    
+    .qr-instructions li {
+        margin-bottom: 8px;
+    }
+    
+    /* Pairing Code Styles */
+    .pairing-container {
+        text-align: center;
+    }
+    
+    .pairing-instructions {
+        background: #f0f9ff;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: left;
+    }
+    
+    .pairing-instructions h3 {
+        margin-top: 0;
+        color: #0369a1;
+        font-size: 16px;
+    }
+    
+    .pairing-instructions ol {
+        color: #0c4a6e;
+        margin: 0;
+        padding-left: 20px;
+    }
+    
+    .pairing-instructions li {
+        margin-bottom: 8px;
+    }
+    
+    .pairing-code-display {
+        background: #f9fafb;
+        padding: 30px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .code-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .pairing-code {
+        font-size: 32px;
+        font-weight: bold;
+        color: #10b981;
+        letter-spacing: 4px;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .btn-small {
+        padding: 8px 16px;
+        font-size: 14px;
+        width: auto;
+    }
+    
+    .code-timer {
+        color: #6b7280;
+        font-size: 14px;
+    }
+    
+    /* Connection Status */
+    .connection-status {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+    
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-pending {
+        background: #f59e0b;
+    }
+    
+    .status-connecting {
+        background: #3b82f6;
+    }
+    
+    .status-open {
+        background: #10b981;
+    }
+    
+    .status-disconnected {
+        background: #ef4444;
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+    
+    .status-text {
+        font-size: 14px;
+        color: #6b7280;
+    }
+    
+    /* Loading Spinner */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #10b981;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .modal-content {
+            margin: 10% auto;
+            width: 95%;
+        }
+        
+        .modal-header,
+        .modal-body,
+        .modal-footer {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            flex-direction: column;
+        }
+        
+        .modal-footer .btn {
+            width: 100%;
+        }
+        
+        .code-container {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .pairing-code {
+            font-size: 24px;
+            letter-spacing: 2px;
+        }
+    }
+    
+    /* Button Styles */
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+    }
+    
+    .btn-primary {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #059669;
+    }
+    
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #4b5563;
+    }
+    
+    .btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+

@@ -1,0 +1,30 @@
+<div class="card{% if hover_lift %} hover-lift{% endif %}{% if glassmorphism %} glass-card{% endif %}{% if variant != 'default' %} card-{{ variant }}{% endif %}{% if class_name %} {{ class_name }}{% endif %}">
+    {% if title or subtitle or header %}
+        <div class="card-header">
+            {% if header %}
+                {{ header|safe }}
+            {% else %}
+                {% if title %}
+                    <h5 class="card-title mb-0">{{ title }}</h5>
+                {% endif %}
+                {% if subtitle %}
+                    <h6 class="card-subtitle text-muted">{{ subtitle }}</h6>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <div class="card-body">
+        {% if text %}
+            <p class="card-text">{{ text }}</p>
+        {% endif %}
+        
+        {% component "slot" %}
+    </div>
+    
+    {% if footer %}
+        <div class="card-footer">
+            {{ footer|safe }}
+        </div>
+    {% endif %}
+</div>

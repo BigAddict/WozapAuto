@@ -1,0 +1,600 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - WozapAuto{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--space-xl) var(--space-lg);
+    }
+    
+    .dashboard-header {
+        margin-bottom: var(--space-2xl);
+    }
+    
+    .dashboard-title {
+        font-size: var(--font-size-3xl);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+        margin: 0 0 var(--space-sm) 0;
+    }
+    
+    .dashboard-subtitle {
+        font-size: var(--font-size-base);
+        color: var(--text-secondary);
+        margin: 0;
+    }
+    
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-lg);
+        margin-bottom: var(--space-2xl);
+    }
+    
+    .stat-card {
+        background: var(--background-white);
+        border-radius: var(--border-radius-md);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+        padding: var(--space-xl);
+        transition: var(--transition);
+    }
+    
+    .stat-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .stat-card__icon {
+        font-size: var(--font-size-3xl);
+        margin-bottom: var(--space-md);
+        display: block;
+    }
+    
+    .stat-card__number {
+        font-size: var(--font-size-3xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--primary-color);
+        margin: 0 0 var(--space-xs) 0;
+    }
+    
+    .stat-card__label {
+        font-size: var(--font-size-base);
+        color: var(--text-secondary);
+        margin: 0 0 var(--space-sm) 0;
+    }
+    
+    .stat-card__change {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+    }
+    
+    .stat-card__change--positive {
+        color: var(--success-color);
+    }
+    
+    .stat-card__change--negative {
+        color: var(--error-color);
+    }
+    
+    .dashboard-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--space-lg);
+        margin-bottom: var(--space-2xl);
+    }
+    
+    .action-card {
+        background: var(--background-white);
+        border-radius: var(--border-radius-md);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+        padding: var(--space-xl);
+        text-align: center;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+    
+    .action-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+    }
+    
+    .action-card__icon {
+        font-size: var(--font-size-4xl);
+        margin-bottom: var(--space-lg);
+        display: block;
+    }
+    
+    .action-card__title {
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+        margin: 0 0 var(--space-sm) 0;
+    }
+    
+    .action-card__description {
+        font-size: var(--font-size-base);
+        color: var(--text-secondary);
+        margin: 0 0 var(--space-lg) 0;
+        line-height: 1.6;
+    }
+    
+    .recent-activity {
+        background: var(--background-white);
+        border-radius: var(--border-radius-md);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+    
+    .recent-activity__header {
+        padding: var(--space-xl);
+        border-bottom: 1px solid var(--border-color);
+        background: var(--background-light);
+    }
+    
+    .recent-activity__title {
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+        margin: 0;
+    }
+    
+    .recent-activity__content {
+        padding: var(--space-xl);
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        padding: var(--space-md) 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-item__icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: var(--border-radius-full);
+        background: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--font-size-lg);
+        flex-shrink: 0;
+    }
+    
+    .activity-item__content {
+        flex: 1;
+    }
+    
+    .activity-item__title {
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+        margin: 0 0 var(--space-xs) 0;
+    }
+    
+    .activity-item__description {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        margin: 0;
+    }
+    
+    .activity-item__time {
+        font-size: var(--font-size-sm);
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: var(--space-3xl) var(--space-xl);
+        color: var(--text-secondary);
+    }
+    
+    .empty-state__icon {
+        font-size: 4rem;
+        margin-bottom: var(--space-lg);
+        opacity: 0.5;
+    }
+    
+    .empty-state__title {
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+        margin: 0 0 var(--space-md) 0;
+    }
+    
+    .empty-state__description {
+        font-size: var(--font-size-base);
+        color: var(--text-secondary);
+        margin: 0 0 var(--space-lg) 0;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: var(--space-lg) var(--space-md);
+        }
+        
+        .dashboard-stats {
+            grid-template-columns: 1fr;
+        }
+        
+        .dashboard-actions {
+            grid-template-columns: 1fr;
+        }
+        
+        .stat-card,
+        .action-card {
+            padding: var(--space-lg);
+        }
+        
+        .recent-activity__header,
+        .recent-activity__content {
+            padding: var(--space-lg);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    {% if user.is_authenticated %}
+    <!-- Authenticated User Dashboard -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Welcome back, {{ user.first_name|default:user.username }}!</h1>
+        <p class="dashboard-subtitle">Your WhatsApp AI Agent Platform Dashboard</p>
+    </div>
+    
+    <!-- Dashboard Stats -->
+    {% if total_connections > 0 %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-whatsapp text-primary fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-primary">{{ connection_status|default:'Disconnected' }}</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">Connection Status</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-chat-dots text-info fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-info">{{ messages_count|default:'0' }}</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">Messages</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-people text-success fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-success">{{ contacts_count|default:'0' }}</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">Contacts</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-robot text-warning fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-warning">0</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">AI Agents</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-whatsapp text-primary fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-primary">0</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">WhatsApp Connection</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-robot text-info fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-info">0</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">AI Agents</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-chat-dots text-success fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-success">0</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">Messages Processed</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Quick Actions -->
+    <div class="row g-3 mb-4">
+        {% if total_connections == 0 %}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Setup Connection</h5>
+                    <h6 class="card-subtitle text-muted">Connect your WhatsApp account</h6>
+        </div>
+                <div class="card-body">
+                    <p>Connect your WhatsApp account to start using AI agents</p>
+                        <button class="btn btn-primary" onclick="window.location.href='{% url 'connections:create' %}'">
+                            <i class="bi-plus-circle me-2"></i>Create Connection
+                        </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if total_connections > 0 %}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Manage Connection</h5>
+                    <h6 class="card-subtitle text-muted">View your WhatsApp connection</h6>
+                </div>
+                <div class="card-body">
+                    <p>View and manage your WhatsApp connection</p>
+                        <button class="btn btn-outline-primary" onclick="window.location.href='{% url 'connections:manage' %}'">
+                            <i class="bi-gear me-2"></i>Manage Connection
+                        </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">AI Agents</h5>
+                    <h6 class="card-subtitle text-muted">Coming Soon</h6>
+                </div>
+                <div class="card-body">
+                    <p>Create and manage AI agents for automated responses</p>
+                    <button class="btn btn-outline-secondary" disabled>
+                        <i class="bi-robot me-2"></i>Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+            </div>
+            
+    <!-- Recent Connections -->
+    {% if recent_connections %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Connections</h5>
+                </div>
+                <div class="card-body">
+                    {% for connection in recent_connections %}
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <h6 class="mb-1">{{ connection.instance_name }}</h6>
+                            <small class="text-muted">{{ connection.ownerPhone }} - {{ connection.connection_status|title }}</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-{% if connection.connection_status == 'open' %}success{% elif connection.connection_status == 'connecting' %}warning{% else %}secondary{% endif %}">
+                                {{ connection.connection_status|title }}
+                            </span>
+                            <small class="text-muted">{{ connection.created_at|timesince }} ago</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="text-center mt-3">
+                        <button class="btn btn-outline-primary" onclick="window.location.href='{% url 'connections:manage' %}'">
+                            View All Connections
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <!-- Landing Page for Unauthenticated Users -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-75">
+                <div class="col-lg-6">
+                    <div class="hero-content">
+                        <div class="hero-badge mb-3" data-aos="fade-down">
+                            <span class="badge glass px-3 py-2">
+                                <i class="bi bi-star-fill me-1"></i>Trusted by 10,000+ businesses
+                            </span>
+                        </div>
+                        <h1 class="hero-title mb-4" data-aos="fade-up" data-aos-delay="200">
+                            Transform Your Customer Service with 
+                            <span class="text-gradient gradient-text-animated">AI-Powered</span> WhatsApp Agents
+                        </h1>
+                        <p class="hero-description mb-4" data-aos="fade-up" data-aos-delay="400">
+                            Automate customer support, boost response times, and scale your business with intelligent WhatsApp bots that work 24/7.
+                        </p>
+                        <div class="hero-actions d-flex flex-column flex-sm-row gap-3 mb-4" data-aos="fade-up" data-aos-delay="600">
+                            <a href="{% url 'signup' %}" class="btn btn-primary btn-lg px-4 py-3">
+                                <i class="bi bi-rocket-takeoff me-2"></i>Start Free Trial
+                            </a>
+                            <a href="#demo" class="btn btn-outline-primary btn-lg px-4 py-3">
+                                <i class="bi bi-play-circle me-2"></i>Watch Demo
+                            </a>
+                        </div>
+                        <div class="hero-stats d-flex gap-4" data-aos="fade-up" data-aos-delay="800">
+                            <div class="stat-item">
+                                <div class="stat-number">10K+</div>
+                                <div class="stat-label">Active Users</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">99.9%</div>
+                                <div class="stat-label">Uptime</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">24/7</div>
+                                <div class="stat-label">Support</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="hero-image" data-aos="fade-left" data-aos-delay="400">
+                        <div class="floating-card card-1">
+                            <div class="card-header d-flex align-items-center">
+                                <div class="avatar me-2">
+                                    <i class="bi bi-person-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Customer Support</h6>
+                                    <small class="text-muted">Online</small>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-2">Hi! How can I help you today?</p>
+                                <div class="message-bubble">
+                                    <p class="mb-0">I need help with my order</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="floating-card card-2">
+                            <div class="card-header d-flex align-items-center">
+                                <div class="avatar me-2">
+                                    <i class="bi bi-robot"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">AI Assistant</h6>
+                                    <small class="text-muted">Responding...</small>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-2">I can help you with that! What's your order number?</p>
+                                <div class="typing-indicator">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers for action cards
+    document.querySelectorAll('.action-card').forEach(card => {
+        card.addEventListener('click', function() {
+            // Add click animation
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
+        });
+    });
+    
+    // Animate stat numbers
+    function animateNumbers() {
+        document.querySelectorAll('.stat-card__number').forEach(element => {
+            const finalNumber = element.textContent;
+            const isPercentage = finalNumber.includes('%');
+            const isPlus = finalNumber.includes('+');
+            const numericValue = parseFloat(finalNumber.replace(/[^\d.]/g, ''));
+            
+            if (!isNaN(numericValue)) {
+                let currentNumber = 0;
+                const increment = numericValue / 50;
+                const timer = setInterval(() => {
+                    currentNumber += increment;
+                    if (currentNumber >= numericValue) {
+                        currentNumber = numericValue;
+                        clearInterval(timer);
+                    }
+                    
+                    let displayNumber = Math.floor(currentNumber);
+                    if (isPercentage) displayNumber += '%';
+                    if (isPlus) displayNumber = '+' + displayNumber;
+                    
+                    element.textContent = displayNumber;
+                }, 30);
+            }
+        });
+    }
+    
+    // Start animation when page loads
+    setTimeout(animateNumbers, 500);
+});
+</script>
+{% endblock %}

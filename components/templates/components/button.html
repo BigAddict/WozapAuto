@@ -1,0 +1,22 @@
+<button 
+    type="{{ type }}" 
+    class="btn btn-{{ variant }}{% if size != 'md' %} btn-{{ size }}{% endif %}{% if outline %} btn-outline-{{ variant }}{% endif %}{% if whatsapp_style %} liquid-btn{% endif %}{% if loading %} btn-loading{% endif %}{% if class_name %} {{ class_name }}{% endif %}"
+    {% if disabled %}disabled{% endif %}
+    {% if name %}name="{{ name }}"{% endif %}
+    {% if id %}id="{{ id }}"{% endif %}
+    {% if onclick %}onclick="{{ onclick }}"{% endif %}>
+    
+    {% if loading %}
+        <span class="loading-spinner me-2"></span>
+    {% endif %}
+    
+    {% if icon %}
+        <i class="{{ icon }} me-2"></i>
+    {% endif %}
+    
+    {{ content }}
+    
+    {% if badge %}
+        <span class="badge bg-light text-dark ms-2">{{ badge }}</span>
+    {% endif %}
+</button>

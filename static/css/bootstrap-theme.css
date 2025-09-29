@@ -1,0 +1,397 @@
+/*
+Custom Bootstrap Theme for WozapAuto
+WhatsApp-inspired design with Bootstrap 5.0.2 integration
+*/
+
+:root {
+  /* WhatsApp Color Palette */
+  --bs-primary: #25D366;
+  --bs-primary-rgb: 37, 211, 102;
+  --bs-secondary: #128C7E;
+  --bs-secondary-rgb: 18, 140, 126;
+  --bs-success: #28a745;
+  --bs-success-rgb: 40, 167, 69;
+  --bs-info: #17a2b8;
+  --bs-info-rgb: 23, 162, 184;
+  --bs-warning: #ffc107;
+  --bs-warning-rgb: 255, 193, 7;
+  --bs-danger: #dc3545;
+  --bs-danger-rgb: 220, 53, 69;
+  --bs-light: #f8f9fa;
+  --bs-light-rgb: 248, 249, 250;
+  --bs-dark: #1a1a1a;
+  --bs-dark-rgb: 26, 26, 26;
+
+  /* Extended WhatsApp Colors */
+  --whatsapp-green: #25D366;
+  --whatsapp-green-dark: #128C7E;
+  --whatsapp-green-light: #DCF8C6;
+  --whatsapp-blue: #34B7F1;
+  --whatsapp-gray: #E5E5E5;
+  --whatsapp-dark-gray: #667781;
+  --whatsapp-black: #111B21;
+
+  /* Custom Spacing */
+  --bs-border-radius: 8px;
+  --bs-border-radius-lg: 12px;
+  --bs-border-radius-xl: 16px;
+
+  /* Custom Shadows */
+  --bs-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --bs-box-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --bs-box-shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.3);
+
+  /* Typography */
+  --bs-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bs-font-size-base: 0.95rem;
+  --bs-line-height-base: 1.6;
+
+  /* Transitions */
+  --bs-transition: all 0.3s ease;
+  --bs-transition-fast: all 0.15s ease;
+  --bs-transition-slow: all 0.5s ease;
+}
+
+/* Enhanced Button Styles */
+.btn {
+  border-radius: var(--bs-border-radius);
+  font-weight: 600;
+  transition: var(--bs-transition);
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-secondary) 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--bs-secondary) 0%, var(--bs-primary) 100%);
+  transform: translateY(-2px);
+  box-shadow: var(--bs-box-shadow-lg);
+}
+
+.btn-outline-primary {
+  border: 2px solid var(--bs-primary);
+  color: var(--bs-primary);
+  background: transparent;
+}
+
+.btn-outline-primary:hover {
+  background: var(--bs-primary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--bs-box-shadow-lg);
+}
+
+/* Liquid Button Effect */
+.liquid-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.liquid-btn:hover::before {
+  left: 100%;
+}
+
+/* Enhanced Card Styles */
+.card {
+  border: none;
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--bs-box-shadow);
+  transition: var(--bs-transition);
+  background: white;
+}
+
+.card:hover {
+  box-shadow: var(--bs-box-shadow-lg);
+  transform: translateY(-2px);
+}
+
+.hover-lift {
+  transition: var(--bs-transition);
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--bs-box-shadow-lg);
+}
+
+/* Glassmorphism Effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Connection Card Specific Styles */
+.connection-card {
+  border-left: 4px solid var(--bs-primary);
+}
+
+.connection-card .card-header {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-secondary) 100%);
+  color: white;
+  border-radius: var(--bs-border-radius-lg) var(--bs-border-radius-lg) 0 0;
+}
+
+/* Status Indicators */
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.status-online { background-color: var(--bs-success); }
+.status-offline { background-color: var(--bs-danger); }
+.status-connecting { background-color: var(--bs-warning); }
+
+/* Stat Cards */
+.stat-card {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--bs-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Form Enhancements */
+.form-control {
+  border-radius: var(--bs-border-radius);
+  border: 2px solid #e9ecef;
+  transition: var(--bs-transition);
+}
+
+.form-control:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem rgba(37, 211, 102, 0.25);
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--bs-dark);
+  margin-bottom: 0.5rem;
+}
+
+/* Input Groups */
+.input-group-text {
+  background: var(--bs-light);
+  border: 2px solid #e9ecef;
+  border-radius: var(--bs-border-radius);
+  color: var(--bs-secondary);
+  font-weight: 600;
+}
+
+/* Progress Bars */
+.progress {
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-light);
+}
+
+.progress-bar {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-secondary) 100%);
+  border-radius: var(--bs-border-radius);
+}
+
+/* Badges */
+.badge {
+  border-radius: var(--bs-border-radius);
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Alerts */
+.alert {
+  border: none;
+  border-radius: var(--bs-border-radius-lg);
+  border-left: 4px solid;
+}
+
+.alert-primary {
+  background: var(--whatsapp-green-light);
+  border-left-color: var(--bs-primary);
+  color: var(--bs-dark);
+}
+
+/* Navigation Enhancements */
+.navbar {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-secondary) 100%);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.nav-link {
+  font-weight: 500;
+  transition: var(--bs-transition);
+  border-radius: var(--bs-border-radius);
+  margin: 0 0.25rem;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--bs-border-radius);
+}
+
+/* Sidebar Enhancements */
+.sidebar {
+  background: white;
+  box-shadow: var(--bs-box-shadow);
+  border-right: 1px solid #e9ecef;
+}
+
+.sidebar .nav-link {
+  color: var(--bs-dark);
+  padding: 1rem 1.5rem;
+  border-radius: 0;
+  border-left: 3px solid transparent;
+  transition: var(--bs-transition);
+}
+
+.sidebar .nav-link:hover {
+  background: var(--bs-light);
+  color: var(--bs-primary);
+  border-left-color: var(--bs-primary);
+}
+
+.sidebar .nav-link.active {
+  background: var(--bs-light);
+  color: var(--bs-primary);
+  border-left-color: var(--bs-primary);
+  font-weight: 600;
+}
+
+/* Loading States */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+  .card {
+    margin-bottom: 1rem;
+  }
+  
+  .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .btn-group .btn {
+    width: auto;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .card {
+    background: var(--bs-dark);
+    color: white;
+  }
+  
+  .form-control {
+    background: var(--bs-dark);
+    color: white;
+    border-color: #495057;
+  }
+  
+  .form-control:focus {
+    background: var(--bs-dark);
+    color: white;
+  }
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+  from { 
+    opacity: 0; 
+    transform: translateX(-30px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+  from { 
+    opacity: 0; 
+    transform: translateX(30px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}

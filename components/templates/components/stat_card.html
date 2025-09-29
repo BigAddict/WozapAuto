@@ -1,0 +1,26 @@
+<div class="card stat-card hover-lift{% if class_name %} {{ class_name }}{% endif %}">
+    <div class="card-body text-center">
+        {% if icon %}
+            <div class="stat-icon mb-3">
+                <i class="{{ icon }} text-{{ color }} fs-1"></i>
+            </div>
+        {% endif %}
+        
+        <div class="stat-value mb-2">
+            <h3 class="mb-0 text-{{ color }}">{{ value }}</h3>
+        </div>
+        
+        <div class="stat-title mb-2">
+            <h6 class="text-muted mb-0">{{ title }}</h6>
+        </div>
+        
+        {% if change is not None %}
+            <div class="stat-change">
+                <small class="{% if change > 0 %}text-success{% elif change < 0 %}text-danger{% else %}text-muted{% endif %}">
+                    <i class="bi {% if change > 0 %}bi-arrow-up{% elif change < 0 %}bi-arrow-down{% else %}bi-dash{% endif %} me-1"></i>
+                    {% if change > 0 %}+{% endif %}{{ change }}%
+                </small>
+            </div>
+        {% endif %}
+    </div>
+</div>

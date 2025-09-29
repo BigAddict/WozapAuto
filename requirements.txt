@@ -1,0 +1,7 @@
+django
+python-dotenv
+hiredis
+redis
+requests
+pydantic
+django-components

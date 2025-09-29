@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}WozapAuto - WhatsApp AI Agent Platform{% endblock %}</title>
+    
+    <!-- Bootstrap 5.0.2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    {% load static %}
+    {% load component_tags %}
+    <link rel="stylesheet" href="{% static 'css/bootstrap-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/effects.css' %}">
+    {% block extra_css %}{% endblock %}
+    <style>
+
+        body {
+            font-family: var(--font-family);
+            background: var(--gradient-hero);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding-top: 76px; /* Account for fixed navbar height */
+            padding-bottom: 80px; /* Account for fixed footer height */
+        }
+
+        .navbar {
+            background: var(--gradient-primary);
+            box-shadow: var(--shadow);
+            border: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white !important;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.9) !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 0.75rem 1rem;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: white !important;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+
+        .sidebar {
+            background: white;
+            height: calc(100vh - 76px);
+            box-shadow: var(--shadow);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 76px;
+            left: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 1000;
+        }
+
+        .sidebar .nav-link {
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 0;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar .nav-link:hover {
+            background: var(--accent-color);
+            color: var(--secondary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .sidebar .nav-link.active {
+            background: var(--accent-color);
+            color: var(--secondary-color);
+            border-left-color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .main-content {
+            padding: 2rem;
+            height: calc(100vh - 76px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Adjust main content margin when sidebar is visible */
+        .main-content.with-sidebar {
+            margin-left: 12%; /* Reduced from 16.666667% for better spacing */
+        }
+
+        @media (max-width: 991.98px) {
+            .main-content.with-sidebar {
+                margin-left: 18%; /* Reduced from 25% for better spacing */
+            }
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            background: var(--card-bg);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+            padding: 1.25rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-online { background-color: #28a745; }
+        .status-offline { background-color: #dc3545; }
+        .status-connecting { background-color: #ffc107; }
+
+        .agent-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .agent-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-3px);
+        }
+
+        .conversation-item {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .conversation-item:hover {
+            box-shadow: var(--shadow);
+            border-left-color: var(--primary-color);
+        }
+
+        .notification-badge {
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .footer {
+            background: var(--dark-bg);
+            color: white;
+            padding: 1rem 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1020;
+        }
+
+        .footer .text-muted {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        .footer h6 {
+            color: white !important;
+        }
+
+        /* Enhanced Mobile Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 60px;
+                padding-bottom: 60px;
+            }
+            
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+            
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+            
+            .navbar-nav .nav-link {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+            }
+            
+            .sidebar {
+                position: fixed;
+                top: 60px;
+                left: -280px;
+                width: 280px;
+                height: calc(100vh - 60px);
+                z-index: 1000;
+                transition: left 0.3s ease;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            }
+
+            .sidebar.show {
+                left: 0;
+            }
+            
+            .sidebar .nav-link {
+                padding: 0.75rem 1rem;
+                font-size: 0.875rem;
+            }
+            
+            .sidebar .nav-link i {
+                font-size: 1rem;
+            }
+
+            .main-content {
+                padding: 0.75rem;
+                margin-left: 0 !important;
+                height: calc(100vh - 60px);
+            }
+            
+            .main-content.with-sidebar {
+                margin-left: 0;
+            }
+
+            .navbar-toggler {
+                border: none;
+                color: white;
+                padding: 0.25rem 0.5rem;
+            }
+            
+            .navbar-toggler:focus {
+                box-shadow: none;
+            }
+            
+            .navbar-collapse {
+                background: rgba(255,255,255,0.1);
+                border-radius: 8px;
+                margin-top: 0.5rem;
+                padding: 0.5rem;
+            }
+            
+            .navbar-nav {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .navbar-nav .nav-item {
+                width: 100%;
+            }
+            
+            .navbar-nav .nav-link {
+                border-radius: 6px;
+                margin-bottom: 0.25rem;
+            }
+            
+            .dropdown-menu {
+                position: static !important;
+                transform: none !important;
+                border: none;
+                background: rgba(255,255,255,0.1);
+                margin-top: 0.25rem;
+                border-radius: 6px;
+            }
+            
+            .dropdown-item {
+                color: rgba(255,255,255,0.9);
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                margin: 0.125rem;
+            }
+            
+            .dropdown-item:hover {
+                background: rgba(255,255,255,0.1);
+                color: white;
+            }
+            
+            .footer {
+                padding: 0.75rem 0;
+            }
+            
+            .footer h6 {
+                font-size: 0.875rem;
+            }
+            
+            .footer .text-muted {
+                font-size: 0.75rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding-top: 56px;
+                padding-bottom: 56px;
+            }
+            
+            .navbar {
+                padding: 0.375rem 0.75rem;
+            }
+            
+            .navbar-brand {
+                font-size: 1.125rem;
+            }
+            
+            .navbar-nav .nav-link {
+                padding: 0.375rem 0.5rem;
+                font-size: 0.8125rem;
+            }
+            
+            .sidebar {
+                top: 56px;
+                left: -100%;
+                width: 100%;
+                height: calc(100vh - 56px);
+            }
+            
+            .sidebar .nav-link {
+                padding: 1rem 1.25rem;
+                font-size: 0.875rem;
+            }
+            
+            .sidebar .nav-link i {
+                font-size: 1.125rem;
+                margin-right: 0.75rem;
+            }
+
+            .main-content {
+                padding: 0.5rem;
+                height: calc(100vh - 56px);
+            }
+            
+            .navbar-collapse {
+                margin-top: 0.375rem;
+                padding: 0.375rem;
+            }
+            
+            .navbar-nav .nav-link {
+                margin-bottom: 0.125rem;
+            }
+            
+            .dropdown-menu {
+                margin-top: 0.125rem;
+            }
+            
+            .dropdown-item {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.8125rem;
+            }
+            
+            .footer {
+                padding: 0.5rem 0;
+            }
+            
+            .footer h6 {
+                font-size: 0.8125rem;
+            }
+            
+            .footer .text-muted {
+                font-size: 0.6875rem;
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar Styling */
+        .sidebar::-webkit-scrollbar,
+        .main-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track,
+        .main-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb,
+        .main-content::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .main-content::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Firefox scrollbar styling */
+        .sidebar,
+        .main-content {
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="bi bi-whatsapp me-2"></i>WozapAuto
+            </a>
+            
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">
+                            <i class="bi bi-house me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'components_demo' %}active{% endif %}" href="{% url 'components_demo' %}">
+                            <i class="bi bi-puzzle me-1"></i>Components Demo
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-robot me-1"></i>Agents
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-chat-dots me-1"></i>Conversations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-graph-up me-1"></i>Analytics
+                        </a>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>{{ user.first_name|default:user.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-question-circle me-2"></i>Help</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'signout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'signin' %}">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'signup' %}">
+                            <i class="bi bi-person-plus me-1"></i>Sign Up
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            {% if user.is_authenticated %}
+            <div class="col-lg-2 col-md-3 p-0">
+                <div class="sidebar">
+                    <nav class="nav flex-column">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">
+                            <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                        </a>
+                {% if user.connection_set.count > 0 %}
+                <a class="nav-link {% if 'connections' in request.resolver_match.namespace and request.resolver_match.url_name == 'manage' %}active{% endif %}" href="{% url 'connections:manage' %}">
+                    <i class="bi bi-whatsapp me-2"></i>Manage Connection
+                    <span class="badge bg-success ms-auto">Connected</span>
+                </a>
+                {% else %}
+                <a class="nav-link {% if 'connections' in request.resolver_match.namespace and request.resolver_match.url_name == 'create' %}active{% endif %}" href="{% url 'connections:create' %}">
+                    <i class="bi bi-plus-circle me-2"></i>Create Connection
+                </a>
+                {% endif %}
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-robot me-2"></i>AI Agents
+                            <span class="notification-badge ms-auto">0</span>
+                        </a>
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-chat-dots me-2"></i>Conversations
+                            <span class="notification-badge ms-auto">0</span>
+                        </a>
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-graph-up me-2"></i>Analytics
+                        </a>
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-gear me-2"></i>Settings
+                        </a>
+                        <hr class="my-3">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-plus-circle me-2"></i>Add Agent
+                        </a>
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-download me-2"></i>Export Data
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Main Content -->
+            <div class="{% if user.is_authenticated %}col-lg-10 col-md-9{% else %}col-12{% endif %}">
+                <div class="main-content {% if user.is_authenticated %}with-sidebar{% endif %}">
+                    <!-- Breadcrumb -->
+                    <nav aria-label="breadcrumb" class="mb-4">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                            {% block breadcrumb %}{% endblock %}
+                        </ol>
+                    </nav>
+
+                    <!-- Messages -->
+                    {% if messages %}
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Page Content -->
+                    <div class="fade-in">
+                        {% block content %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h6 class="mb-1">WozapAuto</h6>
+                    <small class="text-muted">Professional WhatsApp AI Agent Platform</small>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small class="text-muted">&copy; 2025 WozapAuto. All rights reserved.</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5.0.2 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <!-- AOS Animation Library -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="{% static 'js/main.js' %}"></script>
+    <script>
+        // Enhanced Mobile Navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            const navbarCollapse = document.querySelector('.navbar-collapse');
+            const body = document.body;
+            
+            // Mobile sidebar toggle
+            if (navbarToggler && sidebar) {
+                navbarToggler.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.toggle('show');
+                        
+                        // Prevent body scroll when sidebar is open
+                        if (sidebar.classList.contains('show')) {
+                            body.style.overflow = 'hidden';
+                        } else {
+                            body.style.overflow = '';
+                        }
+                    }
+                });
+            }
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('show')) {
+                    if (!sidebar.contains(e.target) && 
+                        !navbarToggler.contains(e.target) && 
+                        !navbarCollapse.contains(e.target)) {
+                        sidebar.classList.remove('show');
+                        body.style.overflow = '';
+                    }
+                }
+            });
+            
+            // Close sidebar when clicking on nav links on mobile
+            if (sidebar) {
+                const navLinks = sidebar.querySelectorAll('.nav-link');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth <= 768) {
+                            sidebar.classList.remove('show');
+                            body.style.overflow = '';
+                        }
+                    });
+                });
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    if (sidebar) {
+                        sidebar.classList.remove('show');
+                    }
+                    body.style.overflow = '';
+                }
+            });
+            
+            // Close mobile navbar when clicking outside
+            if (navbarCollapse) {
+                document.addEventListener('click', function(e) {
+                    if (window.innerWidth <= 768) {
+                        if (!navbarCollapse.contains(e.target) && 
+                            !navbarToggler.contains(e.target) &&
+                            navbarCollapse.classList.contains('show')) {
+                            const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+                                toggle: false
+                            });
+                            bsCollapse.hide();
+                        }
+                    }
+                });
+            }
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+            
+            // Add touch support for mobile
+            if ('ontouchstart' in window) {
+                document.body.classList.add('touch-device');
+            }
+        });
+
+        // Page initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize any page-specific functionality here
+            console.log('Page loaded successfully');
+        });
+        
+        // Initialize AOS (Animate On Scroll)
+        AOS.init({
+            duration: 800,
+            easing: 'ease-in-out',
+            once: true,
+            offset: 100
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

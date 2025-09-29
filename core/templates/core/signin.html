@@ -1,0 +1,507 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Sign In - WozapAuto{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        min-height: calc(100vh - 156px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-xl) var(--space-md);
+    }
+    
+    .auth-card {
+        width: 100%;
+        max-width: 400px;
+        background: var(--background-white);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+    
+    .auth-header {
+        background: var(--gradient-primary);
+        color: white;
+        padding: var(--space-2xl) var(--space-xl);
+        text-align: center;
+    }
+    
+    .auth-header__icon {
+        font-size: 3rem;
+        margin-bottom: var(--space-md);
+        display: block;
+    }
+    
+    .auth-header__title {
+        font-size: var(--font-size-2xl);
+        font-weight: var(--font-weight-semibold);
+        margin: 0 0 var(--space-sm) 0;
+    }
+    
+    .auth-header__subtitle {
+        font-size: var(--font-size-base);
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    .auth-body {
+        padding: var(--space-2xl) var(--space-xl);
+    }
+    
+    .auth-footer {
+        padding: var(--space-lg) var(--space-xl);
+        background: var(--background-light);
+        text-align: center;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .auth-footer__text {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        margin: 0;
+    }
+    
+    .auth-footer__link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: var(--font-weight-medium);
+        transition: var(--transition);
+    }
+    
+    .auth-footer__link:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+    
+    .social-login {
+        margin-top: var(--space-lg);
+    }
+    
+    .social-login__title {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        text-align: center;
+        margin: 0 0 var(--space-md) 0;
+        position: relative;
+    }
+    
+    .social-login__title::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--border-color);
+        z-index: 1;
+    }
+    
+    .social-login__title span {
+        background: var(--background-white);
+        padding: 0 var(--space-md);
+        position: relative;
+        z-index: 2;
+    }
+    
+    .social-buttons {
+        display: grid;
+        gap: var(--space-sm);
+    }
+    
+    .btn-social {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+        padding: var(--space-md) var(--space-lg);
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius);
+        background: var(--background-white);
+        color: var(--text-primary);
+        font-weight: var(--font-weight-medium);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+    
+    .btn-social:hover {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+        color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+    
+    .btn-social__icon {
+        font-size: var(--font-size-lg);
+    }
+    
+    .forgot-password {
+        text-align: center;
+        margin-top: var(--space-lg);
+    }
+    
+    .forgot-password__link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: var(--font-size-sm);
+        transition: var(--transition);
+    }
+    
+    .forgot-password__link:hover {
+        color: var(--primary-color);
+        text-decoration: underline;
+    }
+    
+    /* Enhanced Mobile Responsive Design */
+    @media (max-width: 768px) {
+        .auth-container {
+            padding: var(--space-sm);
+            min-height: calc(100vh - 120px);
+        }
+        
+        .auth-card {
+            max-width: 100%;
+            margin: 0;
+        }
+        
+        .auth-header {
+            padding: var(--space-lg) var(--space-md);
+        }
+        
+        .auth-header__icon {
+            font-size: 2.5rem;
+        }
+        
+        .auth-header__title {
+            font-size: var(--font-size-xl);
+        }
+        
+        .auth-header__subtitle {
+            font-size: var(--font-size-sm);
+        }
+        
+        .auth-body {
+            padding: var(--space-lg) var(--space-md);
+        }
+        
+        .auth-footer {
+            padding: var(--space-md);
+        }
+        
+        .form-group {
+            margin-bottom: var(--space-md);
+        }
+        
+        .form-control {
+            padding: var(--space-sm) var(--space-md);
+            font-size: var(--font-size-sm);
+        }
+        
+        .form-label {
+            font-size: var(--font-size-sm);
+        }
+        
+        .form-help {
+            font-size: var(--font-size-xs);
+        }
+        
+        .form-check-label {
+            font-size: var(--font-size-sm);
+        }
+        
+        .btn--lg {
+            padding: var(--space-md) var(--space-lg);
+            font-size: var(--font-size-base);
+        }
+        
+        .forgot-password {
+            margin-top: var(--space-md);
+        }
+        
+        .forgot-password__link {
+            font-size: var(--font-size-xs);
+        }
+        
+        .social-login {
+            margin-top: var(--space-md);
+        }
+        
+        .social-login__title {
+            font-size: var(--font-size-xs);
+        }
+        
+        .btn-social {
+            padding: var(--space-sm) var(--space-md);
+            font-size: var(--font-size-sm);
+        }
+        
+        .btn-social__icon {
+            font-size: var(--font-size-base);
+        }
+        
+        .form-actions {
+            margin-top: var(--space-lg);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .auth-container {
+            padding: var(--space-xs);
+            min-height: calc(100vh - 100px);
+        }
+        
+        .auth-header {
+            padding: var(--space-md) var(--space-sm);
+        }
+        
+        .auth-header__icon {
+            font-size: 2rem;
+        }
+        
+        .auth-header__title {
+            font-size: var(--font-size-lg);
+        }
+        
+        .auth-header__subtitle {
+            font-size: var(--font-size-xs);
+        }
+        
+        .auth-body {
+            padding: var(--space-md) var(--space-sm);
+        }
+        
+        .auth-footer {
+            padding: var(--space-sm);
+        }
+        
+        .form-group {
+            margin-bottom: var(--space-sm);
+        }
+        
+        .form-control {
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-sm);
+        }
+        
+        .form-label {
+            font-size: var(--font-size-xs);
+        }
+        
+        .form-help {
+            font-size: var(--font-size-xs);
+        }
+        
+        .form-check-label {
+            font-size: var(--font-size-xs);
+        }
+        
+        .btn--lg {
+            padding: var(--space-sm) var(--space-md);
+            font-size: var(--font-size-sm);
+        }
+        
+        .forgot-password {
+            margin-top: var(--space-sm);
+        }
+        
+        .forgot-password__link {
+            font-size: var(--font-size-xs);
+        }
+        
+        .social-login {
+            margin-top: var(--space-sm);
+        }
+        
+        .social-login__title {
+            font-size: var(--font-size-xs);
+        }
+        
+        .btn-social {
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-xs);
+        }
+        
+        .btn-social__icon {
+            font-size: var(--font-size-sm);
+        }
+        
+        .form-actions {
+            margin-top: var(--space-md);
+        }
+        
+        .auth-footer__text {
+            font-size: var(--font-size-xs);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="bi bi-shield-lock auth-header__icon"></i>
+            <h1 class="auth-header__title">Welcome Back</h1>
+            <p class="auth-header__subtitle">Sign in to your WozapAuto account</p>
+        </div>
+        
+        <div class="auth-body">
+            <form method="post" action="{% url 'signin' %}" id="signinForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="username" class="form-label">
+                        Username or Email
+                        <span class="form-label__required" aria-label="required">*</span>
+                    </label>
+                    <input type="text" 
+                           id="username" 
+                           name="username" 
+                           class="form-control" 
+                           required
+                           placeholder="Enter your username or email"
+                           autocomplete="username"
+                           aria-describedby="username_help">
+                    <div id="username_help" class="form-help">
+                        Enter your registered username or email address
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        Password
+                        <span class="form-label__required" aria-label="required">*</span>
+                    </label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           required
+                           placeholder="Enter your password"
+                           autocomplete="current-password"
+                           aria-describedby="password_help">
+                    <div id="password_help" class="form-help">
+                        Enter your account password
+                    </div>
+                </div>
+
+                <div class="form-check">
+                    <input type="checkbox" 
+                           class="form-check-input" 
+                           id="remember_me" 
+                           name="remember_me">
+                    <label class="form-check-label" for="remember_me">
+                        Remember me for 30 days
+                    </label>
+                </div>
+
+                <div class="form-actions form-actions--center">
+                    <button type="submit" class="btn btn--primary btn--lg">
+                        <i class="bi bi-rocket btn__icon" aria-hidden="true"></i>
+                        Sign In
+                    </button>
+                </div>
+            </form>
+            
+            <div class="forgot-password">
+                <a href="#" class="forgot-password__link">
+                    Forgot your password?
+                </a>
+            </div>
+            
+            <div class="social-login">
+                <p class="social-login__title">
+                    <span>Or continue with</span>
+                </p>
+                <div class="social-buttons">
+                    <a href="#" class="btn-social">
+                        <i class="bi bi-google btn-social__icon"></i>
+                        <span>Google</span>
+                    </a>
+                    <a href="#" class="btn-social">
+                        <i class="bi bi-facebook btn-social__icon"></i>
+                        <span>Facebook</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="auth-footer">
+            <p class="auth-footer__text">
+                Don't have an account? 
+                <a href="{% url 'signup' %}" class="auth-footer__link">Sign up here</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('signinForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Clear previous error states
+        document.querySelectorAll('.form-group--error').forEach(group => {
+            group.classList.remove('form-group--error');
+        });
+        
+        // Validate username
+        if (!usernameInput.value.trim()) {
+            usernameInput.closest('.form-group').classList.add('form-group--error');
+            isValid = false;
+        }
+        
+        // Validate password
+        if (!passwordInput.value.trim()) {
+            passwordInput.closest('.form-group').classList.add('form-group--error');
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            showNotification('Please fill in all required fields', 'error');
+        }
+    });
+    
+    // Real-time validation
+    usernameInput.addEventListener('blur', function() {
+        if (this.value.trim()) {
+            this.closest('.form-group').classList.remove('form-group--error');
+        }
+    });
+    
+    passwordInput.addEventListener('blur', function() {
+        if (this.value.trim()) {
+            this.closest('.form-group').classList.remove('form-group--error');
+        }
+    });
+    
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `notification notification--${type}`;
+        notification.innerHTML = `
+            <div class="notification__content">
+                <span class="notification__icon"><i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}"></i></span>
+                <span class="notification__message">${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}
