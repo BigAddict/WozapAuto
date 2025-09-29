@@ -2,11 +2,13 @@ from django.http import HttpResponse, HttpRequest
 from django.views.generic import TemplateView
 from django.contrib import messages
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 
 from .models import Connection
 from .services import evolution_api_service
 
-
+@method_decorator(login_required, name='dispatch')
 class CreateConnectionView(TemplateView):
     template_name = "connections/connection_create.html"
     
@@ -24,6 +26,7 @@ class CreateConnectionView(TemplateView):
         return context
 
 
+@method_decorator(login_required, name='dispatch')
 class ConnectionDetailView(TemplateView):
     template_name = "connections/connection_detail.html"
 
@@ -53,6 +56,7 @@ class ConnectionDetailView(TemplateView):
         return context
 
 
+@method_decorator(login_required, name='dispatch')
 class ConnectionManageView(TemplateView):
     """Manage existing connection - redirects to create if no connection exists"""
     template_name = "connections/connection_manage.html"
