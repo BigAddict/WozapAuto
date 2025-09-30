@@ -7,3 +7,4 @@ pydantic
 django-components
 pillow
 gunicorn
+whitenoise
