@@ -1,7 +1,11 @@
 from typing import Optional, Tuple, Union
 import requests
+import logging
 
 from base.env_config import EVOLUTION_API_KEY, EVOLUTION_HOST_URL
+
+# Set up logging
+logger = logging.getLogger('connections.services')
 from .models import (
     EvolutionInstance,
     EvolutionInstanceSettings,
@@ -11,7 +15,8 @@ from .models import (
     EvolutionInstanceCreate,
     EvolutionInstanceCreateResponse,
     EvolutionInstanceData,
-    EvolutionQRCodeData
+    EvolutionQRCodeData,
+    EvolutionInstanceDisconnectResponse
 )
 
 class EvolutionAPIService:
@@ -36,6 +41,8 @@ class EvolutionAPIService:
             - (True, EvolutionInstanceCreateResponse) on success
             - (False, error_message) on failure
         """
+        logger.info(f"Creating Evolution API instance: {instance_create.instance_name} for phone {instance_create.phone_number[:3]}***")
+        
         try:
             url = f"{self.host_url}/instance/create"
             headers = self.get_headers()
@@ -56,10 +63,12 @@ class EvolutionAPIService:
                     "events": ["MESSAGES_UPSERT"]
                 }
             }
+            logger.debug(f"Making POST request to Evolution API: {url}")
             response = requests.post(url, json=payload, headers=headers, timeout=30)
             response.raise_for_status()
             
             data = response.json()
+            logger.info(f"Evolution API instance created successfully: {instance_create.instance_name}")
             
             # Parse the response data
             instance_data = data.get('instance', {})
@@ -124,8 +133,10 @@ class EvolutionAPIService:
             else:
                 return False, f"HTTP error {e.response.status_code}: {e.response.text}"
         except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed: {str(e)}")
             return False, f"Request failed: {str(e)}"
         except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             return False, f"Unexpected error: {str(e)}"
 
     def get_instance(self, instance_id: str) -> Tuple[bool, Union[EvolutionInstance, str]]:
@@ -180,13 +191,13 @@ class EvolutionAPIService:
                 instance_id=instance_data.get('id', ''),
                 instance_name=instance_data.get('name', ''),
                 connection_status=instance_data.get('connectionStatus', ''),
-                owner_jid=instance_data.get('ownerJid', ''),
-                profile_name=instance_data.get('profileName', ''),
-                profile_pic_url=instance_data.get('profilePicUrl', ''),
-                intergration=instance_data.get('integration', ''),
+                owner_jid=instance_data.get('ownerJid') or None,
+                profile_name=instance_data.get('profileName') or None,
+                profile_pic_url=instance_data.get('profilePicUrl') or None,
+                integration=instance_data.get('integration', ''),
                 phone_number=instance_data.get('number', ''),
                 api_token=instance_data.get('token', ''),
-                disconnection_object=instance_data.get('disconnectionObject', ''),
+                disconnection_object=instance_data.get('disconnectionObject') or None,
                 created_at=instance_data.get('createdAt', ''),
                 updated_at=instance_data.get('updatedAt', ''),
                 settings=settings,
@@ -208,8 +219,10 @@ class EvolutionAPIService:
             else:
                 return False, f"HTTP error {e.response.status_code}: {e.response.text}"
         except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed: {str(e)}")
             return False, f"Request failed: {str(e)}"
         except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             return False, f"Unexpected error: {str(e)}"
 
     def get_connection_state(self, instance_name: str) -> Tuple[bool, Union[EvolutionConnectionState, str]]:
@@ -234,5 +247,95 @@ class EvolutionAPIService:
             else:
                 return False, f"HTTP error {e.response.status_code}: {e.response.text}"
 
+    def get_instance_qrcode(self, instance_name: str) -> Tuple[bool, Union[EvolutionQRCodeData, str]]:
+        try:
+            url = f"{self.host_url}/instance/connect/{instance_name}"
+            headers = self.get_headers()
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            # Clean base64 data - remove duplicate data:image/png;base64, prefix if present
+            base64_data = data.get('base64', '')
+            if base64_data.startswith('data:image/png;base64,data:image/png;base64,'):
+                base64_data = base64_data.replace('data:image/png;base64,data:image/png;base64,', 'data:image/png;base64,')
+            
+            return True, EvolutionQRCodeData(
+                pairing_code=data.get('pairingCode') or None,
+                code=data.get('code', ''),
+                base64=base64_data,
+                count=data.get('count', 0)
+            )
+        except requests.exceptions.Timeout:
+            return False, "Request timeout -whasapp host is not responding"
+        except requests.exceptions.ConnectionError:
+            return False, "Connection error - Unable to reach whasapp host"
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                return False, "Invalid API key - Authentication failed"
+            elif e.response.status_code == 404:
+                return False, "Instance not found"
+            else:
+                return False, f"HTTP error {e.response.status_code}: {e.response.text}"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed: {str(e)}")
+            return False, f"Request failed: {str(e)}"
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return False, f"Unexpected error: {str(e)}"
+
+    def disconnect_instance(self, instance_name: str) -> Tuple[bool, Union[EvolutionInstanceDisconnectResponse, str]]:
+        try:
+            url = f"{self.host_url}/instance/logout/{instance_name}"
+            headers = self.get_headers()
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            json_data = response.json()
+            return True, EvolutionInstanceDisconnectResponse(
+                status=json_data.get('status', ''),
+                error=json_data.get('error', False),
+                message=json_data.get('response', {}).get('message', '')
+            )
+        except requests.exceptions.Timeout:
+            return False, "Request timeout -whasapp host is not responding"
+        except requests.exceptions.ConnectionError:
+            return False, "Connection error - Unable to reach whasapp host"
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                return False, "Invalid API key - Authentication failed"
+            elif e.response.status_code == 404:
+                return False, "Instance not found"
+            else:
+                return False, f"HTTP error {e.response.status_code}: {e.response.text}"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed: {str(e)}")
+            return False, f"Request failed: {str(e)}"
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return False, f"Unexpected error: {str(e)}"
+
+    def delete_instance(self, instance_name: str) -> Tuple[bool, Union[str, None]]:
+        try:
+            url = f"{self.host_url}/instance/delete/{instance_name}"
+            headers = self.get_headers()
+            response = requests.delete(url, headers=headers)
+            response.raise_for_status()
+            return True, response.json().get('message', None)
+        except requests.exceptions.Timeout:
+            return False, "Request timeout -whasapp host is not responding"
+        except requests.exceptions.ConnectionError:
+            return False, "Connection error - Unable to reach whasapp host"
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                return False, "Invalid API key - Authentication failed"
+            elif e.response.status_code == 404:
+                return False, "Instance not found"
+            else:
+                return False, f"HTTP error {e.response.status_code}: {e.response.text}"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed: {str(e)}")
+            return False, f"Request failed: {str(e)}"
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return False, f"Unexpected error: {str(e)}"
 
 evolution_api_service = EvolutionAPIService()

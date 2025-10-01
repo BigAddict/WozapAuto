@@ -1,11 +1,13 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
 from django.contrib import messages
+from django.http import JsonResponse
+from .models import UserProfile
 
 # Signup View
 def signup(request):
@@ -105,7 +107,6 @@ class HomePageView(TemplateView):
             context.update({
                 'total_connections': connections.count(),
                 'active_connections': active_connections.count(),
-                'recent_connections': connections.order_by('-created_at')[:5],
                 'user_profile': getattr(self.request.user, 'profile', None),
                 **connection_data  # Add connection data to context
             })
@@ -113,35 +114,53 @@ class HomePageView(TemplateView):
         return context
 
 
-class ComponentsDemoView(TemplateView):
-    """
-    Demo view to showcase Django Cotton components with Bootstrap integration
-    """
-    template_name = 'core/components_demo.html'
+
+
+@login_required
+def profile_view(request):
+    """View user profile"""
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    return render(request, 'core/profile.html', {'profile': profile})
+
+
+@login_required
+def profile_edit(request):
+    """Edit user profile"""
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    if request.method == 'POST':
+        # Update user fields
+        request.user.first_name = request.POST.get('first_name', '').strip()
+        request.user.last_name = request.POST.get('last_name', '').strip()
+        request.user.email = request.POST.get('email', '').strip()
+        request.user.save()
         
-        # Sample data for components
-        context.update({
-            'sample_connection': {
-                'id': 1,
-                'instance_name': 'Demo WhatsApp',
-                'connection_status': 'online',
-                'messages': 42,
-                'last_activity': '2 minutes ago'
-            },
-            'sample_stats': [
-                {'title': 'Total Messages', 'value': '1,234', 'change': 12.5, 'icon': 'bi-chat-dots', 'color': 'primary'},
-                {'title': 'Active Connections', 'value': '5', 'change': 0, 'icon': 'bi-whatsapp', 'color': 'success'},
-                {'title': 'Response Rate', 'value': '98.5%', 'change': 2.1, 'icon': 'bi-graph-up', 'color': 'info'},
-                {'title': 'Avg Response Time', 'value': '2.3s', 'change': -5.2, 'icon': 'bi-clock', 'color': 'warning'},
-            ],
-            'wizard_steps': [
-                {'title': 'Basic Info', 'description': 'Enter connection details'},
-                {'title': 'Authentication', 'description': 'Choose connection method'},
-                {'title': 'Complete', 'description': 'Finish setup'},
-            ]
+        # Update profile fields
+        profile.phone_number = request.POST.get('phone_number', '').strip()
+        profile.company_name = request.POST.get('company_name', '').strip()
+        profile.timezone = request.POST.get('timezone', 'UTC')
+        profile.language = request.POST.get('language', 'en')
+        profile.save()
+        
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('profile')
+    
+    return render(request, 'core/profile_edit.html', {'profile': profile})
+
+
+@login_required
+def profile_api(request):
+    """API endpoint for profile data"""
+    if request.method == 'GET':
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        return JsonResponse({
+            'company_name': profile.company_name or '',
+            'phone_number': profile.phone_number or '',
+            'timezone': profile.timezone,
+            'language': profile.language,
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'email': request.user.email,
         })
-        
-        return context
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

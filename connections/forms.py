@@ -12,14 +12,14 @@ class ConnectionForm(forms.Form):
     
     instance_name = forms.CharField(
         max_length=255,
-        label='Connection Name',
+        label='Company Name',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'e.g., My WhatsApp Bot',
+            'placeholder': 'e.g., My Company',
             'maxlength': '50',
             'required': True
         }),
-        help_text='Choose a name to identify this connection'
+        help_text='This will be used as your WhatsApp instance name'
     )
     
     phone_number = forms.CharField(

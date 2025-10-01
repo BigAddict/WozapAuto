@@ -1,338 +1,56 @@
-{% extends "core/base.html" %}
+{% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Setup WhatsApp Connection - WozapAuto{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/connections.css' %}">
-{% endblock %}
+{% block title %}Create WhatsApp Connection - WozapAuto{% endblock %}
 
 {% block content %}
-<div class="page-container">
-    <header class="page-header">
-        <nav class="breadcrumb" aria-label="Breadcrumb">
-            <ol class="breadcrumb__list">
-                <li class="breadcrumb__item">
-                    <a href="{% url 'home' %}" class="breadcrumb__link">Home</a>
-                </li>
-                <li class="breadcrumb__item breadcrumb__item--current">
-                    Setup Connection
-                </li>
-            </ol>
-        </nav>
-        
-        <div class="page-header__actions">
-            <button class="btn btn--outline btn--sm" onclick="window.history.back()">
-                ← Back
-            </button>
-        </div>
-    </header>
-
-    <main class="page-content">
-        <!-- Connection Setup Wizard -->
-        <div class="connection-wizard" data-wizard="connection-creation">
-            <!-- Step 1: Basic Information -->
-            <div class="wizard-step wizard-step--active" data-step="1">
-                <header class="wizard-step__header">
-                    <h1 class="wizard-step__title">Setup Your WhatsApp Connection</h1>
-                    <p class="wizard-step__description">
-                        Connect your WhatsApp account to start using AI agents. 
-                        This process will securely link your WhatsApp to WozapAuto.
-                    </p>
-                </header>
-                
-                <form class="connection-form" data-form="connection-setup">
-                    {% csrf_token %}
-                    
-                    <div class="form-group">
-                        <label for="instance_name" class="form-label">
-                            Connection Name
-                            <span class="form-label__required" aria-label="required">*</span>
-                        </label>
-                        <input type="text" 
-                               id="instance_name" 
-                               name="instance_name" 
-                               class="form-control" 
-                               required 
-                               maxlength="50"
-                               placeholder="e.g., My WhatsApp Bot"
-                               aria-describedby="instance_name_help">
-                        <div id="instance_name_help" class="form-help">
-                            Choose a name to identify this connection
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="phone_number" class="form-label">
-                            Phone Number
-                            <span class="form-label__required" aria-label="required">*</span>
-                        </label>
-                        <input type="tel" 
-                               id="phone_number" 
-                               name="phone_number" 
-                               class="form-control" 
-                               required 
-                               pattern="^\+[1-9]\d{1,14}$"
-                               placeholder="+1234567890"
-                               aria-describedby="phone_number_help">
-                        <div id="phone_number_help" class="form-help">
-                            Enter your WhatsApp phone number with country code
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <fieldset class="connection-method">
-                            <legend class="form-label">Connection Method</legend>
-                            <div class="radio-group">
-                                <label class="radio-option">
-                                    <input type="radio" 
-                                           name="connection_method" 
-                                           value="qr_code" 
-                                           checked 
-                                           class="radio-option__input">
-                                    <span class="radio-option__content">
-                                        <i class="bi bi-qrcode radio-option__icon" aria-hidden="true"></i>
-                                        <div class="radio-option__text">
-                                            <span class="radio-option__title">QR Code</span>
-                                            <span class="radio-option__description">Scan QR code with your phone</span>
-                                        </div>
-                                    </span>
-                                </label>
-                                
-                                <label class="radio-option">
-                                    <input type="radio" 
-                                           name="connection_method" 
-                                           value="pairing_code" 
-                                           class="radio-option__input">
-                                    <span class="radio-option__content">
-                                        <i class="bi bi-key radio-option__icon" aria-hidden="true"></i>
-                                        <div class="radio-option__text">
-                                            <span class="radio-option__title">Pairing Code</span>
-                                            <span class="radio-option__description">Enter code in WhatsApp</span>
-                                        </div>
-                                    </span>
-                                </label>
-                            </div>
-                        </fieldset>
-                    </div>
-                    
-                    <div class="form-actions form-actions--center">
-                        <button type="submit" class="btn btn--primary btn--lg">
-                            <i class="bi bi-rocket-takeoff btn__icon" aria-hidden="true"></i>
-                            Setup Connection
-                        </button>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Step 2: Connection Process -->
-            <div class="wizard-step" data-step="2">
-                <header class="wizard-step__header">
-                    <h2 class="wizard-step__title">Connect Your WhatsApp</h2>
-                    <p class="wizard-step__description">
-                        Follow the steps below to connect your WhatsApp account.
-                    </p>
-                </header>
-                
-                <!-- QR Code Connection -->
-                <div class="connection-method-content" data-method="qr_code">
-                    <div class="qr-code-container">
-                        <div class="qr-code-display" id="qrCodeDisplay">
-                            <div class="loading-spinner" aria-hidden="true"></div>
-                            <p>Generating QR Code...</p>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-whatsapp me-2"></i>Create WhatsApp Connection
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="connectionForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="instance_name" class="form-label">Company Name</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="instance_name" 
+                                   name="instance_name" 
+                                   value="{{ profile.company_name|default:'' }}"
+                                   placeholder="e.g., My Company"
+                                   required>
+                            <div class="form-text">This will be used as your WhatsApp instance name</div>
                         </div>
                         
-                        <div class="connection-instructions">
-                            <h3>How to connect:</h3>
-                            <ol class="instruction-list">
-                                <li>Open WhatsApp on your phone</li>
-                                <li>Tap <strong>Menu</strong> or <strong>Settings</strong></li>
-                                <li>Select <strong>"Linked Devices"</strong></li>
-                                <li>Tap <strong>"Link a Device"</strong></li>
-                                <li>Point your phone at the QR code above</li>
-                            </ol>
+                        <div class="mb-3">
+                            <label for="phone_number" class="form-label">Phone Number</label>
+                            <input type="tel" 
+                                   class="form-control" 
+                                   id="phone_number" 
+                                   name="phone_number" 
+                                   value="{{ profile.phone_number|default:'' }}"
+                                   placeholder="+1234567890"
+                                   pattern="^\+[1-9]\d{1,14}$"
+                                   required>
+                            <div class="form-text">Enter your WhatsApp phone number with country code</div>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- Pairing Code Connection -->
-                <div class="connection-method-content" data-method="pairing_code" style="display: none;">
-                    <div class="pairing-code-container">
-                        <div class="pairing-code-display">
-                            <div class="pairing-code" id="pairingCodeDisplay">----</div>
-                            <button class="btn btn--secondary btn--sm" data-action="copy-code">
-                                <i class="bi bi-clipboard me-1"></i>Copy Code
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-rocket-takeoff me-2"></i>Create Connection
                             </button>
                         </div>
-                        
-                        <div class="code-timer">
-                            <span>Code expires in: </span>
-                            <span id="codeTimer">05:00</span>
-                        </div>
-                        
-                        <div class="connection-instructions">
-                            <h3>How to connect:</h3>
-                            <ol class="instruction-list">
-                                <li>Open WhatsApp on your phone</li>
-                                <li>Tap <strong>Menu</strong> or <strong>Settings</strong></li>
-                                <li>Select <strong>"Linked Devices"</strong></li>
-                                <li>Tap <strong>"Link a Device"</strong></li>
-                                <li>Select <strong>"Link with Phone Number Instead"</strong></li>
-                                <li>Enter the pairing code above</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Connection Status -->
-                <div class="connection-status-container">
-                    <div class="connection-status-indicator" id="connectionStatusIndicator">
-                        <span class="connection-status-indicator__dot" aria-hidden="true"></span>
-                        <span class="connection-status-indicator__text">Waiting for connection...</span>
-                    </div>
-                </div>
-                
-                <div class="wizard-actions">
-                    <button class="btn btn--secondary" data-action="back">
-                        ← Back
-                    </button>
-                    <button class="btn btn--primary" data-action="refresh">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Step 3: Success -->
-            <div class="wizard-step" data-step="3">
-                <div class="success-state">
-                    <div class="success-state__icon" aria-hidden="true">
-                        <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
-                    </div>
-                    <h2 class="success-state__title">Connection Successful!</h2>
-                    <p class="success-state__description">
-                        Your WhatsApp connection has been established successfully. 
-                        You can now start using AI agents with this connection.
-                    </p>
-                    
-                    <div class="connection-summary">
-                        <h3>Connection Details:</h3>
-                        <div class="connection-summary__details" id="connectionSummary">
-                            <!-- Populated by JavaScript -->
-                        </div>
-                    </div>
-                    
-                    <div class="success-actions">
-                        <button class="btn btn--primary" data-action="go-to-dashboard">
-                            <i class="bi bi-house me-1"></i>Go to Dashboard
-                        </button>
-                        <button class="btn btn--secondary" data-action="view-connection">
-                            <i class="bi bi-eye me-1"></i>View Connection
-                        </button>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
-        
-        <!-- Help Section -->
-        <div class="card">
-            <div class="card__header">
-                <h2 class="card__title">Need Help?</h2>
-            </div>
-            <div class="card__content">
-                <div class="help-content">
-                    <div class="help-item">
-                        <i class="bi bi-question-circle help-item__icon"></i>
-                        <div class="help-item__content">
-                            <h3 class="help-item__title">Troubleshooting</h3>
-                            <p class="help-item__description">
-                                If you're having trouble connecting, make sure your phone has an active internet connection 
-                                and WhatsApp is up to date.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="help-item">
-                        <i class="bi bi-phone help-item__icon"></i>
-                        <div class="help-item__content">
-                            <h3 class="help-item__title">Supported Devices</h3>
-                            <p class="help-item__description">
-                                WhatsApp Web works with Android, iPhone, and other smartphones. 
-                                Make sure you're using the latest version of WhatsApp.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="help-item">
-                        <i class="bi bi-shield-lock help-item__icon"></i>
-                        <div class="help-item__content">
-                            <h3 class="help-item__title">Security</h3>
-                            <p class="help-item__description">
-                                Your connection is secure and encrypted. We never store your messages 
-                                or personal data on our servers.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
+    </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'js/connections.js' %}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize connection wizard
-    const wizard = document.querySelector('[data-wizard="connection-creation"]');
-    if (wizard) {
-        new ConnectionManager(wizard);
-    }
-    
-    // Add form validation
-    const form = document.querySelector('[data-form="connection-setup"]');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Validate form
-            const instanceName = document.getElementById('instance_name').value.trim();
-            const phoneNumber = document.getElementById('phone_number').value.trim();
-            
-            if (!instanceName || instanceName.length < 3) {
-                showError('Connection name must be at least 3 characters');
-                return;
-            }
-            
-            if (!phoneNumber || !/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
-                showError('Please enter a valid phone number with country code');
-                return;
-            }
-            
-            // Submit form
-            const connectionManager = window.ConnectionManager;
-            if (connectionManager) {
-                connectionManager.createConnection();
-            }
-        });
-    }
-    
-    function showError(message) {
-        const notification = document.createElement('div');
-        notification.className = 'notification notification--error';
-        notification.innerHTML = `
-            <div class="notification__content">
-                <span class="notification__icon"><i class="bi bi-exclamation-triangle"></i></span>
-                <span class="notification__message">${message}</span>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.remove();
-        }, 5000);
-    }
-});
-</script>
 {% endblock %}

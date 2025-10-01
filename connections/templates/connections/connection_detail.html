@@ -1,7 +1,7 @@
 {% extends "core/base.html" %}
 {% load static %}
 
-{% block title %}{{ connection.instance_name }} - Connection Details{% endblock %}
+{% block title %}{{ connection.instance_name|default:"Connection" }} - Connection Details{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/connections.css' %}">
@@ -37,8 +37,8 @@
             <div class="card__header">
                 <div class="connection-overview">
                     <div class="connection-overview__avatar">
-                        {% if connection.profile_pic_url %}
-                            <img src="{{ connection.profile_pic_url }}" 
+                        {% if instance_data.profile_pic_url %}
+                            <img src="{{ instance_data.profile_pic_url }}" 
                                  alt="{{ connection.profileName }}" 
                                  class="connection-overview__avatar-img">
                         {% else %}
@@ -68,7 +68,7 @@
                     <div class="stat-card">
                         <i class="bi bi-chat-dots stat-card__icon"></i>
                         <div class="stat-card__content">
-                            <div class="stat-card__number">{{ connection.count.messages|default:0 }}</div>
+                            <div class="stat-card__number">{{ instance_data.count.messages|default:0 }}</div>
                             <div class="stat-card__label">Messages</div>
                         </div>
                     </div>
@@ -76,7 +76,7 @@
                     <div class="stat-card">
                         <i class="bi bi-people stat-card__icon"></i>
                         <div class="stat-card__content">
-                            <div class="stat-card__number">{{ connection.count.contacts|default:0 }}</div>
+                            <div class="stat-card__number">{{ instance_data.count.contacts|default:0 }}</div>
                             <div class="stat-card__label">Contacts</div>
                         </div>
                     </div>
@@ -84,7 +84,7 @@
                     <div class="stat-card">
                         <div class="stat-card__icon"><i class="bi bi-chat-left-dots"></i></div>
                         <div class="stat-card__content">
-                            <div class="stat-card__number">{{ connection.count.chat|default:0 }}</div>
+                            <div class="stat-card__number">{{ instance_data.count.chat|default:0 }}</div>
                             <div class="stat-card__label">Chats</div>
                         </div>
                     </div>
@@ -98,179 +98,6 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="card__footer">
-                <div class="connection-actions">
-                    {% if connection.connection_status == 'disconnected' %}
-                        <button class="btn btn--primary" data-action="connect" data-connection-id="{{ connection.instance_id }}">
-                            <i class="bi bi-link-45deg me-2"></i>Connect
-                        </button>
-                    {% elif connection.connection_status == 'connecting' %}
-                        <button class="btn btn--secondary" disabled>
-                            <span class="loading-spinner" aria-hidden="true"></span>
-                            Connecting...
-                        </button>
-                    {% else %}
-                        <button class="btn btn--secondary" data-action="disconnect" data-connection-id="{{ connection.instance_id }}">
-                            <i class="bi bi-unlink me-1"></i>Disconnect
-                        </button>
-                    {% endif %}
-                    
-                    <button class="btn btn--outline" data-action="test-connection" data-connection-id="{{ connection.instance_id }}">
-                        <i class="bi bi-flask me-1"></i>Test Connection
-                    </button>
-                    
-                    <button class="btn btn--danger" data-action="delete" data-connection-id="{{ connection.instance_id }}">
-                        <i class="bi bi-trash me-1"></i>Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Connection Details Grid -->
-        <div class="connection-details-grid">
-            <!-- Instance Information -->
-            <div class="card">
-                <div class="card__header">
-                    <h2 class="card__title">Instance Information</h2>
-                </div>
-                <div class="card__content">
-                    <div class="detail-list">
-                        <div class="detail-item">
-                            <span class="detail-item__label">Instance ID:</span>
-                            <span class="detail-item__value">{{ connection.instance_id }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item__label">Instance Name:</span>
-                            <span class="detail-item__value">{{ connection.instance_name }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item__label">Phone Number:</span>
-                            <span class="detail-item__value">{{ connection.ownerPhone }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item__label">Profile Name:</span>
-                            <span class="detail-item__value">{{ connection.profileName }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item__label">Status:</span>
-                            <span class="detail-item__value">
-                                <span class="status-indicator status-indicator--{{ connection.connection_status }}">
-                                    {{ connection.connection_status|title }}
-                                </span>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- API Information -->
-            <div class="card">
-                <div class="card__header">
-                    <h2 class="card__title">API Information</h2>
-                </div>
-                <div class="card__content">
-                    <div class="detail-list">
-                        <div class="detail-item">
-                            <span class="detail-item__label">API Key:</span>
-                            <span class="detail-item__value">
-                                <code class="api-key">{{ connection.instance_api_key|truncatechars:20 }}...</code>
-                                <button class="btn btn--ghost btn--xs" data-action="copy-api-key" data-api-key="{{ connection.instance_api_key }}">
-                                    <i class="bi bi-clipboard"></i>
-                                </button>
-                            </span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-item__label">Webhook URL:</span>
-                            <span class="detail-item__value">
-                                <code class="webhook-url">{{ request.build_absolute_uri }}/webhook/{{ connection.instance_id }}/</code>
-                                <button class="btn btn--ghost btn--xs" data-action="copy-webhook" data-webhook="{{ request.build_absolute_uri }}/webhook/{{ connection.instance_id }}/">
-                                    <i class="bi bi-clipboard"></i>
-                                </button>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Connection Timeline -->
-            <div class="card">
-                <div class="card__header">
-                    <h2 class="card__title">Connection Timeline</h2>
-                </div>
-                <div class="card__content">
-                    <div class="timeline">
-                        <div class="timeline__item timeline__item--completed">
-                            <div class="timeline__marker">
-                                <i class="bi bi-check-circle-fill text-success timeline__icon"></i>
-                            </div>
-                            <div class="timeline__content">
-                                <div class="timeline__title">Connection Created</div>
-                                <div class="timeline__date">{{ connection.created_at|date:"M d, Y H:i" }}</div>
-                            </div>
-                        </div>
-                        
-                        {% if connection.connection_status == 'open' %}
-                        <div class="timeline__item timeline__item--completed">
-                            <div class="timeline__marker">
-                                <i class="bi bi-link-45deg timeline__icon"></i>
-                            </div>
-                            <div class="timeline__content">
-                                <div class="timeline__title">Connected to WhatsApp</div>
-                                <div class="timeline__date">{{ connection.updated_at|date:"M d, Y H:i" }}</div>
-                            </div>
-                        </div>
-                        {% elif connection.connection_status == 'connecting' %}
-                        <div class="timeline__item timeline__item--active">
-                            <div class="timeline__marker">
-                                <i class="bi bi-hourglass-split text-warning timeline__icon"></i>
-                            </div>
-                            <div class="timeline__content">
-                                <div class="timeline__title">Connecting to WhatsApp</div>
-                                <div class="timeline__date">In progress...</div>
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="timeline__item timeline__item--pending">
-                            <div class="timeline__marker">
-                                <i class="bi bi-pause-circle text-secondary timeline__icon"></i>
-                            </div>
-                            <div class="timeline__content">
-                                <div class="timeline__title">Disconnected</div>
-                                <div class="timeline__date">Not connected</div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Activity -->
-            <div class="card">
-                <div class="card__header">
-                    <h2 class="card__title">Recent Activity</h2>
-                </div>
-                <div class="card__content">
-                    <div class="activity-list">
-                        {% for activity in connection.recent_activity %}
-                        <div class="activity-item">
-                            <div class="activity-item__icon">{{ activity.icon }}</div>
-                            <div class="activity-item__content">
-                                <div class="activity-item__title">{{ activity.title }}</div>
-                                <div class="activity-item__description">{{ activity.description }}</div>
-                            </div>
-                            <div class="activity-item__time">{{ activity.timestamp|date:"H:i" }}</div>
-                        </div>
-                        {% empty %}
-                        <div class="empty-state">
-                            <i class="bi bi-graph-up empty-state__icon text-muted"></i>
-                            <h3 class="empty-state__title text-dark">No Recent Activity</h3>
-                            <p class="empty-state__description text-muted">Activity will appear here once the connection is established.</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
 </div>
@@ -280,42 +107,12 @@
 <script src="{% static 'js/connections.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize connection detail manager
-    const connectionManager = new ConnectionManager(document.querySelector('.page-content'));
-    
-    // Handle copy actions
+    // Simple refresh functionality
     document.addEventListener('click', function(e) {
-        if (e.target.matches('[data-action="copy-api-key"]')) {
-            const apiKey = e.target.dataset.apiKey;
-            navigator.clipboard.writeText(apiKey).then(() => {
-                showNotification('API key copied to clipboard', 'success');
-            });
-        }
-        
-        if (e.target.matches('[data-action="copy-webhook"]')) {
-            const webhook = e.target.dataset.webhook;
-            navigator.clipboard.writeText(webhook).then(() => {
-                showNotification('Webhook URL copied to clipboard', 'success');
-            });
+        if (e.target.matches('[data-action="refresh"]')) {
+            window.location.reload();
         }
     });
-    
-    function showNotification(message, type) {
-        const notification = document.createElement('div');
-        notification.className = `notification notification--${type}`;
-        notification.innerHTML = `
-            <div class="notification__content">
-                <span class="notification__icon"><i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}"></i></span>
-                <span class="notification__message">${message}</span>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    }
 });
 </script>
 {% endblock %}

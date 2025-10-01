@@ -1,0 +1,721 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load component_tags %}
+
+{% block title %}Edit Profile - WozapAuto{% endblock %}
+
+{% block extra_css %}
+<style>
+    .edit-header {
+        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px;
+    }
+    
+    .edit-section {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #f0f0f0;
+        transition: all 0.3s ease;
+    }
+    
+    .edit-section:hover {
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-title i {
+        margin-right: 1rem;
+        color: #25D366;
+        font-size: 1.25rem;
+    }
+    
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+        color: #2c3e50;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #25D366;
+        background: white;
+        color: #2c3e50;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+    }
+    
+    .form-control::placeholder {
+        color: #6c757d;
+        opacity: 1;
+    }
+    
+    .form-help {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    
+    .save-btn {
+        background: #25D366;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .save-btn:hover {
+        background: #128C7E;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+    }
+    
+    .save-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .cancel-btn {
+        background: transparent;
+        color: #6c757d;
+        border: 2px solid #e9ecef;
+        padding: 0.75rem 2rem;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: 1rem;
+    }
+    
+    .cancel-btn:hover {
+        background: #f8f9fa;
+        border-color: #dee2e6;
+        color: #495057;
+        text-decoration: none;
+    }
+    
+    .section-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #f8f9fa;
+    }
+    
+    .help-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    
+    .help-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    
+    .help-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .help-icon {
+        color: #25D366;
+        font-size: 1.25rem;
+        margin-right: 1rem;
+        margin-top: 0.25rem;
+    }
+    
+    .help-content h6 {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .help-content p {
+        color: #6c757d;
+        margin: 0;
+        line-height: 1.5;
+    }
+    
+    .progress-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    
+    .progress-step {
+        display: flex;
+        align-items: center;
+        color: #6c757d;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .progress-step.active {
+        color: #25D366;
+    }
+    
+    .progress-step.completed {
+        color: #28a745;
+    }
+    
+    .progress-step:not(:last-child)::after {
+        content: '→';
+        margin: 0 1rem;
+        color: #dee2e6;
+    }
+    
+    .progress-step.completed:not(:last-child)::after {
+        color: #28a745;
+    }
+    
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .section-actions {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .cancel-btn {
+            margin-left: 0;
+        }
+        
+        .progress-step:not(:last-child)::after {
+            content: '↓';
+            margin: 0.5rem 0;
+        }
+        
+        .progress-indicator {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Edit Header -->
+<div class="edit-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">Edit Profile</h1>
+                <p class="mb-0 opacity-75">Update your personal information and account settings</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{% url 'profile' %}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Progress Indicator -->
+    <div class="progress-indicator">
+        <div class="progress-step active" id="step-personal">
+            <i class="bi bi-person-circle me-2"></i>Personal Info
+        </div>
+        <div class="progress-step" id="step-account">
+            <i class="bi bi-gear me-2"></i>Account Settings
+        </div>
+        <div class="progress-step" id="step-review">
+            <i class="bi bi-check-circle me-2"></i>Review
+        </div>
+    </div>
+    
+    <form method="post" id="profileForm">
+        {% csrf_token %}
+        
+        <!-- Personal Information Section -->
+        <div class="edit-section" id="personal-info">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="bi bi-person-circle"></i>
+                    Personal Information
+                </h2>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" 
+                           id="first_name" 
+                           name="first_name" 
+                           class="form-control" 
+                           value="{{ user.first_name }}"
+                           placeholder="Enter your first name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" 
+                           id="last_name" 
+                           name="last_name" 
+                           class="form-control" 
+                           value="{{ user.last_name }}"
+                           placeholder="Enter your last name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address *</label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-control" 
+                           value="{{ user.email }}"
+                           placeholder="Enter your email address"
+                           required>
+                    <div class="form-help">Your email address is used for account notifications and login.</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone_number" class="form-label">Phone Number</label>
+                    <input type="tel" 
+                           id="phone_number" 
+                           name="phone_number" 
+                           class="form-control" 
+                           value="{{ profile.phone_number }}"
+                           placeholder="+1234567890"
+                           pattern="^\+[1-9]\d{1,14}$">
+                    <div class="form-help">Enter your WhatsApp phone number with country code (e.g., +1234567890).</div>
+                </div>
+            </div>
+            
+            <div class="section-actions">
+                <button type="button" class="save-btn" onclick="saveSection('personal-info')">
+                    <i class="bi bi-check-circle"></i>Save Personal Info
+                </button>
+            </div>
+        </div>
+        
+        <!-- Account Settings Section -->
+        <div class="edit-section" id="account-settings">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="bi bi-gear"></i>
+                    Account Settings
+                </h2>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="company_name" class="form-label">Company Name</label>
+                    <input type="text" 
+                           id="company_name" 
+                           name="company_name" 
+                           class="form-control" 
+                           value="{{ profile.company_name }}"
+                           placeholder="Enter your company name">
+                    <div class="form-help">This will be used as your WhatsApp instance name.</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="timezone" class="form-label">Timezone</label>
+                    <select name="timezone" id="timezone" class="form-control">
+                        <option value="UTC" {% if profile.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                        <option value="America/New_York" {% if profile.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (ET)</option>
+                        <option value="America/Chicago" {% if profile.timezone == 'America/Chicago' %}selected{% endif %}>Central Time (CT)</option>
+                        <option value="America/Denver" {% if profile.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (MT)</option>
+                        <option value="America/Los_Angeles" {% if profile.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (PT)</option>
+                        <option value="Europe/London" {% if profile.timezone == 'Europe/London' %}selected{% endif %}>London (GMT)</option>
+                        <option value="Europe/Paris" {% if profile.timezone == 'Europe/Paris' %}selected{% endif %}>Paris (CET)</option>
+                        <option value="Asia/Tokyo" {% if profile.timezone == 'Asia/Tokyo' %}selected{% endif %}>Tokyo (JST)</option>
+                        <option value="Asia/Shanghai" {% if profile.timezone == 'Asia/Shanghai' %}selected{% endif %}>Shanghai (CST)</option>
+                        <option value="Asia/Kolkata" {% if profile.timezone == 'Asia/Kolkata' %}selected{% endif %}>Mumbai (IST)</option>
+                    </select>
+                    <div class="form-help">Set your preferred timezone for accurate time displays.</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="language" class="form-label">Language</label>
+                    <select name="language" id="language" class="form-control">
+                        <option value="en" {% if profile.language == 'en' %}selected{% endif %}>English</option>
+                        <option value="es" {% if profile.language == 'es' %}selected{% endif %}>Spanish</option>
+                        <option value="fr" {% if profile.language == 'fr' %}selected{% endif %}>French</option>
+                        <option value="de" {% if profile.language == 'de' %}selected{% endif %}>German</option>
+                        <option value="pt" {% if profile.language == 'pt' %}selected{% endif %}>Portuguese</option>
+                        <option value="it" {% if profile.language == 'it' %}selected{% endif %}>Italian</option>
+                        <option value="ru" {% if profile.language == 'ru' %}selected{% endif %}>Russian</option>
+                        <option value="ja" {% if profile.language == 'ja' %}selected{% endif %}>Japanese</option>
+                        <option value="ko" {% if profile.language == 'ko' %}selected{% endif %}>Korean</option>
+                        <option value="zh" {% if profile.language == 'zh' %}selected{% endif %}>Chinese</option>
+                    </select>
+                    <div class="form-help">Choose your preferred language for the interface.</div>
+                </div>
+            </div>
+            
+            <div class="section-actions">
+                <button type="button" class="save-btn" onclick="saveSection('account-settings')">
+                    <i class="bi bi-check-circle"></i>Save Account Settings
+                </button>
+            </div>
+        </div>
+        
+        <!-- Review Section -->
+        <div class="edit-section" id="review">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="bi bi-check-circle"></i>
+                    Review & Save All Changes
+                </h2>
+            </div>
+            
+            <div class="help-section">
+                <div class="help-item">
+                    <i class="bi bi-info-circle help-icon"></i>
+                    <div class="help-content">
+                        <h6>Review Your Changes</h6>
+                        <p>Please review all the information above before saving. You can go back and edit any section if needed.</p>
+                    </div>
+                </div>
+                
+                <div class="help-item">
+                    <i class="bi bi-shield-check help-icon"></i>
+                    <div class="help-content">
+                        <h6>Data Security</h6>
+                        <p>Your personal information is encrypted and stored securely. We never share your data with third parties.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-actions">
+                <button type="submit" class="save-btn">
+                    <i class="bi bi-check-circle"></i>Save All Changes
+                </button>
+                <a href="{% url 'profile' %}" class="cancel-btn">
+                    <i class="bi bi-x-circle"></i>Cancel
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('profileForm');
+    const sections = document.querySelectorAll('.edit-section');
+    const progressSteps = document.querySelectorAll('.progress-step');
+    
+    // Initialize page
+    initializePage();
+    
+    // Form validation
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+    
+    // Section navigation
+    window.saveSection = function(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (validateSection(sectionId)) {
+            // Mark section as completed
+            markSectionCompleted(sectionId);
+            showSuccess(`Section saved successfully!`);
+            
+            // Move to next section
+            setTimeout(() => {
+                scrollToNextSection(sectionId);
+            }, 1000);
+        }
+    };
+    
+    function initializePage() {
+        // Add smooth animations
+        sections.forEach((section, index) => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                section.style.transition = 'all 0.6s ease';
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, index * 200);
+        });
+        
+        // Handle URL hash for section focus
+        const hash = window.location.hash;
+        if (hash) {
+            const targetSection = document.querySelector(hash);
+            if (targetSection) {
+                setTimeout(() => {
+                    targetSection.scrollIntoView({ behavior: 'smooth' });
+                }, 500);
+            }
+        }
+    }
+    
+    function validateForm() {
+        const email = document.querySelector('input[name="email"]').value.trim();
+        const phoneNumber = document.querySelector('input[name="phone_number"]').value.trim();
+        
+        if (!email) {
+            showError('Email address is required');
+            return false;
+        }
+        
+        if (phoneNumber && !/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+            showError('Please enter a valid phone number with country code (e.g., +1234567890)');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    function validateSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        const inputs = section.querySelectorAll('input[required], select[required]');
+        
+        for (let input of inputs) {
+            if (!input.value.trim()) {
+                showError(`${input.previousElementSibling.textContent} is required`);
+                input.focus();
+                return false;
+            }
+        }
+        
+        // Validate phone number if present
+        const phoneInput = section.querySelector('input[name="phone_number"]');
+        if (phoneInput && phoneInput.value.trim()) {
+            const phoneNumber = phoneInput.value.trim();
+            if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+                showError('Please enter a valid phone number with country code (e.g., +1234567890)');
+                phoneInput.focus();
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    function markSectionCompleted(sectionId) {
+        // Update progress indicator
+        const stepMap = {
+            'personal-info': 'step-personal',
+            'account-settings': 'step-account',
+            'review': 'step-review'
+        };
+        
+        const stepId = stepMap[sectionId];
+        if (stepId) {
+            const step = document.getElementById(stepId);
+            step.classList.remove('active');
+            step.classList.add('completed');
+            
+            // Activate next step
+            const nextStep = step.nextElementSibling;
+            if (nextStep && !nextStep.classList.contains('completed')) {
+                nextStep.classList.add('active');
+            }
+        }
+        
+        // Add visual feedback to section
+        const section = document.getElementById(sectionId);
+        section.style.borderLeft = '4px solid #28a745';
+        
+        // Update save button
+        const saveBtn = section.querySelector('.save-btn');
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="bi bi-check-circle"></i>Saved!';
+            saveBtn.style.background = '#28a745';
+            saveBtn.disabled = true;
+        }
+    }
+    
+    function scrollToNextSection(currentSectionId) {
+        const sectionMap = {
+            'personal-info': 'account-settings',
+            'account-settings': 'review'
+        };
+        
+        const nextSectionId = sectionMap[currentSectionId];
+        if (nextSectionId) {
+            const nextSection = document.getElementById(nextSectionId);
+            if (nextSection) {
+                nextSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    }
+    
+    function showError(message) {
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-danger alert-dismissible fade show';
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.style.minWidth = '300px';
+        notification.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>
+                    <strong>Error:</strong> ${message}
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+    
+    function showSuccess(message) {
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-success alert-dismissible fade show';
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.style.minWidth = '300px';
+        notification.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <div>
+                    <strong>Success:</strong> ${message}
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Add real-time validation
+    const inputs = document.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            validateField(this);
+        });
+        
+        input.addEventListener('input', function() {
+            clearFieldError(this);
+        });
+    });
+    
+    function validateField(field) {
+        const value = field.value.trim();
+        const isRequired = field.hasAttribute('required');
+        
+        if (isRequired && !value) {
+            showFieldError(field, 'This field is required');
+            return false;
+        }
+        
+        if (field.type === 'email' && value && !isValidEmail(value)) {
+            showFieldError(field, 'Please enter a valid email address');
+            return false;
+        }
+        
+        if (field.name === 'phone_number' && value && !/^\+[1-9]\d{1,14}$/.test(value)) {
+            showFieldError(field, 'Please enter a valid phone number with country code');
+            return false;
+        }
+        
+        clearFieldError(field);
+        return true;
+    }
+    
+    function showFieldError(field, message) {
+        clearFieldError(field);
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'field-error text-danger mt-1';
+        errorDiv.style.fontSize = '0.875rem';
+        errorDiv.innerHTML = `<i class="bi bi-exclamation-circle me-1"></i>${message}`;
+        
+        field.parentNode.appendChild(errorDiv);
+        field.style.borderColor = '#dc3545';
+    }
+    
+    function clearFieldError(field) {
+        const errorDiv = field.parentNode.querySelector('.field-error');
+        if (errorDiv) {
+            errorDiv.remove();
+        }
+        field.style.borderColor = '';
+    }
+    
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+});
+</script>
+{% endblock %}
+

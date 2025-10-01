@@ -394,22 +394,6 @@
         </div>
         {% endif %}
         
-        {% if total_connections > 0 %}
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Manage Connection</h5>
-                    <h6 class="card-subtitle text-muted">View your WhatsApp connection</h6>
-                </div>
-                <div class="card-body">
-                    <p>View and manage your WhatsApp connection</p>
-                        <button class="btn btn-outline-primary" onclick="window.location.href='{% url 'connections:manage' %}'">
-                            <i class="bi-gear me-2"></i>Manage Connection
-                        </button>
-                </div>
-            </div>
-        </div>
-        {% endif %}
         
         <div class="col-md-4">
             <div class="card">
@@ -427,39 +411,6 @@
         </div>
             </div>
             
-    <!-- Recent Connections -->
-    {% if recent_connections %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Recent Connections</h5>
-                </div>
-                <div class="card-body">
-                    {% for connection in recent_connections %}
-                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                        <div>
-                            <h6 class="mb-1">{{ connection.instance_name }}</h6>
-                            <small class="text-muted">{{ connection.ownerPhone }} - {{ connection.connection_status|title }}</small>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-{% if connection.connection_status == 'open' %}success{% elif connection.connection_status == 'connecting' %}warning{% else %}secondary{% endif %}">
-                                {{ connection.connection_status|title }}
-                            </span>
-                            <small class="text-muted">{{ connection.created_at|timesince }} ago</small>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    <div class="text-center mt-3">
-                        <button class="btn btn-outline-primary" onclick="window.location.href='{% url 'connections:manage' %}'">
-                            View All Connections
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
     
     {% else %}
     <!-- Landing Page for Unauthenticated Users -->

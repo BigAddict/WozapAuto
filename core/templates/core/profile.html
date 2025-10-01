@@ -1,0 +1,463 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load component_tags %}
+
+{% block title %}Profile - WozapAuto{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px;
+    }
+    
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 4px solid white;
+        object-fit: cover;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    
+    .avatar-placeholder {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid white;
+    }
+    
+    .profile-section {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #f0f0f0;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-section:hover {
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-title i {
+        margin-right: 0.75rem;
+        color: #25D366;
+    }
+    
+    .edit-btn {
+        background: #25D366;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .edit-btn:hover {
+        background: #128C7E;
+        transform: translateY(-1px);
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .info-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-value {
+        font-size: 1rem;
+        color: #2c3e50;
+        font-weight: 500;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #25D366;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .status-connected {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-disconnected {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .connection-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #25D366;
+        display: block;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .quick-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 1.5rem;
+    }
+    
+    .action-btn {
+        flex: 1;
+        min-width: 150px;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .action-btn-primary {
+        background: #25D366;
+        color: white;
+    }
+    
+    .action-btn-primary:hover {
+        background: #128C7E;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .action-btn-outline {
+        background: transparent;
+        color: #25D366;
+        border-color: #25D366;
+    }
+    
+    .action-btn-outline:hover {
+        background: #25D366;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .profile-header {
+            padding: 1.5rem 0;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .quick-actions {
+            flex-direction: column;
+        }
+        
+        .action-btn {
+            min-width: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Profile Header -->
+<div class="profile-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center">
+                <div class="profile-avatar mb-3">
+                    {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="Avatar" class="profile-avatar">
+                    {% else %}
+                        <div class="avatar-placeholder">
+                            <i class="bi bi-person-circle" style="font-size: 4rem; color: white;"></i>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-9">
+                <h1 class="mb-2">{{ user.get_full_name|default:user.username }}</h1>
+                <p class="mb-2 opacity-75">{{ user.email }}</p>
+                <p class="mb-0 opacity-75">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    Member since {{ user.date_joined|date:"F Y" }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Personal Information Section -->
+            <div class="profile-section" id="personal-info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="bi bi-person-circle"></i>
+                        Personal Information
+                    </h3>
+                    <button class="edit-btn" onclick="editSection('personal-info')">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </button>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Full Name</span>
+                        <div class="info-value">{{ user.get_full_name|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email Address</span>
+                        <div class="info-value">{{ user.email }}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Username</span>
+                        <div class="info-value">{{ user.username }}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Phone Number</span>
+                        <div class="info-value">{{ profile.phone_number|default:"Not set" }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Settings Section -->
+            <div class="profile-section" id="account-settings-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="bi bi-gear"></i>
+                        Account Settings
+                    </h3>
+                    <button class="edit-btn" onclick="editSection('account-settings')">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </button>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Company Name</span>
+                        <div class="info-value">{{ profile.company_name|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Timezone</span>
+                        <div class="info-value">{{ profile.timezone }}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Language</span>
+                        <div class="info-value">{{ profile.language|upper }}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Account Status</span>
+                        <div class="info-value">
+                            <span class="status-badge status-connected">
+                                <i class="bi bi-check-circle me-1"></i>Active
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- WhatsApp Connection Section -->
+            <div class="profile-section" id="connection-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="bi bi-whatsapp"></i>
+                        WhatsApp Connection
+                    </h3>
+                    {% if user.connection_set.count > 0 %}
+                        <button class="edit-btn" onclick="window.location.href='{% url 'connections:qr_display' %}'">
+                            <i class="bi bi-gear me-1"></i>Manage
+                        </button>
+                    {% endif %}
+                </div>
+                
+                {% if user.connection_set.count > 0 %}
+                    {% with connection=user.connection_set.first %}
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Connection Status</span>
+                            <div class="info-value">
+                                <span class="status-badge status-connected">
+                                    <i class="bi bi-whatsapp me-1"></i>Connected
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Instance Name</span>
+                            <div class="info-value">{{ connection.instance_name }}</div>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Phone Number</span>
+                            <div class="info-value">{{ connection.ownerPhone }}</div>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Last Updated</span>
+                            <div class="info-value">{{ connection.updated_at|date:"M d, Y H:i" }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="connection-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">1</span>
+                            <span class="stat-label">Active Connection</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">{{ connection.created_at|timesince }}</span>
+                            <span class="stat-label">Connected For</span>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-whatsapp"></i>
+                        <h5>No WhatsApp Connection</h5>
+                        <p>Set up your company name and create a WhatsApp connection to get started with AI agents.</p>
+                        <div class="quick-actions">
+                            <a href="{% url 'connections:create' %}" class="action-btn action-btn-primary">
+                                <i class="bi bi-plus-circle me-2"></i>Create Connection
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Quick Actions Sidebar -->
+            <div class="profile-section">
+                <h3 class="section-title mb-3">
+                    <i class="bi bi-lightning"></i>
+                    Quick Actions
+                </h3>
+                
+                <div class="quick-actions">
+                    <a href="{% url 'profile_edit' %}" class="action-btn action-btn-primary">
+                        <i class="bi bi-pencil me-2"></i>Edit Profile
+                    </a>
+                    {% if user.connection_set.count > 0 %}
+                        <a href="{% url 'connections:qr_display' %}" class="action-btn action-btn-outline">
+                            <i class="bi bi-whatsapp me-2"></i>Manage Connection
+                        </a>
+                    {% else %}
+                        <a href="{% url 'connections:create' %}" class="action-btn action-btn-outline">
+                            <i class="bi bi-plus-circle me-2"></i>Create Connection
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'home' %}" class="action-btn action-btn-outline">
+                        <i class="bi bi-house me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function editSection(section) {
+    // Redirect to edit page with section focus
+    window.location.href = '{% url "profile_edit" %}#' + section;
+}
+
+// Add smooth scrolling for section links
+document.addEventListener('DOMContentLoaded', function() {
+    // Add animation to profile sections
+    const sections = document.querySelectorAll('.profile-section');
+    sections.forEach((section, index) => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            section.style.transition = 'all 0.6s ease';
+            section.style.opacity = '1';
+            section.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}
+

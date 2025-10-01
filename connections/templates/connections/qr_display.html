@@ -1,0 +1,368 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Connect WhatsApp - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% if retry_info.max_retries_reached and not retry_info.can_retry %}
+        <!-- Help Needed State -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h4 class="mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Connection Help Needed
+                        </h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="mb-4">
+                            <i class="bi bi-headset" style="font-size: 4rem; color: #ffc107;"></i>
+                        </div>
+                        <p class="lead">We're having trouble connecting your WhatsApp account.</p>
+                        <p>Our support team has been notified and will contact you soon.</p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            You can try again in 2 hours, or contact support for immediate assistance.
+                        </div>
+                        <button class="btn btn-primary" onclick="sendHelpRequest()">
+                            <i class="bi bi-headset me-2"></i>Request Help
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    {% elif qr_error %}
+        <!-- Error State -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0">
+                            <i class="bi bi-exclamation-circle me-2"></i>Connection Error
+                        </h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="mb-4">
+                            <i class="bi bi-wifi-off" style="font-size: 4rem; color: #dc3545;"></i>
+                        </div>
+                        <p class="lead">Unable to generate QR code</p>
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> {{ qr_error }}
+                        </div>
+                        <a href="{% url 'connections:create' %}" class="btn btn-primary">
+                            <i class="bi bi-arrow-left me-2"></i>Try Again
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    {% else %}
+        <!-- QR Code Display State -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="bi bi-whatsapp me-2"></i>Connect Your WhatsApp
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Progress Indicator -->
+                        <div class="progress mb-4">
+                            <div class="progress-bar" role="progressbar" style="width: 0%" id="connectionProgress"></div>
+                        </div>
+                        
+                        <!-- Connection Info -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-building me-2"></i>Company</h6>
+                                <p class="text-muted">{{ connection.instance_name }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-telephone me-2"></i>Phone</h6>
+                                <p class="text-muted">{{ connection.ownerPhone }}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- QR Code Display -->
+                        <div class="text-center mb-4">
+                            <h5>Scan QR Code with WhatsApp</h5>
+                            <div class="qr-code-container mb-3">
+                                {% if qr_code_data.base64 %}
+                                    <img src="{{ qr_code_data.base64 }}" 
+                                         alt="WhatsApp QR Code" 
+                                         class="img-fluid border rounded" 
+                                         style="max-width: 300px; max-height: 300px;">
+                                {% else %}
+                                    <div class="alert alert-warning">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        QR code not available
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Pairing Code -->
+                            {% if qr_code_data.pairing_code and qr_code_data.pairing_code != 'N/A' %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-key me-2"></i>
+                                    <strong>Or use pairing code:</strong> 
+                                    <code class="fs-5">{{ qr_code_data.pairing_code }}</code>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- QR Code Request Information -->
+                        {% if retry_info.qr_code_requests > 0 %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            QR code request {{ retry_info.qr_code_requests }} of 5
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Manual Controls -->
+                        <div class="text-center mb-4">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary" id="getNewQrBtn" onclick="getNewQRCode()">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Get New QR Code
+                                </button>
+                                <button type="button" class="btn btn-success" id="connectionCompleteBtn" onclick="checkConnectionComplete()">
+                                    <i class="bi bi-check-circle me-2"></i>Connection Complete
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Status Messages -->
+                        <div id="statusMessages" class="mt-3"></div>
+                        
+                        <!-- Instructions -->
+                        <div class="alert alert-light">
+                            <h6><i class="bi bi-info-circle me-2"></i>Instructions:</h6>
+                            <ol class="mb-0">
+                                <li>Open WhatsApp on your phone</li>
+                                <li>Go to Settings > Linked Devices</li>
+                                <li>Tap "Link a Device"</li>
+                                <li>Scan the QR code above or enter the pairing code</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Hidden CSRF token for AJAX requests -->
+{% csrf_token %}
+
+<script>
+// Manual QR code management JavaScript
+let qrRequestCount = {{ retry_info.qr_code_requests|default:0 }};
+
+// Cleanup function to disconnect when user leaves the page
+function cleanupOnLeave() {
+    if (navigator.sendBeacon) {
+        // Use sendBeacon for better reliability
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        navigator.sendBeacon('{% url "connections:disconnect_api" %}', formData);
+    } else {
+        // Fallback to fetch
+        fetch('{% url "connections:disconnect_api" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            keepalive: true
+        }).catch(() => {}); // Ignore errors
+    }
+}
+
+function getNewQRCode() {
+    const btn = document.getElementById('getNewQrBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Getting QR Code...';
+    
+    showStatusMessage('Requesting new QR code...', 'info');
+    
+    fetch('{% url "connections:qr_request_api" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            qrRequestCount = data.qr_code_requests;
+            
+            // Update QR code
+            const qrImg = document.querySelector('.qr-code-container img');
+            if (qrImg && data.qr_code_data.base64) {
+                qrImg.src = data.qr_code_data.base64;
+            }
+            
+            // Update pairing code
+            const pairingCodeElement = document.querySelector('.alert-info code');
+            if (pairingCodeElement && data.qr_code_data.pairing_code && data.qr_code_data.pairing_code !== 'N/A') {
+                pairingCodeElement.textContent = data.qr_code_data.pairing_code;
+            }
+            
+            // Update QR request info
+            if (data.qr_code_requests > 0) {
+                const qrAlert = document.querySelector('.alert-info');
+                if (qrAlert) {
+                    qrAlert.innerHTML = `<i class="bi bi-info-circle me-2"></i>QR code request ${data.qr_code_requests} of 5`;
+                }
+            }
+            
+            showStatusMessage('New QR code generated! Scan it with WhatsApp.', 'success');
+            
+            // Check if max requests reached
+            if (data.qr_code_requests >= 5) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bi bi-clock me-2"></i>Wait 2 Hours';
+                showStatusMessage('Maximum QR code requests reached. Please wait 2 hours before requesting again.', 'warning');
+            }
+        } else {
+            showStatusMessage('Failed to get new QR code: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showStatusMessage('Error getting QR code: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        if (qrRequestCount < 5) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>Get New QR Code';
+        }
+    });
+}
+
+function checkConnectionComplete() {
+    const btn = document.getElementById('connectionCompleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+    
+    showStatusMessage('Checking connection status...', 'info');
+    
+    fetch('{% url "connections:status_api" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (data.connection_status === 'open') {
+                    // Connection successful, redirect to detail page
+                    showStatusMessage('Connection successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '{% url "connections:detail" %}';
+                    }, 2000);
+                } else {
+                    // Connection not complete
+                    showStatusMessage('Connection not yet established. Please make sure you scanned the QR code and try again.', 'warning');
+                }
+            } else {
+                showStatusMessage('Error checking status: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showStatusMessage('Error checking status: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Connection Complete';
+        });
+}
+
+function sendHelpRequest() {
+    fetch('{% url "connections:help_api" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showStatusMessage(data.message, 'success');
+        } else {
+            showStatusMessage('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showStatusMessage('Error: ' + error.message, 'danger');
+    });
+}
+
+function showStatusMessage(message, type) {
+    const statusDiv = document.getElementById('statusMessages');
+    if (statusDiv) {
+        statusDiv.innerHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+    }
+}
+
+// Set up cleanup on page leave
+document.addEventListener('DOMContentLoaded', function() {
+    // Add beforeunload event to cleanup when user leaves
+    window.addEventListener('beforeunload', cleanupOnLeave);
+    
+    // Also cleanup on pagehide (for mobile browsers)
+    window.addEventListener('pagehide', cleanupOnLeave);
+    
+    // Check if max QR requests reached on page load
+    if (qrRequestCount >= 5) {
+        const btn = document.getElementById('getNewQrBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-clock me-2"></i>Wait 2 Hours';
+        }
+    }
+});
+</script>
+
+<style>
+
+.qr-code-container {
+    background: white;
+    border-radius: 15px;
+    padding: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: inline-block;
+}
+
+.progress {
+    height: 8px;
+    border-radius: 4px;
+}
+
+.progress-bar {
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.alert-info code {
+    background: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .qr-code-container img {
+        max-width: 250px !important;
+        max-height: 250px !important;
+    }
+    
+}
+</style>
+{% endblock %}

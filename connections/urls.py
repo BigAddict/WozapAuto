@@ -3,14 +3,26 @@ from django.urls import path
 from .views import (
     CreateConnectionView, 
     ConnectionDetailView,
-    ConnectionManageView
+    QRCodeDisplayView,
+    connection_status_api,
+    connection_retry_api,
+    connection_help_api,
+    qr_request_api,
+    disconnect_api
 )
 
 app_name = 'connections'
 
 urlpatterns = [
     # Main views using class-based views
-    path('', ConnectionManageView.as_view(), name='manage'),
+    path('', QRCodeDisplayView.as_view(), name='qr_display'),  # Default to QR display
     path('create/', CreateConnectionView.as_view(), name='create'),
     path('detail/', ConnectionDetailView.as_view(), name='detail'),
+    
+    # API endpoints for new connection flow
+    path('api/status/', connection_status_api, name='status_api'),
+    path('api/retry/', connection_retry_api, name='retry_api'),
+    path('api/help/', connection_help_api, name='help_api'),
+    path('api/qr-request/', qr_request_api, name='qr_request_api'),
+    path('api/disconnect/', disconnect_api, name='disconnect_api'),
 ]
