@@ -1,5 +1,63 @@
 /* Connection UI Components for WozapAuto */
 
+/* Test Connection Button */
+.btn--success {
+    background-color: var(--success-color, #28a745);
+    border-color: var(--success-color, #28a745);
+    color: white;
+}
+
+.btn--success:hover {
+    background-color: var(--success-color-dark, #218838);
+    border-color: var(--success-color-dark, #218838);
+    color: white;
+}
+
+.btn--success:disabled {
+    background-color: var(--success-color-light, #6c757d);
+    border-color: var(--success-color-light, #6c757d);
+    opacity: 0.65;
+}
+
+/* Test Results Section */
+#testResultsCard {
+    margin-top: var(--space-lg);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.test-results__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+}
+
+.test-results__spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: var(--space-sm);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* Connection Status Widget */
 .connection-status-widget {
     background: var(--background-white);

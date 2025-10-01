@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="page-container">
     <header class="page-header">
         <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -24,6 +25,9 @@
         <div class="page-header__actions">
             <button class="btn btn--outline btn--sm" onclick="window.history.back()">
                 ← Back
+            </button>
+            <button class="btn btn--success btn--sm" data-action="test-connection" id="testConnectionBtn">
+                <i class="bi bi-check-circle me-1"></i>Test Connection
             </button>
             <button class="btn btn--primary btn--sm" data-action="refresh">
                 <i class="bi bi-arrow-clockwise me-1"></i>Refresh
@@ -99,6 +103,20 @@
                 </div>
             </div>
         </div>
+
+        <!-- Test Results Section -->
+        <div class="card card--elevated" id="testResultsCard" style="display: none;">
+            <div class="card__header">
+                <h3 class="card__title">
+                    <i class="bi bi-check-circle me-2"></i>Test Results
+                </h3>
+            </div>
+            <div class="card__content">
+                <div id="testResultsContent">
+                    <!-- Test results will be displayed here -->
+                </div>
+            </div>
+        </div>
     </main>
 </div>
 {% endblock %}
@@ -113,6 +131,71 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.reload();
         }
     });
+
+    // Test connection functionality
+    const testBtn = document.getElementById('testConnectionBtn');
+    const testResultsCard = document.getElementById('testResultsCard');
+    const testResultsContent = document.getElementById('testResultsContent');
+
+    if (testBtn) {
+        testBtn.addEventListener('click', async function() {
+            // Disable button and show loading state
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Testing...';
+            
+            try {
+                const response = await fetch('{% url "connections:test_api" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        instance_name: '{{ connection.instance_name }}',
+                        phone_number: '{{ connection.ownerPhone }}'
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Show test results
+                testResultsCard.style.display = 'block';
+                
+                if (data.status === 'success') {
+                    testResultsContent.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Test Successful!</strong><br>
+                            ${data.message || 'Connection test completed successfully.'}
+                        </div>
+                    `;
+                } else {
+                    testResultsContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-circle me-2"></i>
+                            <strong>Test Failed!</strong><br>
+                            ${data.message || 'Connection test failed.'}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Test connection error:', error);
+                testResultsCard.style.display = 'block';
+                testResultsContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <strong>Test Error!</strong><br>
+                        An error occurred while testing the connection. Please try again.
+                    </div>
+                `;
+            } finally {
+                // Re-enable button
+                testBtn.disabled = false;
+                testBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Test Connection';
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

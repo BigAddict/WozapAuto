@@ -333,7 +333,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="phone_number" class="form-label">Phone Number</label>
+                    <label for="phone_number" class="form-label">WhatsApp Number</label>
                     <input type="tel" 
                            id="phone_number" 
                            name="phone_number" 
@@ -341,7 +341,7 @@
                            value="{{ profile.phone_number }}"
                            placeholder="+1234567890"
                            pattern="^\+[1-9]\d{1,14}$">
-                    <div class="form-help">Enter your WhatsApp phone number with country code (e.g., +1234567890).</div>
+                    <div class="form-help">Enter your WhatsApp number with country code (e.g., +1234567890).</div>
                 </div>
             </div>
             
@@ -517,15 +517,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function validateForm() {
         const email = document.querySelector('input[name="email"]').value.trim();
-        const phoneNumber = document.querySelector('input[name="phone_number"]').value.trim();
+        const whatsappNumber = document.querySelector('input[name="phone_number"]').value.trim();
         
         if (!email) {
             showError('Email address is required');
             return false;
         }
         
-        if (phoneNumber && !/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
-            showError('Please enter a valid phone number with country code (e.g., +1234567890)');
+        if (whatsappNumber && !/^\+[1-9]\d{1,14}$/.test(whatsappNumber)) {
+            showError('Please enter a valid WhatsApp number with country code (e.g., +1234567890)');
             return false;
         }
         
@@ -544,13 +544,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Validate phone number if present
-        const phoneInput = section.querySelector('input[name="phone_number"]');
-        if (phoneInput && phoneInput.value.trim()) {
-            const phoneNumber = phoneInput.value.trim();
-            if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
-                showError('Please enter a valid phone number with country code (e.g., +1234567890)');
-                phoneInput.focus();
+        // Validate WhatsApp number if present
+        const whatsappInput = section.querySelector('input[name="phone_number"]');
+        if (whatsappInput && whatsappInput.value.trim()) {
+            const whatsappNumber = whatsappInput.value.trim();
+            if (!/^\+[1-9]\d{1,14}$/.test(whatsappNumber)) {
+                showError('Please enter a valid WhatsApp number with country code (e.g., +1234567890)');
+                whatsappInput.focus();
                 return false;
             }
         }
@@ -684,7 +684,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (field.name === 'phone_number' && value && !/^\+[1-9]\d{1,14}$/.test(value)) {
-            showFieldError(field, 'Please enter a valid phone number with country code');
+            showFieldError(field, 'Please enter a valid WhatsApp number with country code');
             return false;
         }
         

@@ -297,7 +297,7 @@
                         <div class="info-value">{{ user.username }}</div>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Phone Number</span>
+                        <span class="info-label">WhatsApp Number</span>
                         <div class="info-value">{{ profile.phone_number|default:"Not set" }}</div>
                     </div>
                 </div>
@@ -369,7 +369,7 @@
                             <div class="info-value">{{ connection.instance_name }}</div>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">Phone Number</span>
+                            <span class="info-label">WhatsApp Number</span>
                             <div class="info-value">{{ connection.ownerPhone }}</div>
                         </div>
                         <div class="info-item">
@@ -415,6 +415,9 @@
                 <div class="quick-actions">
                     <a href="{% url 'profile_edit' %}" class="action-btn action-btn-primary">
                         <i class="bi bi-pencil me-2"></i>Edit Profile
+                    </a>
+                    <a href="{% url 'change_password' %}" class="action-btn action-btn-outline">
+                        <i class="bi bi-shield-lock me-2"></i>Change Password
                     </a>
                     {% if user.connection_set.count > 0 %}
                         <a href="{% url 'connections:qr_display' %}" class="action-btn action-btn-outline">

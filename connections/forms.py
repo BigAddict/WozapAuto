@@ -24,14 +24,14 @@ class ConnectionForm(forms.Form):
     
     phone_number = forms.CharField(
         max_length=20,
-        label='Phone Number',
+        label='WhatsApp Number',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': '+1234567890',
             'pattern': '^\+[1-9]\d{1,14}$',
             'required': True
         }),
-        help_text='Enter your WhatsApp phone number with country code'
+        help_text='Enter your WhatsApp number with country code'
     )
     
     connection_method = forms.ChoiceField(
@@ -59,7 +59,7 @@ class ConnectionForm(forms.Form):
         return instance_name.strip()
     
     def clean_phone_number(self):
-        """Validate phone number format"""
+        """Validate WhatsApp number format"""
         phone = self.cleaned_data['phone_number']
         
         # Remove any spaces or dashes
@@ -67,11 +67,11 @@ class ConnectionForm(forms.Form):
         
         # Check if it starts with +
         if not phone.startswith('+'):
-            raise ValidationError('Phone number must start with + (country code).')
+            raise ValidationError('WhatsApp number must start with + (country code).')
         
         # Check if it's a valid international format
         if not phone[1:].isdigit() or len(phone) < 8 or len(phone) > 16:
-            raise ValidationError('Please enter a valid phone number with country code.')
+            raise ValidationError('Please enter a valid WhatsApp number with country code.')
         
         return phone
     

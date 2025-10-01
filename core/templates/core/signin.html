@@ -77,66 +77,6 @@
         text-decoration: underline;
     }
     
-    .social-login {
-        margin-top: var(--space-lg);
-    }
-    
-    .social-login__title {
-        font-size: var(--font-size-sm);
-        color: var(--text-secondary);
-        text-align: center;
-        margin: 0 0 var(--space-md) 0;
-        position: relative;
-    }
-    
-    .social-login__title::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: var(--border-color);
-        z-index: 1;
-    }
-    
-    .social-login__title span {
-        background: var(--background-white);
-        padding: 0 var(--space-md);
-        position: relative;
-        z-index: 2;
-    }
-    
-    .social-buttons {
-        display: grid;
-        gap: var(--space-sm);
-    }
-    
-    .btn-social {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-sm);
-        padding: var(--space-md) var(--space-lg);
-        border: 2px solid var(--border-color);
-        border-radius: var(--border-radius);
-        background: var(--background-white);
-        color: var(--text-primary);
-        font-weight: var(--font-weight-medium);
-        text-decoration: none;
-        transition: var(--transition);
-    }
-    
-    .btn-social:hover {
-        border-color: var(--primary-color);
-        background: var(--primary-light);
-        color: var(--primary-dark);
-        transform: translateY(-1px);
-    }
-    
-    .btn-social__icon {
-        font-size: var(--font-size-lg);
-    }
     
     .forgot-password {
         text-align: center;
@@ -225,22 +165,6 @@
             font-size: var(--font-size-xs);
         }
         
-        .social-login {
-            margin-top: var(--space-md);
-        }
-        
-        .social-login__title {
-            font-size: var(--font-size-xs);
-        }
-        
-        .btn-social {
-            padding: var(--space-sm) var(--space-md);
-            font-size: var(--font-size-sm);
-        }
-        
-        .btn-social__icon {
-            font-size: var(--font-size-base);
-        }
         
         .form-actions {
             margin-top: var(--space-lg);
@@ -311,22 +235,6 @@
             font-size: var(--font-size-xs);
         }
         
-        .social-login {
-            margin-top: var(--space-sm);
-        }
-        
-        .social-login__title {
-            font-size: var(--font-size-xs);
-        }
-        
-        .btn-social {
-            padding: var(--space-xs) var(--space-sm);
-            font-size: var(--font-size-xs);
-        }
-        
-        .btn-social__icon {
-            font-size: var(--font-size-sm);
-        }
         
         .form-actions {
             margin-top: var(--space-md);
@@ -343,7 +251,9 @@
 <div class="auth-container">
     <div class="auth-card">
         <div class="auth-header">
-            <i class="bi bi-shield-lock auth-header__icon"></i>
+            <div class="auth-logo mb-3">
+                <img src="{% static 'images/brand/wozapauto.svg' %}" alt="WozapAuto Logo" height="48" width="48">
+            </div>
             <h1 class="auth-header__title">Welcome Back</h1>
             <p class="auth-header__subtitle">Sign in to your WozapAuto account</p>
         </div>
@@ -407,26 +317,11 @@
             </form>
             
             <div class="forgot-password">
-                <a href="#" class="forgot-password__link">
+                <a href="{% url 'forgot_password' %}" class="forgot-password__link">
                     Forgot your password?
                 </a>
             </div>
             
-            <div class="social-login">
-                <p class="social-login__title">
-                    <span>Or continue with</span>
-                </p>
-                <div class="social-buttons">
-                    <a href="#" class="btn-social">
-                        <i class="bi bi-google btn-social__icon"></i>
-                        <span>Google</span>
-                    </a>
-                    <a href="#" class="btn-social">
-                        <i class="bi bi-facebook btn-social__icon"></i>
-                        <span>Facebook</span>
-                    </a>
-                </div>
-            </div>
         </div>
         
         <div class="auth-footer">

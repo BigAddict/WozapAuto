@@ -14,6 +14,7 @@ from django.utils import timezone
 from .models import Connection
 from .services import evolution_api_service
 from core.models import UserProfile
+from core.email_service import email_service
 
 # Set up logging
 logger = logging.getLogger('connections.views')
@@ -66,19 +67,19 @@ class CreateConnectionView(TemplateView):
         # Validate required fields
         if not company_name or not phone_number:
             logger.warning(f"Missing required fields for user {request.user.username}")
-            messages.error(request, 'Company name and phone number are required.')
+            messages.error(request, 'Company name and WhatsApp number are required.')
             return redirect('connections:create')
         
-        # Validate phone number format
+        # Validate WhatsApp number format
         if not phone_number.startswith('+') or not phone_number[1:].isdigit():
-            messages.error(request, 'Please enter a valid phone number with country code (e.g., +1234567890).')
+            messages.error(request, 'Please enter a valid WhatsApp number with country code (e.g., +1234567890).')
             return redirect('connections:create')
         
         try:
             # Get or create user profile
             profile, created = UserProfile.objects.get_or_create(user=request.user)
             
-            # Update profile with company name and phone number
+            # Update profile with company name and WhatsApp number
             profile.company_name = company_name
             profile.phone_number = phone_number
             profile.save()
@@ -262,6 +263,14 @@ def connection_status_api(request):
             
             if old_status != instance_data.connection_status:
                 logger.info(f"Connection status changed for user {request.user.username}: {old_status} -> {instance_data.connection_status}")
+                
+                # Send connection success email if status changed to 'open'
+                if old_status != 'open' and instance_data.connection_status == 'open':
+                    try:
+                        email_service.send_connection_success_email(request.user, connection, request)
+                        logger.info(f"Connection success email sent to {request.user.email}")
+                    except Exception as e:
+                        logger.error(f"Failed to send connection success email to {request.user.email}: {str(e)}")
             
             return JsonResponse({
                 'status': 'success',
@@ -480,4 +489,83 @@ def connection_help_api(request):
         return JsonResponse({
             'status': 'error',
             'message': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def connection_test_api(request):
+    """API endpoint for testing connection by sending test message"""
+    logger.info(f"Connection test API called by user: {request.user.username}")
+    
+    connection = Connection.objects.filter(user=request.user).first()
+    if not connection:
+        return JsonResponse({'error': 'No connection found'}, status=404)
+    
+    # Check if connection is connected
+    if not connection.is_connected():
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Connection is not active. Please ensure your WhatsApp is connected first.'
+        }, status=400)
+    
+    try:
+        # Get data from request body
+        import json
+        data = json.loads(request.body)
+        instance_name = data.get('instance_name', connection.instance_name)
+        phone_number = data.get('phone_number', connection.ownerPhone)
+        
+        # Send test request to n8n webhook
+        test_data = {
+            'instance_name': instance_name,
+            'phone_number': phone_number
+        }
+        
+        logger.info(f"Sending test request for user {request.user.username}: {test_data}")
+        
+        response = requests.post(
+            'https://n8n.bigaddict.shop/webhook-test/wozapauto/test-message',
+            json=test_data,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            response_data = response.json() if response.content else {}
+            logger.info(f"Test request successful for user {request.user.username}")
+            return JsonResponse({
+                'status': 'success',
+                'message': response_data.get('message', 'Test message sent successfully! Check your WhatsApp for the test message.'),
+                'response_data': response_data
+            })
+        else:
+            logger.error(f"Test request failed for user {request.user.username}: HTTP {response.status_code}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Test request failed with status {response.status_code}. Please try again later.'
+            }, status=400)
+            
+    except requests.exceptions.Timeout:
+        logger.error(f"Test request timeout for user {request.user.username}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Test request timed out. Please try again later.'
+        }, status=408)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Test request error for user {request.user.username}: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Failed to send test request. Please check your connection and try again.'
+        }, status=500)
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in test request for user {request.user.username}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid request data. Please try again.'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Unexpected error in test API for user {request.user.username}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An unexpected error occurred. Please try again later.'
         }, status=500)

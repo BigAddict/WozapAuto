@@ -8,7 +8,7 @@ from django.dispatch import receiver
 class UserProfile(models.Model):
     """Extended user profile with additional fields for WozapAuto"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    phone_number = models.CharField(max_length=20, blank=True, null=True, help_text="Phone number with country code (e.g., +1234567890)")
+    phone_number = models.CharField(max_length=20, blank=True, null=True, help_text="WhatsApp number with country code (e.g., +1234567890)")
     company_name = models.CharField(max_length=100, blank=True, null=True, help_text="Company or organization name")
     timezone = models.CharField(max_length=50, default='UTC', help_text="User's timezone")
     language = models.CharField(max_length=10, default='en', help_text="Preferred language code")

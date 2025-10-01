@@ -283,41 +283,8 @@ document.querySelectorAll('.mini-chart').forEach(chart => {
     chartObserver.observe(chart);
 });
 
-// Mouse Follower Effect
-function initMouseFollower() {
-    const cursor = document.createElement('div');
-    cursor.className = 'custom-cursor';
-    cursor.style.cssText = `
-        position: fixed;
-        width: 20px;
-        height: 20px;
-        background: var(--primary-color);
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 9999;
-        opacity: 0.7;
-        transition: transform 0.1s ease;
-    `;
-    document.body.appendChild(cursor);
-    
-    document.addEventListener('mousemove', (e) => {
-        cursor.style.left = e.clientX - 10 + 'px';
-        cursor.style.top = e.clientY - 10 + 'px';
-    });
-    
-    document.addEventListener('mousedown', () => {
-        cursor.style.transform = 'scale(0.8)';
-    });
-    
-    document.addEventListener('mouseup', () => {
-        cursor.style.transform = 'scale(1)';
-    });
-}
-
-// Initialize mouse follower on desktop only
-if (window.innerWidth > 768) {
-    initMouseFollower();
-}
+// Mouse Follower Effect - Removed
+// The green dot cursor effect has been removed as requested
 
 // Form Enhancements
 function initFormEnhancements() {

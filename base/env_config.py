@@ -17,11 +17,13 @@ EVOLUTION_HOST_URL = os.getenv('EVOLUTION_HOST_URL')
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# Add more environment variables as needed
-# Example:
-# DATABASE_URL = os.getenv('DATABASE_URL')
-# EMAIL_HOST = os.getenv('EMAIL_HOST')
-# EMAIL_PORT = os.getenv('EMAIL_PORT', '587')
+# SMTP Email Configuration
+SMTP_FROM_EMAIL = os.getenv('SMTP_FROM_EMAIL')
+SMTP_FROM_NAME = os.getenv('SMTP_FROM_NAME')
+SMTP_HOST = os.getenv('SMTP_HOST')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+SMTP_PORT = os.getenv('SMTP_PORT', '587')
+SMTP_USERNAME = os.getenv('SMTP_USERNAME')
 
 def get_env_variable(var_name, default=None):
     """

@@ -82,7 +82,7 @@
                                 <p class="text-muted">{{ connection.instance_name }}</p>
                             </div>
                             <div class="col-md-6">
-                                <h6><i class="bi bi-telephone me-2"></i>Phone</h6>
+                                <h6><i class="bi bi-whatsapp me-2"></i>WhatsApp Number</h6>
                                 <p class="text-muted">{{ connection.ownerPhone }}</p>
                             </div>
                         </div>
@@ -107,9 +107,16 @@
                             <!-- Pairing Code -->
                             {% if qr_code_data.pairing_code and qr_code_data.pairing_code != 'N/A' %}
                                 <div class="alert alert-info">
-                                    <i class="bi bi-key me-2"></i>
-                                    <strong>Or use pairing code:</strong> 
-                                    <code class="fs-5">{{ qr_code_data.pairing_code }}</code>
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <i class="bi bi-key me-2"></i>
+                                            <strong>Or use pairing code:</strong> 
+                                            <code class="fs-5" id="pairingCode">{{ qr_code_data.pairing_code }}</code>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="copyPairingCodeBtn" onclick="copyPairingCode()" title="Copy pairing code">
+                                            <i class="bi bi-clipboard me-1"></i>Copy
+                                        </button>
+                                    </div>
                                 </div>
                             {% endif %}
                         </div>
@@ -206,7 +213,7 @@ function getNewQRCode() {
             }
             
             // Update pairing code
-            const pairingCodeElement = document.querySelector('.alert-info code');
+            const pairingCodeElement = document.getElementById('pairingCode');
             if (pairingCodeElement && data.qr_code_data.pairing_code && data.qr_code_data.pairing_code !== 'N/A') {
                 pairingCodeElement.textContent = data.qr_code_data.pairing_code;
             }
@@ -326,6 +333,79 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// Copy pairing code functionality
+function copyPairingCode() {
+    const pairingCodeElement = document.getElementById('pairingCode');
+    const copyBtn = document.getElementById('copyPairingCodeBtn');
+    
+    if (!pairingCodeElement) {
+        showStatusMessage('Pairing code not available', 'error');
+        return;
+    }
+    
+    const pairingCode = pairingCodeElement.textContent.trim();
+    
+    // Use the modern Clipboard API if available
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(pairingCode).then(() => {
+            showCopySuccess(copyBtn);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            fallbackCopyTextToClipboard(pairingCode, copyBtn);
+        });
+    } else {
+        // Fallback for older browsers or non-secure contexts
+        fallbackCopyTextToClipboard(pairingCode, copyBtn);
+    }
+}
+
+// Fallback copy function for older browsers
+function fallbackCopyTextToClipboard(text, button) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    // Avoid scrolling to bottom
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess(button);
+        } else {
+            showStatusMessage('Failed to copy pairing code', 'error');
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        showStatusMessage('Failed to copy pairing code', 'error');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+// Show copy success feedback
+function showCopySuccess(button) {
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+    button.classList.remove('btn-outline-primary');
+    button.classList.add('btn-success');
+    
+    showStatusMessage('Pairing code copied to clipboard!', 'success');
+    
+    // Reset button after 2 seconds
+    setTimeout(() => {
+        button.innerHTML = originalContent;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-outline-primary');
+    }, 2000);
+}
 </script>
 
 <style>
@@ -355,6 +435,43 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 0.25rem 0.5rem;
     border-radius: 0.375rem;
     font-weight: 600;
+}
+
+/* Copy button styling */
+#copyPairingCodeBtn {
+    transition: all 0.2s ease;
+    border: 1px solid #0d6efd;
+    color: #0d6efd;
+    background: transparent;
+}
+
+#copyPairingCodeBtn:hover {
+    background: #0d6efd;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+}
+
+#copyPairingCodeBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(13, 110, 253, 0.3);
+}
+
+/* Pairing code container styling */
+.alert-info .d-flex {
+    gap: 1rem;
+}
+
+@media (max-width: 576px) {
+    .alert-info .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+    
+    #copyPairingCodeBtn {
+        align-self: flex-end;
+    }
 }
 
 @media (max-width: 768px) {

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to {{ site_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #25D366;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #25D366;
+            margin-bottom: 10px;
+        }
+        .welcome-title {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            transition: transform 0.2s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+        .features {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .feature-item::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #25D366;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+        .social-links {
+            margin: 20px 0;
+        }
+        .social-links a {
+            color: #25D366;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">📱 {{ site_name }}</div>
+            <h1 class="welcome-title">Welcome to the Future of WhatsApp Automation!</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hi {{ user.first_name|default:user.username }},</p>
+            
+            <p>Welcome to {{ site_name }}! We're thrilled to have you join our community of businesses using AI-powered WhatsApp automation to enhance their customer experience.</p>
+            
+            <p>Your account has been successfully created and you're ready to start automating your WhatsApp conversations with intelligent AI agents.</p>
+            
+            <div class="features">
+                <h3>What you can do with {{ site_name }}:</h3>
+                <div class="feature-item">Connect your WhatsApp business account securely</div>
+                <div class="feature-item">Create AI-powered chatbots for customer support</div>
+                <div class="feature-item">Automate responses and handle multiple conversations</div>
+                <div class="feature-item">Track analytics and improve customer engagement</div>
+                <div class="feature-item">Scale your business communication effortlessly</div>
+            </div>
+            
+            <p>Ready to get started? Click the button below to access your dashboard and set up your first WhatsApp connection:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ login_url }}" class="cta-button">Access Your Dashboard</a>
+            </div>
+            
+            <p>If you have any questions or need assistance getting started, don't hesitate to reach out to our support team. We're here to help you succeed!</p>
+            
+            <p>Best regards,<br>
+            The {{ site_name }} Team</p>
+        </div>
+        
+        <div class="footer">
+            <div class="social-links">
+                <a href="#">Website</a> |
+                <a href="#">Support</a> |
+                <a href="#">Documentation</a>
+            </div>
+            <p>This email was sent to {{ user.email }}. If you didn't create an account with us, please ignore this email.</p>
+            <p>&copy; 2025 {{ site_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

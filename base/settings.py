@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django_components',
     'core',
     'connections',
+    'audit',
 ]
 
 MIDDLEWARE = [
@@ -157,6 +158,21 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'signin'
+
+# Email Configuration
+from base.env_config import (
+    SMTP_FROM_EMAIL, SMTP_FROM_NAME, SMTP_HOST, 
+    SMTP_PASSWORD, SMTP_PORT, SMTP_USERNAME
+)
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = SMTP_HOST
+EMAIL_PORT = int(SMTP_PORT) if SMTP_PORT else 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = SMTP_USERNAME
+EMAIL_HOST_PASSWORD = SMTP_PASSWORD
+DEFAULT_FROM_EMAIL = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
+SERVER_EMAIL = SMTP_FROM_EMAIL
 
 # Logging Configuration
 LOGGING = {
