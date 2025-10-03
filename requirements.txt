@@ -10,3 +10,7 @@ gunicorn
 whitenoise
 pandas
 openpyxl
+pypdf
+numpy
+reportlab
+google-adk

@@ -25,6 +25,8 @@ SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 SMTP_PORT = os.getenv('SMTP_PORT', '587')
 SMTP_USERNAME = os.getenv('SMTP_USERNAME')
 
+DATABASE_URL = os.getenv('DATABASE_URL')
+
 def get_env_variable(var_name, default=None):
     """
     Get an environment variable with optional default value.

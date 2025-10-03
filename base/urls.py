@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
     path('connections/', include('connections.urls', namespace='connections')),
+    path('aiengine/', include('aiengine.urls', namespace='aiengine')),
 ]

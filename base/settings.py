@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'core',
     'connections',
     'audit',
+    'aiengine',
 ]
 
 MIDDLEWARE = [
@@ -82,9 +83,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-            ],
-            'builtins': [
-                'django_components.templatetags.component_tags',
             ],
         },
     },
@@ -236,6 +234,15 @@ LOGGING = {
             'formatter': 'json',
             'filters': ['add_user_info'],
         },
+        'file_aiengine': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'aiengine.log',
+            'maxBytes': 1024*1024*10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'json',
+            'filters': ['add_user_info'],
+        },
         'console': {
             'level': 'DEBUG' if DEBUG else 'INFO',
             'class': 'logging.StreamHandler',
@@ -270,6 +277,11 @@ LOGGING = {
         },
         'evolution_api': {
             'handlers': ['file_evolution_api', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'aiengine.services': {
+            'handlers': ['file_aiengine', 'console'],
             'level': 'DEBUG',
             'propagate': False,
         },
