@@ -11,12 +11,13 @@ from typing import List, Callable, Optional, Dict, Any
 from dataclasses import dataclass
 from contextlib import asynccontextmanager
 
-from google.adk.sessions import InMemorySessionService
+from google.adk.sessions import DatabaseSessionService
 from google.adk.runners import Runner
 from google.adk.agents import Agent
 from google.genai import types
 
-from base.env_config import get_env_variable
+from base.env_config import DATABASE_URL, get_env_variable
+from aiengine.tools import tool_manager
 
 logger = logging.getLogger('aiengine.services')
 
@@ -48,7 +49,7 @@ class AgentConfig:
     model_name: str = 'gemini-2.0-flash'
     agent_name: str = 'WhatsAppAgent'
     agent_description: str = 'WhatsAppAgent is a smart AI agent that helps answer WhatsApp queries.'
-    agent_instructions: str = 'You are a smart AI agent that helps answer WhatsApp queries with accuracy and helpfulness.'
+    agent_instructions: str = 'You are a smart AI agent that helps answer WhatsApp queries with accuracy and helpfulness. Use the get_current_time tool to get the current time and the send_whatsapp_message tool to send messages to WhatsApp.'
 
 
 class WhatsAppAgentService:
@@ -88,10 +89,9 @@ class WhatsAppAgentService:
         self.config = config or self._load_config()
         self.user_id = user_id
         self.session_id = session_id
-        self.tools: List[Callable] = []
-        self._session_service: Optional[InMemorySessionService] = None
+        self.tools: List[Callable] = tool_manager.get_all_tools()
+        self._session_service: Optional[DatabaseSessionService] = None
         self._runner: Optional[Runner] = None
-        self._session_created = False
         
         logger.info(f"Initializing WhatsAppAgentService for user: {user_id}, session: {session_id}")
         
@@ -132,16 +132,44 @@ class WhatsAppAgentService:
             ),
             agent_instructions=get_env_variable(
                 'AI_AGENT_INSTRUCTIONS',
-                'You are a smart AI agent that helps answer WhatsApp queries with accuracy and helpfulness.'
-            )
-        )
+                '''You are a smart AI agent that helps answer WhatsApp queries with accuracy and helpfulness.
+
+                    AVAILABLE TOOLS AND WHEN TO USE THEM:
+
+                    1. get_current_time() - Use this tool when:
+                    - User asks "What time is it?" or "What's the current time?"
+                    - User asks "What date is it?" or "What day is today?"
+                    - User asks about the current date and time
+                    - User needs to know the current moment in time
+                    - When you want to confirm the time, date, or day
+
+                    2. send_whatsapp_message(message, number, instance_name) - Use this tool when:
+                    - You want to reply to a whatsapp message
+                    - ALWAYS provide the instance_name parameter from the conversation context
+
+                    CRITICAL TOOL USAGE RULES:
+                    - ALWAYS use get_current_time() when asked about time, date, or day
+                    - ALWAYS use send_whatsapp_message() when you want to reply to a whatsapp message
+                    - For send_whatsapp_message, you MUST provide the instance_name parameter from the conversation context
+                    - The send_whatsapp_message tool returns a dictionary with success status and message details
+                    - If a tool returns success: false, read the "message" field and inform the user about the specific issue
+                    - Always provide helpful error messages to users when tools fail
+
+                    TOOL RESPONSE HANDLING:
+                    - If send_whatsapp_message returns {"success": false, "message": "..."}, inform the user about the specific error
+                    - If send_whatsapp_message returns {"success": true, "message": "..."}, confirm the message was sent successfully
+                    - Always be helpful and provide clear feedback about what happened
+
+                    Remember: You have access to these tools and should use them whenever appropriate!'''
+                    )
+                )
     
     def _initialize_service(self) -> None:
         """
         Initialize the session service and runner following ADK best practices.
         """
         # Initialize session service using InMemorySessionService for simplicity
-        self._session_service = InMemorySessionService()
+        self._session_service = DatabaseSessionService(db_url=DATABASE_URL)
         
         # Initialize runner with the agent
         self._runner = Runner(
@@ -156,13 +184,17 @@ class WhatsAppAgentService:
         """
         Ensure a session exists for the agent (lazy creation).
         """
-        if not self._session_created:
+        session = await self._session_service.get_session(
+            app_name=self.config.app_name,
+            user_id=self.user_id,
+            session_id=self.session_id
+        )
+        if not session:
             session = await self._session_service.create_session(
                 app_name=self.config.app_name,
                 user_id=self.user_id,
                 session_id=self.session_id
             )
-            self._session_created = True
             logger.debug(f"Created session for user: {self.user_id}, session: {self.session_id}")
     
     def _create_agent(self) -> Agent:

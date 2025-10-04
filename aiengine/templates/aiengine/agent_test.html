@@ -281,21 +281,6 @@
         {% endif %}
     </div>
     
-    <!-- Status Panel -->
-    <div class="test-panel status-panel">
-        <h3>
-            <span class="status-indicator status-offline" id="statusIndicator"></span>
-            Agent Status
-        </h3>
-        <div id="statusContent">
-            <p>Click "Check Status" to verify agent connectivity and configuration.</p>
-            <button type="button" class="btn btn-primary" onclick="checkAgentStatus()">
-                <i class="fas fa-sync-alt"></i> Check Status
-            </button>
-        </div>
-        <div id="statusDetails" class="status-grid" style="display: none;"></div>
-    </div>
-    
     <!-- Main Test Grid -->
     <div class="test-grid">
         <!-- Query Panel -->
@@ -446,73 +431,6 @@ function escapeHtml(text) {
 
 function formatTimestamp() {
     return new Date().toLocaleTimeString();
-}
-
-// Check agent status
-async function checkAgentStatus() {
-    try {
-        const response = await fetch('{% url "aiengine:agent_status" %}', {
-            method: 'GET',
-            headers: {
-                'X-CSRFToken': csrftoken,
-                'Content-Type': 'application/json',
-            },
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            statusIndicator.className = 'status-indicator status-online';
-            statusContent.innerHTML = `
-                <p style="color: #28a745; font-weight: 600;">✅ Agent is online and ready</p>
-                <button type="button" class="btn btn-primary" onclick="checkAgentStatus()">
-                    <i class="fas fa-sync-alt"></i> Refresh Status
-                </button>
-            `;
-            
-            // Display status details
-            const status = data.status;
-            statusDetails.innerHTML = `
-                <div class="status-item">
-                    <div class="label">App Name</div>
-                    <div class="value">${status.app_name}</div>
-                </div>
-                <div class="status-item">
-                    <div class="label">Model</div>
-                    <div class="value">${status.model_name}</div>
-                </div>
-                <div class="status-item">
-                    <div class="label">Tools</div>
-                    <div class="value">${status.tools_count}</div>
-                </div>
-                <div class="status-item">
-                    <div class="label">Session</div>
-                    <div class="value">${status.session_created ? 'Active' : 'Inactive'}</div>
-                </div>
-            `;
-            statusDetails.style.display = 'grid';
-            
-        } else {
-            statusIndicator.className = 'status-indicator status-offline';
-            statusContent.innerHTML = `
-                <p style="color: #dc3545; font-weight: 600;">❌ Agent is offline: ${data.error}</p>
-                <button type="button" class="btn btn-primary" onclick="checkAgentStatus()">
-                    <i class="fas fa-sync-alt"></i> Retry
-                </button>
-            `;
-            statusDetails.style.display = 'none';
-        }
-        
-    } catch (error) {
-        statusIndicator.className = 'status-indicator status-offline';
-        statusContent.innerHTML = `
-            <p style="color: #dc3545; font-weight: 600;">❌ Failed to check status: ${error.message}</p>
-            <button type="button" class="btn btn-primary" onclick="checkAgentStatus()">
-                <i class="fas fa-sync-alt"></i> Retry
-            </button>
-        `;
-        statusDetails.style.display = 'none';
-    }
 }
 
 // Handle form submission

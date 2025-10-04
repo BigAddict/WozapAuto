@@ -27,6 +27,8 @@ SMTP_USERNAME = os.getenv('SMTP_USERNAME')
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
 def get_env_variable(var_name, default=None):
     """
     Get an environment variable with optional default value.

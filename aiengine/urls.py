@@ -12,10 +12,8 @@ app_name = 'aiengine'
 urlpatterns = [
     # Agent testing interface
     path('test/', views.AgentTestView.as_view(), name='agent_test'),
-    
-    # Agent status endpoint
-    path('status/', views.agent_status_view, name='agent_status'),
-    
-    # API endpoint for external testing (no authentication required)
-    path('api/test/', views.agent_test_api, name='agent_test_api'),
+    path('webhook/', views.EvolutionWebhookView.as_view(), name='evolution_webhook'),
+    path('agent/', views.AgentDetailsView.as_view(), name='agent_details'),
+    # Knowledge base management
+    path('knowledge-base/', views.KnowledgeBaseManagementView.as_view(), name='knowledge_base_management'),
 ]
