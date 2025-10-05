@@ -7,10 +7,12 @@ content classification, and advanced text processing.
 """
 
 from typing import Optional, List, Dict, Any, Union, IO
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator
 from pypdf import PdfReader, errors
 from dataclasses import dataclass
 from google import genai
+from google.genai import types
+import numpy as np
 import logging
 
 from aiengine.models import DocumentMetadata
@@ -30,6 +32,10 @@ class EmbeddingConfig:
     batch_size: int = 10
     retry_attempts: int = 3
     timeout: int = 30
+    # Gemini embedding tuning
+    output_dimensionality: int = 1536  # Align with DB VectorField(dimensions=1536)
+    task_type: str = "RETRIEVAL_DOCUMENT"  # Optimize for document storage
+    normalize: bool = True  # Normalize vectors when dim != 3072
 
 class EmbeddingResult(BaseModel):
     """Represents the output of the embedding process."""
@@ -37,9 +43,10 @@ class EmbeddingResult(BaseModel):
     source_chunk: str = Field(description="The text chunk that was embedded.")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata about the content.")
 
-    @model_validator(mode='after')
-    def validate_vector(cls, v):
-        if not v or len(v) == 0:
+    @field_validator('embedding_vector')
+    @classmethod
+    def validate_vector(cls, v: List[float]):
+        if not isinstance(v, list) or len(v) == 0:
             raise ValueError("Embedding vector cannot be empty")
         if not all(isinstance(x, (int, float)) for x in v):
             raise ValueError("All vector elements must be numbers")
@@ -60,7 +67,7 @@ class EmbeddingService:
 
     def __init__(self, config: EmbeddingConfig = None):
         """Initialize the embedding service."""
-        self.config = config or EmbeddingConfig
+        self.config = config or EmbeddingConfig()
         self.client = genai.Client(api_key=GEMINI_API_KEY)
         self.model = self.config.model
 
@@ -83,10 +90,21 @@ class EmbeddingService:
         try:
             response = self.client.models.embed_content(
                 model=self.model,
-                contents=content_string
+                contents=content_string,
+                config=types.EmbedContentConfig(
+                    output_dimensionality=self.config.output_dimensionality,
+                    task_type=self.config.task_type,
+                ),
             )
 
             vector = response.embeddings[0].values
+
+            # Normalize when using non-3072 dims (recommended by Gemini docs)
+            if self.config.normalize and self.config.output_dimensionality != 3072:
+                vec_np = np.asarray(vector, dtype=float)
+                norm = np.linalg.norm(vec_np)
+                if norm > 0:
+                    vector = (vec_np / norm).tolist()
 
             logger.info(f"Generated embedding for content: {len(content_string)} chars, vector dim: {len(vector)}")
 
@@ -100,26 +118,49 @@ class EmbeddingService:
             raise RuntimeError(f"Gemini API embedding failed: {e}")
         
     def embed_texts_batch(self, texts: List[str], metadata_list: List[Dict[str, Any]] = None) -> List[EmbeddingResult]:
-        """Generate embeddings for multiple texts efficiently."""
+        """Generate embeddings for multiple texts efficiently using Gemini batch embedding."""
         if not texts:
             return []
 
         metadata_list = metadata_list or [{}] * len(texts)
 
-        results = []
-        for i in range(0, len(texts), self.config.batch_size):
-            batch_texts = texts[i:i + self.config.batch_size]
-            batch_metadata = metadata_list[i:i + self.config.batch_size]
+        try:
+            response = self.client.models.embed_content(
+                model=self.model,
+                contents=texts,
+                config=types.EmbedContentConfig(
+                    output_dimensionality=self.config.output_dimensionality,
+                    task_type=self.config.task_type,
+                ),
+            )
 
-            for text, metadata in zip(batch_texts, batch_metadata):
+            embeddings = []
+            for idx, emb in enumerate(response.embeddings):
+                vector = emb.values
+                if self.config.normalize and self.config.output_dimensionality != 3072:
+                    vec_np = np.asarray(vector, dtype=float)
+                    norm = np.linalg.norm(vec_np)
+                    if norm > 0:
+                        vector = (vec_np / norm).tolist()
+                embeddings.append(
+                    EmbeddingResult(
+                        embedding_vector=vector,
+                        source_chunk=texts[idx],
+                        metadata=metadata_list[idx] if idx < len(metadata_list) else {},
+                    )
+                )
+            return embeddings
+        except Exception as e:
+            logger.error(f"Batch embed_content failed, falling back to per-text embedding: {e}")
+            # Fallback to per-text embedding
+            results: List[EmbeddingResult] = []
+            for text, meta in zip(texts, metadata_list):
                 try:
-                    result = self.embed_text(text, metadata)
-                    results.append(result)
-                except Exception as e:
-                    logger.error(f"Failed to embed text in batch: {e}")
-                    # Continue with other texts in the batch
+                    results.append(self.embed_text(text, meta))
+                except Exception as inner_e:
+                    logger.error(f"Failed to embed text in fallback: {inner_e}")
                     continue
-        return results
+            return results
 
     def embed_pdf_file(self, file_data: StrByteType, metadata: DocumentMetadata = None) -> List[EmbeddingResult]:
         """Process PDF file and generate embeddings for each chunk."""
@@ -132,31 +173,27 @@ class EmbeddingService:
             page_count = len(reader.pages)
 
             for page_num, page in enumerate(reader.pages):
-                page_text = page.extract_text()
+                page_text = page.extract_text() or ""
                 full_text += page_text + "\n"
 
             if not full_text.strip():
                 logger.warning("No text found in PDF")
                 return []
             
+            doc_meta = getattr(reader, 'metadata', {}) or {}
             metadata = metadata or DocumentMetadata(
-                name=reader.metadata.get('/Title', ''),
-                description=reader.metadata.get('/Subject', ''),
+                name=(doc_meta.get('/Title', '') if isinstance(doc_meta, dict) else ''),
+                description=(doc_meta.get('/Subject', '') if isinstance(doc_meta, dict) else ''),
                 metadata={"note": "User did not provide extra metadata"}
             )
 
             chunks = self.chunk_text(full_text)
             logger.info(f"Created {len(chunks)} chunks from PDF: {metadata.name}")
 
-            results = []
-            for i, chunk in enumerate(chunks):
-                if chunk.strip():
-                    try:
-                        result = self.embed_text(chunk, metadata.model_dump())
-                        results.append(result)
-                    except Exception as e:
-                        logger.error(f"Failed to embed chunk {i}: {e}")
-                        continue
+            # Batch embed chunks for performance
+            chunk_texts = [c for c in chunks if c.strip()]
+            meta_list = [metadata.model_dump()] * len(chunk_texts)
+            results = self.embed_texts_batch(chunk_texts, meta_list)
                 
             logger.info(f"Successfully generated {len(results)} embeddings from PDF: {metadata.name}")
             return results
