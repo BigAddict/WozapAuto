@@ -317,17 +317,19 @@ def verification_required_notice(request):
 def resend_verification(request):
     """Resend verification email with rate limiting"""
     if not request.user.is_authenticated:
+        messages.error(request, 'Please sign in to resend verification email.')
         return redirect('signin')
     
     try:
-        profile = request.user.profile
+        # Get or create profile
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
         
         # Check if already verified
         if profile.is_verified:
             messages.info(request, 'Your email is already verified.')
             return redirect('home')
         
-        # Rate limiting: max 3 requests per hour
+        # Rate limiting: max 1 request per hour (more lenient)
         if profile.email_verification_sent_at:
             time_diff = timezone.now() - profile.email_verification_sent_at
             if time_diff.total_seconds() < 60 * 60:  # 1 hour
@@ -344,8 +346,8 @@ def resend_verification(request):
         
         return redirect('verification_required')
         
-    except UserProfile.DoesNotExist:
-        messages.error(request, 'Profile not found. Please contact support.')
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
         return redirect('verification_required')
 
 
