@@ -2,7 +2,7 @@ from typing import Optional, Tuple, Union
 import requests
 import logging
 
-from base.env_config import EVOLUTION_API_KEY, EVOLUTION_HOST_URL
+from base.env_config import EVOLUTION_API_KEY, EVOLUTION_HOST_URL, get_env_variable
 
 # Set up logging
 logger = logging.getLogger('connections.services')
@@ -19,6 +19,7 @@ from .models import (
     EvolutionInstanceDisconnectResponse
 )
 
+
 class EvolutionAPIService:
     def __init__(self) -> None:
         self.admin_api_key = EVOLUTION_API_KEY
@@ -31,43 +32,6 @@ class EvolutionAPIService:
             'apikey': api_key,
             'Content-Type': 'application/json',
         }
-
-    def evolution_api_request(
-        self,
-        endpoint: str,
-        method: str,
-        headers: Optional[dict] = None,
-        params: Optional[dict] = None,
-        data: Optional[dict] = None,
-        timeout: Optional[int] = 30
-    ) -> Tuple[bool, Union[dict, str]]:
-        try:
-            url = f"{self.host_url}/{endpoint}"
-            headers = headers or self.get_headers()
-            if method == "POST":
-                response = requests.post(url, headers=headers, params=params, data=data, timeout=timeout)
-            elif method == "GET":
-                response = requests.get(url, headers=headers, params=params, timeout=timeout)
-            elif method == "PUT":
-                response = requests.put(url, headers=headers, params=params, data=data, timeout=timeout)
-            elif method == "DELETE":
-                response = requests.delete(url, headers=headers, params=params, timeout=timeout)
-            else:
-                return False, f"Invalid method: {method}"
-            response.raise_for_status()
-            return True, response.json()
-        except requests.exceptions.Timeout:
-            return False, "Request timeout - WhatsApp host is not responding"
-        except requests.exceptions.ConnectionError:
-            return False, "Connection error - Unable to reach WhatsApp host"
-        except requests.exceptions.HTTPError as e:
-            return False, f"HTTP error {e.response.status_code}: {e.response.text}"
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request failed: {str(e)}")
-            return False, f"Request failed: {str(e)}"
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-            return False, f"Unexpected error: {str(e)}"
 
     def send_text_message(self, instance_name: str, number: str, message: str, reply_to_message_id: Optional[str] = None) -> Tuple[bool, Union[dict, str]]:
         try:
@@ -98,7 +62,7 @@ class EvolutionAPIService:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             return False, f"Unexpected error: {str(e)}"
 
-    def create_instance(self, instance_create: EvolutionInstanceCreate) -> Tuple[bool, Union[EvolutionInstanceCreateResponse, str]]:
+    def create_instance(self, instance_create: EvolutionInstanceCreate, user_id: Union[str, int]) -> Tuple[bool, Union[EvolutionInstanceCreateResponse, str]]:
         """
         Create a new Evolution API instance.
         
@@ -112,18 +76,20 @@ class EvolutionAPIService:
         try:
             url = f"{self.host_url}/instance/create"
             headers = self.get_headers()
+            # Bind tenant identity in webhook URL
+            webhook_url = f"https://{get_env_variable('HOST_URL')}/aiengine/webhook/?user_id={user_id}"
             payload = {
                 "instanceName": instance_create.instance_name,
                 "qrcode": instance_create.connect_now,
                 "number": instance_create.phone_number,
                 "integration": "WHATSAPP-BAILEYS",
-                "rejectCall": True,
+                "rejectCall": False,
                 "alwaysOnline": True,
-                "readMessages": True,
+                "readMessages": False,
                 "readStatus": False,
                 "syncFullHistory": False,
                 "webhook": {
-                    "url": "https://wozapauto.serverbase.store/aiengine/webhook/",
+                    "url": webhook_url,
                     "byEvents": False,
                     "base64": False,
                     "events": ["MESSAGES_UPSERT"]
@@ -403,5 +369,42 @@ class EvolutionAPIService:
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             return False, f"Unexpected error: {str(e)}"
+
+    def send_get_request(self, endpoint: str, headers: Optional[dict] = None) -> Tuple[bool, Union[dict, str]]:
+        try:
+            if headers:
+                headers = headers + self.get_headers()
+            else:
+                headers = self.get_headers()
+            response = requests.get(f"{self.host_url}/{endpoint}", headers=headers, timeout=30)
+            if response.status_code == 401:
+                return False, "Invalid API key - Authentication failed"
+            elif response.status_code == 404:
+                return False, "Instance not found"
+            else:
+                response.raise_for_status()
+            return True, response.json()
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return False, f"Unexpected error: {str(e)}"
+
+    def send_post_request(self, endpoint: str, headers: Optional[dict] = None, data: Optional[dict] = None) -> Tuple[bool, Union[dict, str]]:
+        try:
+            if headers:
+                headers = headers + self.get_headers()
+            else:
+                headers = self.get_headers()
+            response = requests.post(f"{self.host_url}/{endpoint}", headers=headers, json=data, timeout=30)
+            if response.status_code == 401:
+                return False, "Invalid API key - Authentication failed"
+            elif response.status_code == 404:
+                return False, "Instance not found"
+            else:
+                response.raise_for_status()
+            return True, response.json()
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return False, f"Unexpected error: {str(e)}"
+
 
 evolution_api_service = EvolutionAPIService()

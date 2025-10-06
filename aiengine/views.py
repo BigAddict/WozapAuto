@@ -22,7 +22,7 @@ from django.views import View
 from django.views.generic import TemplateView
 from asgiref.sync import sync_to_async
 
-from .services import WhatsAppAgentService, WhatsAppAgentError, AgentConfig
+from .services import WhatsAppAgentService, WhatsAppAgentError, retrieve_knowledge
 from aiengine.embedding import EmbeddingService
 from .models import Agent, WebhookData, EvolutionWebhookData, KnowledgeBase, DocumentMetadata
 from .forms import PDFUploadForm, KnowledgeBaseDeleteForm
@@ -187,6 +187,11 @@ class EvolutionWebhookView(View):
             if not data and not data.get('event', ''):
                 return JsonResponse({'success': True})
 
+            # Enforce tenant identity via webhook query param: user_id
+            user_id_param = request.GET.get('user_id', '').strip()
+            if not user_id_param:
+                return JsonResponse({'success': False, 'error': 'Missing user_id in webhook URL'}, status=400)
+
             payload = data.get('data', {})
             key = payload.get('key', {})
             context_info = payload.get('contextInfo', {})
@@ -217,6 +222,16 @@ class EvolutionWebhookView(View):
                 quoted_message=quoted_message,
                 is_group=is_group
             )
+            # Validate that instance belongs to user_id from query (if possible)
+            try:
+                from connections.models import Connection
+                conn = Connection.objects.filter(instance_id=evolution_webhook_data.instance_id).first()
+                if not conn or str(conn.user_id) != user_id_param:
+                    return JsonResponse({'success': False, 'error': 'Webhook user_id mismatch or unknown instance'}, status=403)
+            except Exception:
+                # If validation cannot be performed, still proceed but log
+                logger.warning('Could not validate webhook instance ownership for user_id=%s', user_id_param)
+
             self._process_evolution_webhook_data(evolution_webhook_data)
             return JsonResponse({'success': True})
             
@@ -225,8 +240,10 @@ class EvolutionWebhookView(View):
 
     def _process_evolution_webhook_data(self, data: EvolutionWebhookData):
         try:
+            if data.from_me:
+                return True
             self.save_to_db(data)
-            response = self._run_async_agent_query(data.remote_jid, data.sender, self._apply_prompt_template(data))
+            response = self._run_async_agent_query(data.remote_jid, data.sender, self._apply_prompt_template(data), data)
             self.update_db_with_response(data, response)
         except Exception as e:
             logger.error(f"Error processing evolution webhook data: {e}")
@@ -289,7 +306,7 @@ class EvolutionWebhookView(View):
         except Exception as e:
             return False
 
-    def _run_async_agent_query(self, user_id: str, session_id: str, query: str) -> str:
+    def _run_async_agent_query(self, user_id: str, session_id: str, query: str, data: EvolutionWebhookData) -> str:
         """
         Run async agent query in a new event loop.
         
@@ -306,14 +323,14 @@ class EvolutionWebhookView(View):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                return loop.run_until_complete(self._process_agent_query(user_id, session_id, query))
+                return loop.run_until_complete(self._process_agent_query(user_id, session_id, query, data))
             finally:
                 loop.close()
         except Exception as e:
             logger.error(f"Error running async agent query: {e}")
             raise
 
-    async def _process_agent_query(self, user_id: str, session_id: str, query: str) -> str:
+    async def _process_agent_query(self, user_id: str, session_id: str, query: str, data: EvolutionWebhookData) -> str:
         """
         Process a query using the WhatsApp agent service.
         
@@ -326,8 +343,20 @@ class EvolutionWebhookView(View):
             Agent's response string
         """
         try:
-            # Create agent service with context manager for proper cleanup
-            async with WhatsAppAgentService(user_id, session_id).session_context() as service:
+            context = {
+                'instance': data.instance,
+                'remote_jid': data.remote_jid,
+                'sender': session_id,
+                'push_name': data.push_name,
+                'message_id': data.message_id,
+                'quoted_message': data.quoted_message,
+                'is_group': data.is_group,
+            }
+            print(f"\n\nContext: {context}\n")
+
+            app_name = f"WhatsAppAgent:{context.get('instance')}" if context.get('instance') else None
+
+            async with WhatsAppAgentService(user_id, session_id, app_name_override=app_name, invocation_context=context).session_context() as service:
                 response = await service.process_query(query, timeout=30.0)
                 return response
                 
@@ -362,6 +391,7 @@ class KnowledgeBaseManagementView(View):
             if not info:
                 info = {
                     'entries': [],
+                    'entry_ids': [],
                     'total_chunks': 0,
                     'file_size': entry.file_size or 0,
                     'created_at': entry.created_at,
@@ -370,6 +400,7 @@ class KnowledgeBaseManagementView(View):
                 grouped_entries[filename] = info
 
             info['entries'].append(entry)
+            info['entry_ids'].append(entry.id)
             info['total_chunks'] += 1
 
             # Prefer user-provided description; ignore autogenerated "Chunk N of <file>"
@@ -546,3 +577,24 @@ class KnowledgeBaseManagementView(View):
                 'success': False,
                 'error': f'Deletion failed: {str(e)}'
             }, status=500)
+
+@require_http_methods(['POST'])
+@csrf_exempt
+def retrieve_knowledge_view(request: HttpRequest):
+    """Retrieve knowledge base entries."""
+    try:
+        data = json.loads(request.body)
+        query = data.get('query', '')
+        top_k = data.get('top_k', 5)
+        instance_name = data.get('instance_name', '')
+        
+        results = retrieve_knowledge(query, instance_name, top_k)
+        print(f"\n\nResults: {results}\n")
+        return JsonResponse(results)
+    except Exception as e:
+        logger.error(f"Error retrieving knowledge base entries: {e}")
+        return JsonResponse({
+            'success': False,
+            'message': 'Error retrieving knowledge base entries',
+            'error': str(e)
+        }, status=500)

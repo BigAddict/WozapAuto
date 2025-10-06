@@ -1,8 +1,11 @@
-from typing import Dict, Any, Optional, List, Callable, Union
+from typing import Dict, Any, Optional, List, Callable
+from google.adk.tools.tool_context import ToolContext
 from datetime import datetime, timezone
 import logging
+import requests
 
 from connections.services import evolution_api_service
+from base.env_config import get_env_variable
 
 logger = logging.getLogger('aiengine.tools')
 
@@ -26,9 +29,7 @@ def get_current_time() -> str:
 
 def send_whatsapp_message(
     message: str,
-    number: str,
-    instance_name: Optional[str] = None,
-    reply_to_message_id: Optional[str] = None
+    tool_context: ToolContext
 ) -> Dict[str, Any]:
     """
     Send a WhatsApp message to a specific phone number using the Evolution API.
@@ -49,6 +50,8 @@ def send_whatsapp_message(
             - response (Any, optional): API response data if success is True
     """
     try:
+        instance_name = tool_context.state.get('user:instance_name')
+        reply_to_message_id = tool_context.state.get('temp:reply_to_message_id')
         # Validate required parameters
         if not instance_name:
             return {
@@ -63,6 +66,8 @@ def send_whatsapp_message(
                 "error": "Message content is empty",
                 "message": "I cannot send an empty message."
             }
+
+        number = tool_context.state.get('user:remote_jid')
         
         if not number or not number.strip():
             return {
@@ -102,6 +107,185 @@ def send_whatsapp_message(
             "message": f"I encountered an error while trying to send the message: {str(e)}. Please check the instance configuration and try again."
         }
 
+def send_group_message(
+    message: str,
+    tool_context: ToolContext,
+    mentions_everyone: bool = False,
+    mentions: List[str] = []
+) -> Dict[str, Any]:
+    """
+    Call this tool to send a message to a group.
+
+    Args:
+        message (str): The text message to send to the group.
+        tool_context (ToolContext): Tool context to scope the search by.
+        mentions_everyone (Optional[bool]): Whether to mention everyone in the group.
+        mentions (Optional[List[str]]): The list of user IDs to mention in the group.
+
+    Returns:
+        Dict[str, Any]: {
+            "success": bool,
+            "results": any,
+            "message": str
+        }
+    """
+    try:
+        instance_name = tool_context.state.get('user:instance_name')
+        remote_jid = tool_context.state.get('user:remote_jid')
+        reply_to_message_id = tool_context.state.get('temp:reply_to_message_id')
+
+        if mentions_everyone:
+            success, response = evolution_api_service.send_post_request(
+                endpoint=f"/message/sendText/{instance_name}",
+                data={
+                    "number": remote_jid,
+                    "text": message,
+                    "quoted": {
+                        "key": {
+                            "id": reply_to_message_id
+                        }
+                    } if reply_to_message_id else None,
+                    "mentionsEveryOne": mentions_everyone,
+                    "mentioned": mentions
+                }
+            )
+            if success:
+                return {
+                    "success": True,
+                    "results": response
+                }
+    except Exception as e:
+        logger.error(f"Error in send_group_message tool: {e}")
+        return {
+            "success": False,
+            "error": f"Exception occurred: {str(e)}",
+            "message": f"I encountered an error while trying to send the group message: {str(e)}. Please check the instance configuration and try again."
+        }
+
+def check_conversation_messages(
+    tool_context: ToolContext,
+    page: Optional[int] = None,
+    offset: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Call this tool to get the conversation messages of the customer you're chatting with.
+
+    Args:
+        tool_context (ToolContext): Tool context to scope the search by.
+        page Optional[int]: The page number to get the conversation messages from.
+        offset Optional[int]: The offset number to get the conversation messages from.
+
+    Returns:
+        Dict[str, Any]: {
+            "success": bool,
+            "results": [
+                {"id": int, "score": float, "content": str, "metadata": dict, "original_filename": str, "chunk_index": int}
+            ],
+            "message": str
+        }
+    """
+    try:
+        instance_name = tool_context.state.get('user:instance_name')
+        remote_jid = tool_context.state.get('user:remote_jid')
+        success, response = evolution_api_service.send_post_request(
+            endpoint=f"/chat/findMessages/{instance_name}",
+            data={
+                "remoteJid": remote_jid,
+                "page": page,
+                "offset": offset
+            }
+        )
+        if success:
+            return {
+                "success": True,
+                "results": response
+            }
+    except Exception as e:
+        logger.error(f"Error in check_conversation_messages tool: {e}")
+        return {
+            "success": False,
+            "error": f"Exception occurred: {str(e)}",
+            "message": f"I encountered an error while trying to check the conversation messages: {str(e)}. Please check the instance configuration and try again."
+        }
+
+def get_group_name(
+    tool_context: ToolContext
+) -> Dict[str, Any]:
+    """
+    Call this tool to get the name of the group you're chatting with.
+
+    Args:
+        tool_context (ToolContext): Tool context to scope the search by.
+
+    Returns:
+        Dict[str, Any]: {
+            "success": bool,
+            "results": [
+                {"id": int, "score": float, "content": str, "metadata": dict, "original_filename": str, "chunk_index": int}
+            ],
+            "message": str
+        }
+    """
+    try:
+        instance_name = tool_context.state.get('user:instance_name')
+        remote_jid = tool_context.state.get('user:remote_jid')
+        success, response = evolution_api_service.send_get_request(
+            endpoint=f"/group/findGroupInfos/{instance_name}?groupJid={remote_jid}"
+        )
+        if success:
+            return {
+                "success": True,
+                "results": response
+            }
+    except Exception as e:
+        logger.error(f"Error in get_group_name tool: {e}")
+        return {
+            "success": False,
+            "error": f"Exception occurred: {str(e)}",
+            "message": f"I encountered an error while trying to get the group name: {str(e)}. Please check the instance configuration and try again."
+        }
+
+def retrieve_knowledge(
+    query: str,
+    top_k: int,
+    tool_context: ToolContext
+) -> Dict[str, Any]:
+    """
+    Retrieve the most relevant knowledge base chunks for the current tenant/user context.
+    Use this tool to get the most relevant knowledge base comprising of documents, policies, and FAQs.
+
+    Args:
+        query (str): Natural language query to search with.
+        top_k (int): Number of results to return (default 5, max 20).
+        tool_context (ToolContext): Tool context to scope the search by.
+
+    Returns:
+        Dict[str, Any]: {
+            "success": bool,
+            "results": [
+                {"id": int, "score": float, "content": str, "metadata": dict, "original_filename": str, "chunk_index": int}
+            ],
+            "message": str
+        }
+    """
+    try:
+        print(f"\n\nTool called: {query, top_k, tool_context}\n")
+        url = f"{get_env_variable('HOST_URL')}/aiengine/retrieve-knowledge/"
+        instance_name = tool_context.state.get('user:instance_name')
+        payload = {
+            "query": query,
+            "top_k": top_k,
+            "instance_name": instance_name
+        }
+        response = requests.post(url, json=payload)
+        return response.json()
+    except Exception as e:
+        logger.error(f"Error in retrieve_knowledge tool: {e}")
+        return {
+            "success": False,
+            "error": f"Exception occurred: {str(e)}",
+            "message": f"I encountered an error while trying to retrieve the knowledge base: {str(e)}. Please check the instance configuration and try again."
+        }
 
 class ToolManager:
     """Manages available tools for the AI Agent"""
@@ -112,6 +296,8 @@ class ToolManager:
     def _register_default_tools(self):
         self.register_tool("get_current_time", get_current_time)
         self.register_tool("send_whatsapp_message", send_whatsapp_message)
+        self.register_tool("retrieve_knowledge", retrieve_knowledge)
+        self.register_tool("check_conversation_messages", check_conversation_messages)
 
         logger.info(f"Registered {len(self._tools)} tools")
 

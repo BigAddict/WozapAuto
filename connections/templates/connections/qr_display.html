@@ -135,7 +135,7 @@
                                 <button type="button" class="btn btn-outline-primary" id="getNewQrBtn" onclick="getNewQRCode()">
                                     <i class="bi bi-arrow-clockwise me-2"></i>Get New QR Code
                                 </button>
-                                <button type="button" class="btn btn-success" id="connectionCompleteBtn" onclick="checkConnectionComplete()">
+                                <button type="button" class="btn btn-success" id="connectionCompleteBtn" onclick="checkConnectionCompleteWithDelay()">
                                     <i class="bi bi-check-circle me-2"></i>Connection Complete
                                 </button>
                             </div>
@@ -168,27 +168,12 @@
 // Manual QR code management JavaScript
 let qrRequestCount = {{ retry_info.qr_code_requests|default:0 }};
 
-// Cleanup function to disconnect when user leaves the page
-function cleanupOnLeave() {
-    if (navigator.sendBeacon) {
-        // Use sendBeacon for better reliability
-        const formData = new FormData();
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-        navigator.sendBeacon('{% url "connections:disconnect_api" %}', formData);
-    } else {
-        // Fallback to fetch
-        fetch('{% url "connections:disconnect_api" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            },
-            keepalive: true
-        }).catch(() => {}); // Ignore errors
-    }
-}
 
 function getNewQRCode() {
     const btn = document.getElementById('getNewQrBtn');
+    const connectionBtn = document.getElementById('connectionCompleteBtn');
+    
+    // Disable only the QR button during fetch
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Getting QR Code...';
     
@@ -228,6 +213,12 @@ function getNewQRCode() {
             
             showStatusMessage('New QR code generated! Scan it with WhatsApp.', 'success');
             
+            // Reset connection button if it was in failed state
+            if (connectionBtn.disabled && connectionBtn.innerHTML.includes('Connection Failed')) {
+                connectionBtn.disabled = false;
+                connectionBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Connection Complete';
+            }
+            
             // Check if max requests reached
             if (data.qr_code_requests >= 5) {
                 btn.disabled = true;
@@ -249,38 +240,98 @@ function getNewQRCode() {
     });
 }
 
-function checkConnectionComplete() {
-    const btn = document.getElementById('connectionCompleteBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+function checkConnectionCompleteWithDelay() {
+    const connectionBtn = document.getElementById('connectionCompleteBtn');
+    const qrBtn = document.getElementById('getNewQrBtn');
     
-    showStatusMessage('Checking connection status...', 'info');
+    // Disable both buttons at start
+    connectionBtn.disabled = true;
+    qrBtn.disabled = true;
     
-    fetch('{% url "connections:status_api" %}')
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                if (data.connection_status === 'open') {
-                    // Connection successful, redirect to detail page
-                    showStatusMessage('Connection successful! Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = '{% url "connections:detail" %}';
-                    }, 2000);
-                } else {
-                    // Connection not complete
-                    showStatusMessage('Connection not yet established. Please make sure you scanned the QR code and try again.', 'warning');
-                }
-            } else {
-                showStatusMessage('Error checking status: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            showStatusMessage('Error checking status: ' + error.message, 'danger');
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Connection Complete';
-        });
+    // Start the retry process
+    attemptConnectionCheck(1, 3);
+}
+
+function attemptConnectionCheck(attempt, maxAttempts) {
+    const connectionBtn = document.getElementById('connectionCompleteBtn');
+    const qrBtn = document.getElementById('getNewQrBtn');
+    const progress = document.getElementById('connectionProgress');
+    
+    // Show attempt info
+    connectionBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Attempt ${attempt} of ${maxAttempts} - Waiting 20s...`;
+    showStatusMessage(`Checking connection... Attempt ${attempt} of ${maxAttempts}`, 'info');
+    
+    let remaining = 20;
+    const interval = setInterval(() => {
+        remaining -= 1;
+        const pct = Math.round(((attempt - 1) * 33.33) + ((20 - remaining) / 20) * 33.33);
+        if (progress) progress.style.width = pct + '%';
+        connectionBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Attempt ${attempt} of ${maxAttempts} - Waiting ${remaining}s...`;
+        
+        if (remaining <= 0) {
+            clearInterval(interval);
+            connectionBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Attempt ${attempt} of ${maxAttempts} - Checking...`;
+            
+            fetch('{% url "connections:status_api" %}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (data.connection_status === 'open') {
+                            showStatusMessage('Connection successful! Redirecting...', 'success');
+                            if (progress) progress.style.width = '100%';
+                            setTimeout(() => { window.location.href = '{% url "connections:detail" %}'; }, 1500);
+                            return; // Exit early on success
+                        } else {
+                            // Connection not established yet
+                            if (attempt < maxAttempts) {
+                                showStatusMessage(`Connection not detected. Retrying in 20 seconds... (${attempt}/${maxAttempts})`, 'warning');
+                                setTimeout(() => attemptConnectionCheck(attempt + 1, maxAttempts), 1000);
+                            } else {
+                                // All attempts failed
+                                handleConnectionFailure();
+                            }
+                        }
+                    } else {
+                        // API error
+                        if (attempt < maxAttempts) {
+                            showStatusMessage(`Error checking status: ${data.message}. Retrying... (${attempt}/${maxAttempts})`, 'warning');
+                            setTimeout(() => attemptConnectionCheck(attempt + 1, maxAttempts), 1000);
+                        } else {
+                            handleConnectionFailure();
+                        }
+                    }
+                })
+                .catch(error => {
+                    // Network error
+                    if (attempt < maxAttempts) {
+                        showStatusMessage(`Network error: ${error.message}. Retrying... (${attempt}/${maxAttempts})`, 'warning');
+                        setTimeout(() => attemptConnectionCheck(attempt + 1, maxAttempts), 1000);
+                    } else {
+                        handleConnectionFailure();
+                    }
+                });
+        }
+    }, 1000);
+}
+
+function handleConnectionFailure() {
+    const connectionBtn = document.getElementById('connectionCompleteBtn');
+    const qrBtn = document.getElementById('getNewQrBtn');
+    const progress = document.getElementById('connectionProgress');
+    
+    // Keep connection button disabled
+    connectionBtn.disabled = true;
+    connectionBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Connection Failed (3 attempts)';
+    
+    // Re-enable QR code button as recovery option
+    qrBtn.disabled = false;
+    qrBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>Get New QR Code';
+    
+    // Reset progress bar
+    if (progress) progress.style.width = '0%';
+    
+    // Show helpful message
+    showStatusMessage('Connection not detected after 3 attempts. Please try getting a new QR code or request help if the issue persists.', 'danger');
 }
 
 function sendHelpRequest() {
@@ -316,14 +367,8 @@ function showStatusMessage(message, type) {
     }
 }
 
-// Set up cleanup on page leave
+// Set up page initialization
 document.addEventListener('DOMContentLoaded', function() {
-    // Add beforeunload event to cleanup when user leaves
-    window.addEventListener('beforeunload', cleanupOnLeave);
-    
-    // Also cleanup on pagehide (for mobile browsers)
-    window.addEventListener('pagehide', cleanupOnLeave);
-    
     // Check if max QR requests reached on page load
     if (qrRequestCount >= 5) {
         const btn = document.getElementById('getNewQrBtn');

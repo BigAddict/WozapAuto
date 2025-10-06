@@ -42,7 +42,7 @@ class CreateConnectionView(TemplateView):
         
         return super().get(request, *args, **kwargs)
     
-    def post(self, request, *args, **kwargs):
+    def post(self, request: HttpRequest, *args, **kwargs):
         """Handle connection creation form submission with new flow"""
         logger.info(f"Connection creation attempt started for user: {request.user.username}")
         
@@ -97,7 +97,7 @@ class CreateConnectionView(TemplateView):
             )
             
             logger.info(f"Calling Evolution API to create instance: {company_name}")
-            success, result = evolution_api_service.create_instance(instance_create)
+            success, result = evolution_api_service.create_instance(instance_create, user_id=request.user.id)
             
             if success:
                 # Save connection to database (NO QR code storage)
@@ -352,10 +352,7 @@ def connection_retry_api(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
-
-
-@login_required
-@require_http_methods(["POST"])
+    
 def qr_request_api(request):
     """API endpoint to request a new QR code with rate limiting"""
     logger.info(f"QR code request API called by user: {request.user.username}")
