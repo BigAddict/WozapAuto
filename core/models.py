@@ -14,6 +14,10 @@ class UserProfile(models.Model):
     language = models.CharField(max_length=10, default='en', help_text="Preferred language code")
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, help_text="User profile picture")
     is_verified = models.BooleanField(default=False, help_text="Email verification status")
+    newsletter_subscribed = models.BooleanField(default=False, help_text="Newsletter subscription status")
+    onboarding_completed = models.BooleanField(default=False, help_text="Whether user completed welcome onboarding")
+    email_verification_token = models.CharField(max_length=100, blank=True, null=True, help_text="Email verification token")
+    email_verification_sent_at = models.DateTimeField(blank=True, null=True, help_text="When verification email was sent")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

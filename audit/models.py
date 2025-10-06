@@ -14,6 +14,7 @@ class EmailLog(models.Model):
         ('password_reset', 'Password Reset'),
         ('password_change', 'Password Change Confirmation'),
         ('connection_success', 'WhatsApp Connection Success'),
+        ('email_verification', 'Email Verification'),
         ('system', 'System Notification'),
         ('other', 'Other'),
     ]

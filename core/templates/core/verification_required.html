@@ -1,0 +1,20 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Email Verification Required - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="alert alert-warning" role="alert">
+                <h4 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Email verification required</h4>
+                <p>To access this feature, please verify your email address.</p>
+                <hr>
+                <a href="{% url 'resend_verification' %}" class="btn btn-outline-primary">Resend verification email</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

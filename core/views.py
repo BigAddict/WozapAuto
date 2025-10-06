@@ -13,37 +13,37 @@ from django.utils.encoding import force_str
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
+from django.utils import timezone
 from .models import UserProfile
+from .forms import CustomUserCreationForm, OnboardingForm
+from .decorators import verified_email_required, onboarding_required
 from .email_service import email_service
 
 # Signup View
 def signup(request):
     if request.method == 'POST':
-        first_name = request.POST['first_name']
-        last_name = request.POST['last_name']
-        username = request.POST['username']
-        email = request.POST['email']
-        password = request.POST['password']
-
-        try:
-            user = User.objects.create_user(username=username, email=email, password=password)
-            user.first_name = first_name
-            user.last_name = last_name
-            user.save()
-
-            login(request, user)
-            
-            # Send welcome email
-            email_service.send_welcome_email(user, request)
-            
-            messages.success(request, 'Account created successfully! Welcome to WozapAuto.')
-            return redirect('home')
-
-        except IntegrityError:
-            messages.error(request, 'Username already exists')
-            return redirect('signup')
-
-    return render(request, 'core/signup.html')
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            try:
+                # Create user
+                user = form.save()
+                
+                # Send verification email
+                email_service.send_verification_email(user, request)
+                
+                messages.success(
+                    request, 
+                    'Account created successfully! Please check your email to verify your account.'
+                )
+                return redirect('verify_email_sent')
+                
+            except Exception as e:
+                messages.error(request, f'An error occurred: {str(e)}')
+                return redirect('signup')
+    else:
+        form = CustomUserCreationForm()
+    
+    return render(request, 'core/signup.html', {'form': form})
 
 def signin(request):
     if request.method == 'POST':
@@ -77,6 +77,20 @@ def signout(request):
 
 class HomePageView(TemplateView):
     template_name = 'core/home.html'
+    
+    def get(self, request, *args, **kwargs):
+        # Check if user needs onboarding
+        if request.user.is_authenticated:
+            try:
+                if not request.user.profile.onboarding_completed:
+                    messages.info(request, 'Please complete your profile setup to continue.')
+                    return redirect('welcome_onboarding')
+            except AttributeError:
+                # Profile doesn't exist, redirect to onboarding
+                messages.info(request, 'Please complete your profile setup to continue.')
+                return redirect('welcome_onboarding')
+        
+        return super().get(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -247,3 +261,121 @@ def change_password(request):
         form = PasswordChangeForm(request.user)
     
     return render(request, 'core/change_password.html', {'form': form})
+
+
+# Email Verification Views
+def verify_email_sent(request):
+    """Show 'check your email' page after signup"""
+    return render(request, 'core/verify_email_sent.html')
+
+
+def verify_email(request, token):
+    """Handle email verification"""
+    try:
+        # Find user with this verification token
+        profile = UserProfile.objects.get(email_verification_token=token)
+        
+        # Check if token is not expired (24 hours)
+        if profile.email_verification_sent_at:
+            time_diff = timezone.now() - profile.email_verification_sent_at
+            if time_diff.total_seconds() > 24 * 60 * 60:  # 24 hours
+                messages.error(request, 'Verification link has expired. Please request a new one.')
+                return redirect('verify_email_failed')
+        
+        # Mark email as verified
+        profile.is_verified = True
+        profile.email_verification_token = None  # Clear token
+        profile.email_verification_sent_at = None
+        profile.save()
+        
+        # Auto-login the user
+        login(request, profile.user)
+        
+        messages.success(request, 'Email verified successfully! Welcome to WozapAuto.')
+        return redirect('verify_email_success')
+        
+    except UserProfile.DoesNotExist:
+        messages.error(request, 'Invalid verification link.')
+        return redirect('verify_email_failed')
+
+
+def verify_email_success(request):
+    """Show email verification success page"""
+    return render(request, 'core/verify_email_success.html')
+
+
+def verify_email_failed(request):
+    """Show email verification failed page"""
+    return render(request, 'core/verify_email_failed.html')
+
+
+def verification_required_notice(request):
+    """Show verification required notice page"""
+    return render(request, 'core/verification_required.html')
+
+
+def resend_verification(request):
+    """Resend verification email with rate limiting"""
+    if not request.user.is_authenticated:
+        return redirect('signin')
+    
+    try:
+        profile = request.user.profile
+        
+        # Check if already verified
+        if profile.is_verified:
+            messages.info(request, 'Your email is already verified.')
+            return redirect('home')
+        
+        # Rate limiting: max 3 requests per hour
+        if profile.email_verification_sent_at:
+            time_diff = timezone.now() - profile.email_verification_sent_at
+            if time_diff.total_seconds() < 60 * 60:  # 1 hour
+                messages.warning(request, 'Please wait before requesting another verification email.')
+                return redirect('verification_required')
+        
+        # Send verification email
+        success = email_service.send_verification_email(request.user, request)
+        
+        if success:
+            messages.success(request, 'Verification email sent! Please check your inbox.')
+        else:
+            messages.error(request, 'Failed to send verification email. Please try again later.')
+        
+        return redirect('verification_required')
+        
+    except UserProfile.DoesNotExist:
+        messages.error(request, 'Profile not found. Please contact support.')
+        return redirect('verification_required')
+
+
+# Welcome Onboarding View
+@login_required
+def welcome_onboarding(request):
+    """Welcome onboarding flow for new users"""
+    try:
+        profile = request.user.profile
+        
+        # Check if already completed
+        if profile.onboarding_completed:
+            messages.info(request, 'You have already completed the onboarding process.')
+            return redirect('home')
+        
+        if request.method == 'POST':
+            form = OnboardingForm(request.POST, request.FILES, instance=profile)
+            if form.is_valid():
+                # Save profile data
+                profile = form.save()
+                profile.onboarding_completed = True
+                profile.save()
+                
+                messages.success(request, 'Welcome to WozapAuto! Your profile has been set up successfully.')
+                return redirect('home')
+        else:
+            form = OnboardingForm(instance=profile)
+        
+        return render(request, 'core/welcome_onboarding.html', {'form': form})
+        
+    except UserProfile.DoesNotExist:
+        messages.error(request, 'Profile not found. Please contact support.')
+        return redirect('home')

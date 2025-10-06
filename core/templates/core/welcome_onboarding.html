@@ -1,0 +1,72 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Welcome Setup - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Complete your profile</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Company name</label>
+                            {{ form.company_name }}
+                            {% if form.company_name.errors %}
+                                <div class="text-danger small">{{ form.company_name.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">WhatsApp number</label>
+                            {{ form.phone_number }}
+                            <div class="form-text">{{ form.fields.phone_number.help_text }}</div>
+                            {% if form.phone_number.errors %}
+                                <div class="text-danger small">{{ form.phone_number.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Timezone</label>
+                                {{ form.timezone }}
+                                {% if form.timezone.errors %}
+                                    <div class="text-danger small">{{ form.timezone.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Language</label>
+                                {{ form.language }}
+                                {% if form.language.errors %}
+                                    <div class="text-danger small">{{ form.language.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Avatar (optional)</label>
+                            {{ form.avatar }}
+                            {% if form.avatar.errors %}
+                                <div class="text-danger small">{{ form.avatar.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2-circle me-2"></i>Finish setup
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

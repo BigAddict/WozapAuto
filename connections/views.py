@@ -15,11 +15,12 @@ from .models import Connection
 from .services import evolution_api_service
 from core.models import UserProfile
 from core.email_service import email_service
+from core.decorators import verified_email_required
 
 # Set up logging
 logger = logging.getLogger('connections.views')
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, verified_email_required], name='dispatch')
 class CreateConnectionView(TemplateView):
     template_name = "connections/connection_create.html"
     
@@ -136,7 +137,7 @@ class CreateConnectionView(TemplateView):
         return context
 
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, verified_email_required], name='dispatch')
 class QRCodeDisplayView(TemplateView):
     """Dedicated page for QR code and pairing code display"""
     template_name = "connections/qr_display.html"
@@ -190,7 +191,7 @@ class QRCodeDisplayView(TemplateView):
         return context
 
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, verified_email_required], name='dispatch')
 class ConnectionDetailView(TemplateView):
     """Connection detail page - only accessible when connected"""
     template_name = "connections/connection_detail.html"

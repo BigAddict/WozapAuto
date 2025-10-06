@@ -345,6 +345,104 @@ class EmailService:
             
             logger.error(f"Failed to send password change confirmation email to {user.email}: {str(e)}")
             return False
+    
+    @staticmethod
+    def send_verification_email(user, request=None):
+        """
+        Send email verification email to user
+        
+        Args:
+            user: User instance
+            request: HttpRequest instance (optional, for logging)
+        """
+        from django.contrib.auth.tokens import default_token_generator
+        import secrets
+        
+        # Generate a secure verification token
+        token = secrets.token_urlsafe(32)
+        
+        # Store token in user profile
+        try:
+            profile = user.profile
+            profile.email_verification_token = token
+            profile.email_verification_sent_at = timezone.now()
+            profile.save()
+        except UserProfile.DoesNotExist:
+            # Create profile if it doesn't exist
+            profile = UserProfile.objects.create(
+                user=user,
+                email_verification_token=token,
+                email_verification_sent_at=timezone.now()
+            )
+        
+        subject = "Verify Your Email Address - WozapAuto"
+        template_used = 'core/emails/verification_email.html'
+        
+        # Prepare context data for logging
+        context_data = {
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'site_name': 'WozapAuto',
+            'token_generated': True,
+        }
+        
+        # Log email attempt
+        email_log = EmailService._log_email(
+            email_type='email_verification',
+            recipient_email=user.email,
+            subject=subject,
+            template_used=template_used,
+            context_data=context_data,
+            recipient_user=user,
+            request=request
+        )
+        
+        try:
+            # Build verification URL
+            verification_url = request.build_absolute_uri(
+                reverse('verify_email', kwargs={'token': token})
+            ) if request else f"http://localhost:8000/verify-email/{token}/"
+            
+            # Update context data with verification URL for logging
+            context_data['verification_url'] = verification_url
+            
+            # Render HTML template
+            html_content = render_to_string(template_used, {
+                'user': user,
+                'verification_url': verification_url,
+                'site_name': 'WozapAuto'
+            })
+            
+            # Create plain text version
+            text_content = strip_tags(html_content)
+            
+            # Send email
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email]
+            )
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            
+            # Mark as sent in audit log
+            if email_log:
+                email_log.mark_sent()
+            
+            logger.info(f"Verification email sent successfully to {user.email}")
+            return True
+            
+        except Exception as e:
+            # Mark as failed in audit log
+            if email_log:
+                email_log.mark_failed(str(e))
+            
+            logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
+            return False
 
 # Create a singleton instance
 email_service = EmailService()
