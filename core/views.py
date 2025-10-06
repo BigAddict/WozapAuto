@@ -1,4 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
+import logging
+import time
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.shortcuts import render, redirect, get_object_or_404
@@ -18,6 +20,8 @@ from .models import UserProfile
 from .forms import CustomUserCreationForm, OnboardingForm
 from .decorators import verified_email_required, onboarding_required
 from .email_service import email_service
+
+logger = logging.getLogger('core.views')
 
 # Signup View
 def signup(request):
@@ -321,11 +325,30 @@ def resend_verification(request):
         return redirect('signin')
     
     try:
+        logger.info(
+            "resend_verification:start",
+            extra={
+                'user_id': getattr(request.user, 'id', None),
+                'user_email': getattr(request.user, 'email', ''),
+                'path': request.path,
+                'ip': request.META.get('REMOTE_ADDR'),
+            }
+        )
         # Get or create profile
         profile, created = UserProfile.objects.get_or_create(user=request.user)
+        logger.info(
+            "resend_verification:profile",
+            extra={
+                'profile_id': getattr(profile, 'id', None),
+                'profile_created': created,
+                'is_verified': profile.is_verified,
+                'last_sent_at': getattr(profile.email_verification_sent_at, 'isoformat', lambda: None)(),
+            }
+        )
         
         # Check if already verified
         if profile.is_verified:
+            logger.info("resend_verification:already_verified")
             messages.info(request, 'Your email is already verified.')
             return redirect('home')
         
@@ -333,11 +356,16 @@ def resend_verification(request):
         if profile.email_verification_sent_at:
             time_diff = timezone.now() - profile.email_verification_sent_at
             if time_diff.total_seconds() < 60 * 60:  # 1 hour
+                wait_seconds = int(60 * 60 - time_diff.total_seconds())
+                logger.info("resend_verification:rate_limited", extra={'wait_seconds': wait_seconds})
                 messages.warning(request, 'Please wait before requesting another verification email.')
                 return redirect('verification_required')
         
         # Send verification email
+        t0 = time.monotonic()
         success = email_service.send_verification_email(request.user, request)
+        duration_s = time.monotonic() - t0
+        logger.info("resend_verification:send_completed", extra={'success': success, 'duration_s': round(duration_s, 3)})
         
         if success:
             messages.success(request, 'Verification email sent! Please check your inbox.')
@@ -347,6 +375,7 @@ def resend_verification(request):
         return redirect('verification_required')
         
     except Exception as e:
+        logger.exception("resend_verification:error")
         messages.error(request, f'An error occurred: {str(e)}')
         return redirect('verification_required')
 

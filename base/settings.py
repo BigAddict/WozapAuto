@@ -156,7 +156,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = '/media/'
@@ -178,9 +178,11 @@ from base.env_config import (
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = SMTP_HOST
 EMAIL_PORT = int(SMTP_PORT) if SMTP_PORT else 587
-EMAIL_USE_TLS = True
+EMAIL_USE_SSL = (os.getenv('SMTP_USE_SSL', '').lower() == 'true') or (EMAIL_PORT == 465)
+EMAIL_USE_TLS = False if EMAIL_USE_SSL else (os.getenv('SMTP_USE_TLS', 'true').lower() == 'true')
 EMAIL_HOST_USER = SMTP_USERNAME
 EMAIL_HOST_PASSWORD = SMTP_PASSWORD
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '15'))  # seconds
 DEFAULT_FROM_EMAIL = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
 SERVER_EMAIL = SMTP_FROM_EMAIL
 

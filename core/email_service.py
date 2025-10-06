@@ -13,6 +13,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
 from django.utils import timezone
+from .models import UserProfile
 
 logger = logging.getLogger('core.email_service')
 
@@ -361,19 +362,26 @@ class EmailService:
         # Generate a secure verification token
         token = secrets.token_urlsafe(32)
         
-        # Store token in user profile
+        # Store token in user profile (timestamp will be set after successful send)
         try:
             profile = user.profile
             profile.email_verification_token = token
-            profile.email_verification_sent_at = timezone.now()
             profile.save()
         except UserProfile.DoesNotExist:
             # Create profile if it doesn't exist
             profile = UserProfile.objects.create(
                 user=user,
-                email_verification_token=token,
-                email_verification_sent_at=timezone.now()
+                email_verification_token=token
             )
+        logger.info(
+            "email_verification:token_set",
+            extra={
+                'user_id': getattr(user, 'id', None),
+                'email': getattr(user, 'email', ''),
+                'profile_id': getattr(profile, 'id', None),
+                'sent_at': profile.email_verification_sent_at.isoformat() if profile.email_verification_sent_at else None,
+            }
+        )
         
         subject = "Verify Your Email Address - WozapAuto"
         template_used = 'core/emails/verification_email.html'
@@ -401,6 +409,8 @@ class EmailService:
         )
         
         try:
+            import time
+            t0 = time.monotonic()
             # Build verification URL
             verification_url = request.build_absolute_uri(
                 reverse('verify_email', kwargs={'token': token})
@@ -427,7 +437,24 @@ class EmailService:
                 to=[user.email]
             )
             msg.attach_alternative(html_content, "text/html")
+            # Send email with timeout honored by EMAIL_TIMEOUT
             msg.send()
+            # Mark send time only after successful send
+            try:
+                profile.email_verification_sent_at = timezone.now()
+                profile.save(update_fields=['email_verification_sent_at', 'updated_at'])
+            except Exception:
+                # Do not fail the flow if timestamp update fails
+                pass
+            duration_s = time.monotonic() - t0
+            logger.info(
+                "email_verification:sent",
+                extra={
+                    'user_id': getattr(user, 'id', None),
+                    'email': getattr(user, 'email', ''),
+                    'duration_s': round(duration_s, 3),
+                }
+            )
             
             # Mark as sent in audit log
             if email_log:
@@ -441,7 +468,7 @@ class EmailService:
             if email_log:
                 email_log.mark_failed(str(e))
             
-            logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
+            logger.exception(f"Failed to send verification email to {user.email}")
             return False
 
 # Create a singleton instance
