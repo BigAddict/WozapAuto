@@ -65,7 +65,7 @@ class AgentConfig:
         agent_instructions (str): Instructions for the agent.
     """
     app_name: str = 'WhatsAppAgent'
-    model_name: str = 'gemini-2.0-flash'
+    model_name: str = 'gemini-2.5-flash-lite'
     agent_name: str = 'WhatsAppAgent'
     agent_description: str = 'WhatsAppAgent is a smart AI agent that helps answer WhatsApp queries.'
     agent_instructions: str = 'You are a smart AI agent that helps answer WhatsApp queries with accuracy and helpfulness. Use the get_current_time tool to get the current time and the send_whatsapp_message tool to send messages to WhatsApp.'
@@ -145,7 +145,7 @@ class WhatsAppAgentService:
         """
         return AgentConfig(
             app_name=get_env_variable('AI_AGENT_APP_NAME', 'WhatsAppAgent'),
-            model_name=get_env_variable('AI_AGENT_MODEL_NAME', 'gemini-2.0-flash'),
+            model_name=get_env_variable('AI_AGENT_MODEL_NAME', 'gemini-2.5-flash-lite'),
             agent_name=get_env_variable('AI_AGENT_NAME', 'WhatsAppAgent'),
             agent_description=get_env_variable(
                 'AI_AGENT_DESCRIPTION', 
