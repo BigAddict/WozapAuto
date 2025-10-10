@@ -1,0 +1,26 @@
+{
+  "name": "wozapauto",
+  "version": "1.0.0",
+  "description": "WozapAuto - Professional WhatsApp AI Agent Platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install-lib": "npm install --save",
+    "copy-libs": "node scripts/copy-libs.js",
+    "build-static": "npm run copy-libs",
+    "dev": "python manage.py runserver",
+    "build": "npm run copy-libs"
+  },
+  "keywords": [
+    "whatsapp",
+    "ai",
+    "agent",
+    "django",
+    "automation"
+  ],
+  "author": "WozapAuto Team",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^5.3.8"
+  }
+}
