@@ -4,6 +4,11 @@ from pydantic import BaseModel
 from django.db import models
 from enum import Enum
 from typing import Optional
+from django.dispatch import receiver
+from django.db.models.signals import post_save
+
+from aiengine.models import Agent
+from aiengine.prompt import AgentInstructions
 
 UserModel = get_user_model()
 
@@ -125,6 +130,24 @@ class Connection(models.Model):
         self.qr_code_requests = 0
         self.max_qr_requests_reached = False
         self.save()
+
+@receiver(post_save, sender=Connection)
+def create_agent_for_connection(sender, instance, created, **kwargs):
+    """
+    Automatically create an Agent for the same user when a Connection is created.
+    The agent is inactive by default.
+    """
+    if created:
+        # The agent name is unique, so use Connection instance_name plus user to avoid collision if needed
+        agent_name = f"{instance.instance_name} Agent"
+        Agent.objects.create(
+            user=instance.user,
+            name=agent_name,
+            description="WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.",
+            system_prompt="You are a smart AI agent that helps answer WhatsApp queries with accuracy and helpfulness.",
+            is_active=False,
+            is_locked=False,
+        )
 
 class EvolutionInstanceSettings(BaseModel):
     setting_id: str

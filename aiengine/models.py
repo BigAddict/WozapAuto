@@ -7,7 +7,7 @@ from typing import Optional
 
 class Agent(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_agents')
-    name = models.CharField(max_length=255, default="WozapAutoAgent", unique=True, null=False, blank=False)
+    name = models.CharField(max_length=255, default="WozapAutoAgent", null=False, blank=False)
     description = models.TextField(default="WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.", null=False, blank=False)
     system_prompt = models.TextField(null=False, blank=False)
     is_active = models.BooleanField(default=False)

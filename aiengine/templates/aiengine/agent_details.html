@@ -413,20 +413,21 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="agent-details-container">
     <!-- Agent Header -->
     <div class="agent-header">
         <div class="agent-header-content">
-            <h1>🤖 Agent Details</h1>
+            <h1><i class="bi bi-robot"></i> Agent Details</h1>
             <div class="agent-name">{{ agent.name }}</div>
             <div class="agent-status-badge">
                 <span class="status-indicator {% if agent.is_active %}status-active{% else %}status-inactive{% endif %}"></span>
                 {% if agent.is_locked %}
-                    <span>🔒 Locked</span>
+                    <span><i class="bi bi-lock-fill"></i> Locked</span>
                 {% elif agent.is_active %}
-                    <span>✅ Active</span>
+                    <span><i class="bi bi-check-circle-fill"></i> Active</span>
                 {% else %}
-                    <span>⏸️ Inactive</span>
+                    <span><i class="bi bi-pause-circle-fill"></i> Inactive</span>
                 {% endif %}
             </div>
         </div>
@@ -459,7 +460,7 @@
             
             {% if agent.is_locked and agent.locked_reason %}
             <div class="locked-info">
-                <h5>🔒 Lock Information</h5>
+                <h5><i class="bi bi-lock-fill"></i> Lock Information</h5>
                 <p><strong>Reason:</strong> {{ agent.locked_reason }}</p>
                 {% if agent.is_locked_until %}
                 <p><strong>Locked Until:</strong> {{ agent.is_locked_until|date:"F d, Y H:i" }}</p>
@@ -533,12 +534,8 @@
             <i class="bi bi-database"></i> Manage Knowledge Base
         </a>
         
-        <a href="#" class="btn-custom btn-secondary-custom">
+        <a href="{% url 'aiengine:edit_agent' %}" class="btn-custom btn-secondary-custom">
             <i class="bi bi-pencil-square"></i> Edit Agent
-        </a>
-        
-        <a href="#" class="btn-custom btn-secondary-custom">
-            <i class="bi bi-download"></i> Export Configuration
         </a>
     </div>
 </div>
@@ -547,10 +544,84 @@
 // Toggle agent status function
 function toggleAgentStatus() {
     if (confirm('Are you sure you want to {% if agent.is_active %}deactivate{% else %}activate{% endif %} this agent?')) {
-        // Here you would typically make an AJAX call to update the agent status
-        // For now, we'll just show a message
-        alert('Agent status toggle functionality would be implemented here.');
+        // Show loading state
+        const button = document.querySelector('a[onclick="toggleAgentStatus()"]');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+        button.style.pointerEvents = 'none';
+        
+        // Make AJAX request
+        fetch('{% url "aiengine:toggle_agent_status" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI elements
+                const statusBadge = document.querySelector('.agent-status-badge span:last-child');
+                const statusIndicator = document.querySelector('.status-indicator');
+                const statusValue = document.querySelector('.info-value.boolean');
+                
+                if (data.is_active) {
+                    statusBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Active';
+                    statusIndicator.className = 'status-indicator status-active';
+                    statusValue.className = 'info-value boolean true';
+                    statusValue.textContent = 'Active';
+                    button.innerHTML = '<i class="bi bi-pause-circle"></i> Deactivate Agent';
+                } else {
+                    statusBadge.innerHTML = '<i class="bi bi-pause-circle-fill"></i> Inactive';
+                    statusIndicator.className = 'status-indicator status-inactive';
+                    statusValue.className = 'info-value boolean false';
+                    statusValue.textContent = 'Inactive';
+                    button.innerHTML = '<i class="bi bi-play-circle"></i> Activate Agent';
+                }
+                
+                // Show success message
+                showNotification(data.message, 'success');
+            } else {
+                // Show error message
+                showNotification(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred while updating agent status.', 'error');
+        })
+        .finally(() => {
+            // Restore button state
+            button.style.pointerEvents = 'auto';
+        });
     }
+}
+
+// Notification function
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '9999';
+    notification.style.minWidth = '300px';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
 }
 
 // Add some interactive animations

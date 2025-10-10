@@ -11,7 +11,7 @@ import uuid
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -22,12 +22,15 @@ from django.views import View
 from django.views.generic import TemplateView
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 
 from .services import WhatsAppAgentService, WhatsAppAgentError, retrieve_knowledge
 from aiengine.embedding import EmbeddingService
 from .models import Agent, WebhookData, EvolutionWebhookData, KnowledgeBase, DocumentMetadata, AgentResponse
 from .forms import PDFUploadForm, KnowledgeBaseDeleteForm
 from .graph_builder import KnowledgeGraphBuilder
+from aiengine.prompt import AgentInstructions
+from connections.models import Connection
 
 logger = logging.getLogger('aiengine.views')
 
@@ -160,6 +163,7 @@ class AgentTestView(View):
             logger.error(f"Error processing agent query: {e}")
             raise
 
+@method_decorator(login_required, name='dispatch')
 class AgentDetailsView(TemplateView):
     """
     View for displaying the details of the agent.
@@ -168,13 +172,144 @@ class AgentDetailsView(TemplateView):
 
     def get(self, request: HttpRequest, *args, **kwargs):
         self.user = request.user
-        self.agent = Agent.objects.filter(user=self.user).first()
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['agent'] = self.agent
+        connection = Connection.objects.filter(user=self.user).first()
+        if not connection:
+            return context
+        agent, created = Agent.objects.get_or_create(user=self.user)
+        if created:
+            agent.name = f"{connection.instance_name} Agent"
+            agent.description = "A smart AI agent that will help you answer your WhatsApp queries."
+            agent.system_prompt = AgentInstructions
+            agent.is_active = False
+            agent.is_locked = False
+            agent.save()
+        context['agent'] = agent
         return context
+
+
+class ToggleAgentStatusView(LoginRequiredMixin, View):
+    """
+    View for toggling agent activation status with validation checks.
+    """
+    
+    def post(self, request: HttpRequest):
+        """
+        Toggle agent activation status after validating prerequisites.
+        
+        Validates:
+        - Connection exists and is active
+        - At least one knowledge base entry exists
+        """
+        try:
+            user = request.user
+            
+            # Get or create agent for user
+            agent, created = Agent.objects.get_or_create(user=user)
+            if created:
+                connection = Connection.objects.filter(user=user).first()
+                if connection:
+                    agent.name = f"{connection.instance_name} Agent"
+                    agent.description = "A smart AI agent that will help you answer your WhatsApp queries."
+                    agent.system_prompt = AgentInstructions
+                    agent.is_active = False
+                    agent.is_locked = False
+                    agent.save()
+            
+            # Validation checks
+            connection = Connection.objects.filter(user=user, connection_status='open').first()
+            if not connection:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No active WhatsApp connection found. Please ensure your WhatsApp connection is active.'
+                }, status=400)
+            
+            kb_count = KnowledgeBase.objects.filter(user=user).count()
+            if kb_count == 0:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No knowledge base entries found. Please add at least one document to your knowledge base before activating the agent.'
+                }, status=400)
+            
+            # Toggle agent status
+            agent.is_active = not agent.is_active
+            agent.save()
+            
+            return JsonResponse({
+                'success': True,
+                'is_active': agent.is_active,
+                'message': f'Agent {"activated" if agent.is_active else "deactivated"} successfully.'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error toggling agent status for user {request.user.id}: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'An error occurred while updating agent status. Please try again.'
+            }, status=500)
+
+
+class AgentEditView(LoginRequiredMixin, View):
+    """
+    View for editing agent description and system prompt.
+    """
+    
+    def get(self, request: HttpRequest):
+        """
+        Display the agent edit form.
+        """
+        user = request.user
+        agent, created = Agent.objects.get_or_create(user=user)
+        if created:
+            connection = Connection.objects.filter(user=user).first()
+            if connection:
+                agent.name = f"{connection.instance_name} Agent"
+                agent.description = "A smart AI agent that will help you answer your WhatsApp queries."
+                agent.system_prompt = AgentInstructions
+                agent.is_active = False
+                agent.is_locked = False
+                agent.save()
+        
+        from .forms import AgentEditForm
+        form = AgentEditForm(initial={
+            'description': agent.description,
+            'system_prompt': agent.system_prompt
+        })
+        
+        context = {
+            'agent': agent,
+            'form': form,
+            'title': f'Edit {agent.name}'
+        }
+        return render(request, 'aiengine/agent_edit.html', context)
+    
+    def post(self, request: HttpRequest):
+        """
+        Process the agent edit form submission.
+        """
+        user = request.user
+        agent = get_object_or_404(Agent, user=user)
+        
+        from .forms import AgentEditForm
+        form = AgentEditForm(request.POST)
+        
+        if form.is_valid():
+            agent.description = form.cleaned_data['description']
+            agent.system_prompt = form.cleaned_data['system_prompt']
+            agent.save()
+            
+            messages.success(request, 'Agent updated successfully!')
+            return redirect('aiengine:agent_details')
+        else:
+            context = {
+                'agent': agent,
+                'form': form,
+                'title': f'Edit {agent.name}'
+            }
+            return render(request, 'aiengine/agent_edit.html', context)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EvolutionWebhookView(View):

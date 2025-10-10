@@ -168,3 +168,57 @@ class KnowledgeBaseDeleteForm(forms.Form):
             return ids
         except ValueError:
             raise ValidationError(_("Invalid entry IDs provided."))
+
+
+class AgentEditForm(forms.Form):
+    """
+    Form for editing agent description and system prompt.
+    """
+    
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Enter a description for your agent...'
+        }),
+        required=True,
+        max_length=1000,
+        help_text="A brief description of what your agent does (plain text).",
+        label="Agent Description"
+    )
+    
+    system_prompt = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 15,
+            'id': 'system-prompt-editor',
+            'placeholder': 'Enter system instructions for your agent...'
+        }),
+        required=True,
+        help_text="System instructions that define how your agent behaves (supports markdown formatting).",
+        label="System Instructions"
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Set default system prompt if not provided
+        if not self.initial.get('system_prompt'):
+            from .prompt import AgentInstructions
+            self.initial['system_prompt'] = AgentInstructions
+    
+    def clean_description(self):
+        """Clean and validate description field."""
+        description = self.cleaned_data.get('description', '').strip()
+        if not description:
+            raise ValidationError(_("Description cannot be empty."))
+        return description
+    
+    def clean_system_prompt(self):
+        """Clean and validate system prompt field."""
+        system_prompt = self.cleaned_data.get('system_prompt', '').strip()
+        if not system_prompt:
+            raise ValidationError(_("System instructions cannot be empty."))
+        if len(system_prompt) < 50:
+            raise ValidationError(_("System instructions must be at least 50 characters long."))
+        return system_prompt
