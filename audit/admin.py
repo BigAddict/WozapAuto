@@ -6,11 +6,12 @@ from .models import EmailLog
 
 @admin.register(EmailLog)
 class EmailLogAdmin(admin.ModelAdmin):
-    """Admin interface for Email Logs"""
+    """Admin interface for Message Logs (Email & WhatsApp)"""
     
     list_display = [
         'email_type_display',
-        'recipient_email',
+        'message_type_display',
+        'recipient_display',
         'recipient_user_link',
         'subject_short',
         'status_display',
@@ -21,6 +22,7 @@ class EmailLogAdmin(admin.ModelAdmin):
     
     list_filter = [
         'email_type',
+        'message_type',
         'status',
         'created_at',
         'sent_at',
@@ -29,6 +31,7 @@ class EmailLogAdmin(admin.ModelAdmin):
     
     search_fields = [
         'recipient_email',
+        'recipient_phone',
         'subject',
         'recipient_user__username',
         'recipient_user__email',
@@ -37,10 +40,13 @@ class EmailLogAdmin(admin.ModelAdmin):
     
     readonly_fields = [
         'email_type',
+        'message_type',
         'recipient_email',
+        'recipient_phone',
         'recipient_user',
         'subject',
         'template_used',
+        'connection_used',
         'context_data_display',
         'ip_address',
         'user_agent',
@@ -52,13 +58,16 @@ class EmailLogAdmin(admin.ModelAdmin):
     ]
     
     fieldsets = (
-        ('Email Details', {
+        ('Message Details', {
             'fields': (
                 'email_type',
+                'message_type',
                 'recipient_email',
+                'recipient_phone',
                 'recipient_user',
                 'subject',
                 'template_used',
+                'connection_used',
             )
         }),
         ('Status & Timing', {
@@ -92,6 +101,7 @@ class EmailLogAdmin(admin.ModelAdmin):
             'password_reset': '#dc3545',
             'password_change': '#ffc107',
             'connection_success': '#17a2b8',
+            'otp_verification': '#fd7e14',
             'system': '#6c757d',
             'other': '#6f42c1',
         }
@@ -103,6 +113,31 @@ class EmailLogAdmin(admin.ModelAdmin):
         )
     email_type_display.short_description = 'Type'
     email_type_display.admin_order_field = 'email_type'
+    
+    def message_type_display(self, obj):
+        """Display message type with colored badge"""
+        colors = {
+            'email': '#007bff',
+            'whatsapp': '#25d366',
+        }
+        color = colors.get(obj.message_type, '#6c757d')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
+            color,
+            obj.get_message_type_display()
+        )
+    message_type_display.short_description = 'Channel'
+    message_type_display.admin_order_field = 'message_type'
+    
+    def recipient_display(self, obj):
+        """Display recipient (email or phone)"""
+        if obj.message_type == 'whatsapp' and obj.recipient_phone:
+            return obj.recipient_phone
+        elif obj.recipient_email:
+            return obj.recipient_email
+        return '-'
+    recipient_display.short_description = 'Recipient'
+    recipient_display.admin_order_field = 'recipient_email'
     
     def recipient_user_link(self, obj):
         """Display recipient user as a link to their admin page"""

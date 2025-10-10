@@ -24,7 +24,9 @@ load_dotenv(f"{BASE_DIR}/.env")
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-&qzu2&8m#nn4h9atg5#$j88_jy%ue2cze*i)ni#%cl!2971e+$')
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is not set. Please configure it in your .env file.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
@@ -35,6 +37,23 @@ ALLOWED_HOSTS = [
     'neat-dog-pleasantly.ngrok-free.app'
 ]
 
+# Security settings for production
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'False').lower() == 'true'
+SECURE_HSTS_PRELOAD = os.getenv('SECURE_HSTS_PRELOAD', 'False').lower() == 'true'
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# CSRF settings for development with ngrok
+CSRF_TRUSTED_ORIGINS = [
+    'https://neat-dog-pleasantly.ngrok-free.app',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
 
 # Application definition
 
@@ -98,20 +117,29 @@ WSGI_APPLICATION = 'base.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DATABASE_NAME'),
-        'USER': os.getenv('DATABASE_USER'),
-        'PASSWORD': os.getenv('DATABASE_PASSWORD'),
-        'HOST': os.getenv('DATABASE_HOST'),
-        'PORT': os.getenv('DATABASE_PORT'),
-    },
-    'default1': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database selection based on environment
+DATABASE_ENGINE = os.getenv('DATABASE_ENGINE', 'sqlite')
+
+if DATABASE_ENGINE == 'postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DATABASE_NAME'),
+            'USER': os.getenv('DATABASE_USER'),
+            'PASSWORD': os.getenv('DATABASE_PASSWORD'),
+            'HOST': os.getenv('DATABASE_HOST', 'localhost'),
+            'PORT': os.getenv('DATABASE_PORT', '5432'),
+        }
     }
-}
+elif DATABASE_ENGINE == 'sqlite':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    raise ValueError(f"Unsupported DATABASE_ENGINE: {DATABASE_ENGINE}. Use 'postgresql' or 'sqlite'.")
 
 
 # Password validation
@@ -169,22 +197,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'signin'
 
-# Email Configuration
-from base.env_config import (
-    SMTP_FROM_EMAIL, SMTP_FROM_NAME, SMTP_HOST, 
-    SMTP_PASSWORD, SMTP_PORT, SMTP_USERNAME
-)
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = SMTP_HOST
-EMAIL_PORT = int(SMTP_PORT) if SMTP_PORT else 587
-EMAIL_USE_SSL = (os.getenv('SMTP_USE_SSL', '').lower() == 'true') or (EMAIL_PORT == 465)
-EMAIL_USE_TLS = False if EMAIL_USE_SSL else (os.getenv('SMTP_USE_TLS', 'true').lower() == 'true')
-EMAIL_HOST_USER = SMTP_USERNAME
-EMAIL_HOST_PASSWORD = SMTP_PASSWORD
-EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '15'))  # seconds
-DEFAULT_FROM_EMAIL = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
-SERVER_EMAIL = SMTP_FROM_EMAIL
+# Site URL for WhatsApp links
+SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
 
 # Logging Configuration
 LOGGING = {

@@ -23,9 +23,15 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">WhatsApp number</label>
+                            <label class="form-label">
+                                <i class="bi bi-whatsapp me-1"></i>WhatsApp number
+                                <span class="text-danger">*</span>
+                            </label>
                             {{ form.phone_number }}
-                            <div class="form-text">{{ form.fields.phone_number.help_text }}</div>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                {{ form.fields.phone_number.help_text }}
+                            </div>
                             {% if form.phone_number.errors %}
                                 <div class="text-danger small">{{ form.phone_number.errors|striptags }}</div>
                             {% endif %}

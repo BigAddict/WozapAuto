@@ -20,13 +20,11 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.models import User
 from django.views import View
 from django.views.generic import TemplateView
-from asgiref.sync import sync_to_async
 
 from .services import WhatsAppAgentService, WhatsAppAgentError, retrieve_knowledge
 from aiengine.embedding import EmbeddingService
-from .models import Agent, WebhookData, EvolutionWebhookData, KnowledgeBase, DocumentMetadata
+from .models import Agent, WebhookData, EvolutionWebhookData, KnowledgeBase, DocumentMetadata, AgentResponse
 from .forms import PDFUploadForm, KnowledgeBaseDeleteForm
-from core.models import UserProfile
 
 logger = logging.getLogger('aiengine.views')
 
@@ -246,7 +244,28 @@ class EvolutionWebhookView(View):
                 return True
             self.save_to_db(data)
             response = self._run_async_agent_query(data.remote_jid, data.sender, self._apply_prompt_template(data), data)
+            print(f"\n\n\nResponse: {response}\n")
             self.update_db_with_response(data, response)
+
+            # Parse JSON response and deliver if needed
+            try:
+                parsed: Dict[str, Any] = json.loads(response)
+            except Exception:
+                logger.warning("Agent response is not valid JSON; skipping delivery")
+                return True
+
+            reply_needed = parsed.get('reply_needed') is True
+            reply_text = parsed.get('reply_text', '') if reply_needed else ''
+            if reply_needed and reply_text:
+                from connections.services import evolution_api_service
+                success, _ = evolution_api_service.send_text_message(
+                    instance_name=data.instance,
+                    number=data.remote_jid,
+                    message=reply_text,
+                    reply_to_message_id=data.message_id
+                )
+                if not success:
+                    logger.error("Failed to deliver agent reply via Evolution API")
         except Exception as e:
             logger.error(f"Error processing evolution webhook data: {e}")
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
@@ -304,7 +323,9 @@ class EvolutionWebhookView(View):
         - Don't oversell, overexplain, or repeat previous answers.
 
         ## Tool Directive
-        - When replying, use `send_whatsapp_message(message, instance_name="{data.instance}")`.
+        - Call `check_conversation_messages` first to fetch recent history to decide whether to reply.
+        - Do NOT send messages directly via tools. Instead, return ONLY JSON matching AgentResponse:
+          {{"reply_needed": boolean, "reply_text": string (optional)}}.
 
         Now, analyze the message from {data.push_name} and decide whether to reply or stay silent.
         """

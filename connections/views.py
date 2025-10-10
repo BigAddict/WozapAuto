@@ -14,7 +14,7 @@ from django.utils import timezone
 from .models import Connection
 from .services import evolution_api_service
 from core.models import UserProfile
-from core.email_service import email_service
+from core.whatsapp_service import whatsapp_service
 from core.decorators import verified_email_required
 
 # Set up logging
@@ -268,7 +268,7 @@ def connection_status_api(request):
                 # Send connection success email if status changed to 'open'
                 if old_status != 'open' and instance_data.connection_status == 'open':
                     try:
-                        email_service.send_connection_success_email(request.user, connection, request)
+                        whatsapp_service.send_connection_success_message(request.user, connection, request)
                         logger.info(f"Connection success email sent to {request.user.email}")
                     except Exception as e:
                         logger.error(f"Failed to send connection success email to {request.user.email}: {str(e)}")

@@ -199,7 +199,7 @@ class OnboardingForm(forms.ModelForm):
             'placeholder': '+1234567890',
             'pattern': r'\+[1-9]\d{1,14}'
         }),
-        help_text='WhatsApp number with country code (e.g., +1234567890)'
+        help_text='WhatsApp number with country code (e.g., +1234567890) - Required for account verification'
     )
     
     timezone = forms.ChoiceField(
@@ -251,3 +251,30 @@ class OnboardingForm(forms.ModelForm):
         if company_name:
             company_name = company_name.strip()
         return company_name
+
+
+class OTPVerificationForm(forms.Form):
+    """Form for OTP verification"""
+    
+    otp_code = forms.CharField(
+        max_length=6,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control text-center',
+            'placeholder': '123456',
+            'maxlength': '6',
+            'pattern': r'\d{6}',
+            'autocomplete': 'one-time-code'
+        }),
+        help_text='Enter the 6-digit code sent to your WhatsApp'
+    )
+    
+    def clean_otp_code(self):
+        """Validate OTP code format"""
+        otp_code = self.cleaned_data.get('otp_code')
+        if otp_code:
+            otp_code = otp_code.strip()
+            # Check if it's exactly 6 digits
+            if not re.match(r'^\d{6}$', otp_code):
+                raise ValidationError('Please enter a valid 6-digit code.')
+        return otp_code

@@ -4,7 +4,8 @@ from .views import (
     HomePageView, signup, signin, signout, profile_view, profile_edit, profile_api,
     forgot_password, password_reset_confirm, change_password,
     verify_email_sent, verify_email, verify_email_success, verify_email_failed,
-    verification_required_notice, resend_verification, welcome_onboarding
+    verification_required_notice, resend_verification, welcome_onboarding,
+    verify_whatsapp_otp, resend_otp
 )
 
 urlpatterns = [
@@ -29,4 +30,9 @@ urlpatterns = [
     
     # Welcome onboarding
     path('welcome/', welcome_onboarding, name='welcome_onboarding'),
+    path('onboarding/', welcome_onboarding, name='onboarding'),
+    
+    # WhatsApp OTP verification
+    path('verify-whatsapp-otp/', verify_whatsapp_otp, name='verify_whatsapp_otp'),
+    path('resend-otp/', resend_otp, name='resend_otp'),
 ]

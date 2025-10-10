@@ -15,8 +15,14 @@ class EmailLog(models.Model):
         ('password_change', 'Password Change Confirmation'),
         ('connection_success', 'WhatsApp Connection Success'),
         ('email_verification', 'Email Verification'),
+        ('otp_verification', 'OTP Verification'),
         ('system', 'System Notification'),
         ('other', 'Other'),
+    ]
+    
+    MESSAGE_TYPES = [
+        ('email', 'Email'),
+        ('whatsapp', 'WhatsApp'),
     ]
     
     STATUS_CHOICES = [
@@ -25,14 +31,34 @@ class EmailLog(models.Model):
         ('pending', 'Pending'),
     ]
     
-    # Email details
+    # Message details
     email_type = models.CharField(
         max_length=20,
         choices=EMAIL_TYPES,
-        help_text="Type of email sent"
+        help_text="Type of message sent"
+    )
+    message_type = models.CharField(
+        max_length=10,
+        choices=MESSAGE_TYPES,
+        default='email',
+        help_text="Type of message (email or whatsapp)"
     )
     recipient_email = models.EmailField(
-        help_text="Email address of the recipient"
+        null=True,
+        blank=True,
+        help_text="Email address of the recipient (for email messages)"
+    )
+    recipient_phone = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text="Phone number of the recipient (for WhatsApp messages)"
+    )
+    connection_used = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="WhatsApp connection instance used to send message"
     )
     recipient_user = models.ForeignKey(
         User,

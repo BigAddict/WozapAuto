@@ -77,7 +77,7 @@ class EvolutionAPIService:
             url = f"{self.host_url}/instance/create"
             headers = self.get_headers()
             # Bind tenant identity in webhook URL
-            webhook_url = f"https://{get_env_variable('HOST_URL')}/aiengine/webhook/?user_id={user_id}"
+            webhook_url = f"{get_env_variable('SITE_URL')}/aiengine/webhook/?user_id={user_id}"
             payload = {
                 "instanceName": instance_create.instance_name,
                 "qrcode": instance_create.connect_now,
@@ -402,6 +402,52 @@ class EvolutionAPIService:
             else:
                 response.raise_for_status()
             return True, response.json()
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return False, f"Unexpected error: {str(e)}"
+
+    def check_whatsapp_number(self, instance_name: str, phone_number: str) -> Tuple[bool, Union[dict, str]]:
+        """
+        Check if phone number is registered on WhatsApp
+        
+        Args:
+            instance_name (str): Name of the Evolution API instance
+            phone_number (str): Phone number to check (without + sign)
+            
+        Returns:
+            Tuple[bool, Union[dict, str]]: 
+            - (True, dict) on success with {exists: bool, jid: str, number: str}
+            - (False, str) on failure with error message
+        """
+        try:
+            url = f"{self.host_url}/chat/whatsappNumbers/{instance_name}"
+            headers = self.get_headers()
+            payload = {"numbers": [phone_number]}
+            
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            # API returns array with one item
+            if data and len(data) > 0:
+                return True, data[0]
+            else:
+                return False, "No data returned from WhatsApp number check"
+                
+        except requests.exceptions.Timeout:
+            return False, "Request timeout - WhatsApp host is not responding"
+        except requests.exceptions.ConnectionError:
+            return False, "Connection error - Unable to reach WhatsApp host"
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                return False, "Invalid API key - Authentication failed"
+            elif e.response.status_code == 404:
+                return False, "Instance not found"
+            else:
+                return False, f"HTTP error {e.response.status_code}: {e.response.text}"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed: {str(e)}")
+            return False, f"Request failed: {str(e)}"
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             return False, f"Unexpected error: {str(e)}"

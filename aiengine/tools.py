@@ -207,7 +207,7 @@ def retrieve_knowledge(query: str, top_k: int, tool_context: ToolContext) -> Dic
         Dict[str, Any]: { 'success': bool, 'results': List[dict], 'message': str, 'error': Optional[str] }
     """
     try:
-        url = f"{get_env_variable('HOST_URL')}/aiengine/retrieve-knowledge/"
+        url = f"{get_env_variable('SIT_URL')}/aiengine/retrieve-knowledge/"
         instance_name = tool_context.state.get('user:instance_name')
         payload = {"query": query, "top_k": top_k, "instance_name": instance_name}
         response = requests.post(url, json=payload)
@@ -224,7 +224,8 @@ class ToolManager:
 
     def _register_default_tools(self):
         self.register_tool("get_current_time", get_current_time)
-        self.register_tool("send_whatsapp_message", send_whatsapp_message)
+        # Intentionally NOT registering send_whatsapp_message. Delivery is handled by server code
+        # after parsing the agent's JSON response (AgentResponse schema).
         self.register_tool("retrieve_knowledge", retrieve_knowledge)
         self.register_tool("check_conversation_messages", check_conversation_messages)
 

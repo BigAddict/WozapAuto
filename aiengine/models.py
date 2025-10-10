@@ -1,8 +1,9 @@
 from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pgvector.django import VectorField
+from typing import Optional
 
 class Agent(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_agents')
@@ -91,3 +92,7 @@ class DocumentMetadata(BaseModel):
     name: str
     description: str
     metadata: dict
+
+class AgentResponse(BaseModel):
+    reply_needed: bool = Field(description="Whether the agent needs to reply to the user.")
+    reply_text: Optional[str] = Field(description="The text of the reply to the user.")

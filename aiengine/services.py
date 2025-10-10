@@ -9,21 +9,20 @@ import asyncio
 import logging
 from typing import List, Callable, Optional, Dict, Any
 from dataclasses import dataclass
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, aclosing
 
 from google.adk.sessions import DatabaseSessionService
 from google.adk.runners import Runner
 from google.adk.agents import Agent
+from pgvector.django import CosineDistance
 from google.genai import types
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.llm_request import LlmRequest
 from google.adk.tools.base_tool import BaseTool
 from google.adk.tools.tool_context import ToolContext
-from aiengine.embedding import EmbeddingService
-from aiengine.models import KnowledgeBase
-from django.db.models import QuerySet
-from pgvector.django import CosineDistance
 
+from aiengine.embedding import EmbeddingService
+from aiengine.models import KnowledgeBase, AgentResponse
 from base.env_config import DATABASE_URL, get_env_variable
 from aiengine.tools import tool_manager
 from core.models import UserProfile
@@ -204,6 +203,7 @@ class WhatsAppAgentService:
             model=self.config.model_name,  # Add the required model parameter
             description=self.config.agent_description,
             instruction=self.config.agent_instructions,  # Use 'instruction' not 'instructions'
+            output_schema=AgentResponse,
             tools=self.tools,
             before_model_callback=self._before_model_callback,
             before_tool_callback=self._before_tool_callback,
@@ -344,25 +344,27 @@ class WhatsAppAgentService:
             
             final_response_text = "Agent did not respond"
             
-            # Process query with timeout
+            # Process query with timeout and ensure generator is properly closed
+            stream = self._runner.run_async(
+                user_id=self.user_id,
+                session_id=self.session_id,
+                new_message=content
+            )
             async with asyncio.timeout(timeout):
-                async for event in self._runner.run_async(
-                    user_id=self.user_id, 
-                    session_id=self.session_id, 
-                    new_message=content
-                ):
-                    if event.is_final_response():
-                        if event.content and event.content.parts:
-                            # Handle both text and function_call parts
-                            for part in event.content.parts:
-                                if part.text:
-                                    final_response_text = part.text
-                                elif part.function_call:
-                                    logger.info(f"Received function_call: {part.function_call.name} with args {part.function_call.args}")
-                                    final_response_text = f"Agent made a function call: {part.function_call.name}"
-                        elif event.actions and event.actions.escalate:
-                            final_response_text = f"Agent escalated: {event.error_message}"
-                        break
+                async with aclosing(stream):
+                    async for event in stream:
+                        if event.is_final_response():
+                            if event.content and event.content.parts:
+                                # Handle both text and function_call parts
+                                for part in event.content.parts:
+                                    if part.text:
+                                        final_response_text = part.text
+                                    elif part.function_call:
+                                        logger.info(f"Received function_call: {part.function_call.name} with args {part.function_call.args}")
+                                        final_response_text = f"Agent made a function call: {part.function_call.name}"
+                            elif event.actions and event.actions.escalate:
+                                final_response_text = f"Agent escalated: {event.error_message}"
+                            break
             
             logger.info(f"Query processed successfully for user: {self.user_id}")
             return final_response_text

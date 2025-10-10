@@ -10,16 +10,17 @@ from django.db.utils import IntegrityError
 from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_str, force_bytes
+from django.urls import reverse
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.utils import timezone
 from .models import UserProfile
-from .forms import CustomUserCreationForm, OnboardingForm
+from .forms import CustomUserCreationForm, OnboardingForm, OTPVerificationForm
 from .decorators import verified_email_required, onboarding_required
-from .email_service import email_service
+from .whatsapp_service import whatsapp_service
 
 logger = logging.getLogger('core.views')
 
@@ -32,14 +33,12 @@ def signup(request):
                 # Create user
                 user = form.save()
                 
-                # Send verification email
-                email_service.send_verification_email(user, request)
-                
+                # Skip email verification, go directly to onboarding
                 messages.success(
                     request, 
-                    'Account created successfully! Please check your email to verify your account.'
+                    'Account created successfully! Please complete your profile setup.'
                 )
-                return redirect('verify_email_sent')
+                return redirect('onboarding')
                 
             except Exception as e:
                 messages.error(request, f'An error occurred: {str(e)}')
@@ -198,24 +197,39 @@ def profile_api(request):
 # Password Management Views
 
 def forgot_password(request):
-    """Handle forgot password requests"""
+    """Handle forgot password requests via WhatsApp phone number"""
     if request.method == 'POST':
-        email = request.POST.get('email', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
         
-        if not email:
-            messages.error(request, 'Please enter your email address.')
+        if not phone_number:
+            messages.error(request, 'Please enter your WhatsApp phone number.')
             return render(request, 'core/forgot_password.html')
         
+        # Normalize just in case (keep + and digits)
+        import re
+        phone_number = '+' + ''.join(re.findall(r'\d+', phone_number)) if not phone_number.startswith('+') else phone_number
+        
         try:
-            user = User.objects.get(email=email)
-            # Send password reset email
-            if email_service.send_password_reset_email(user, request):
-                messages.success(request, 'Password reset instructions have been sent to your email address.')
+            profile = UserProfile.objects.get(phone_number=phone_number)
+            user = profile.user
+            
+            # Generate password reset token
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            
+            # Build reset URL
+            reset_url = request.build_absolute_uri(
+                reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+            )
+            
+            # Send password reset WhatsApp message
+            if whatsapp_service.send_password_reset_message(user, reset_url, request):
+                messages.success(request, 'Password reset instructions have been sent to your WhatsApp.')
             else:
-                messages.error(request, 'Failed to send password reset email. Please try again later.')
-        except User.DoesNotExist:
-            # Don't reveal if email exists or not for security
-            messages.success(request, 'If an account with that email exists, password reset instructions have been sent.')
+                messages.error(request, 'Failed to send password reset message. Please contact support.')
+        except UserProfile.DoesNotExist:
+            # Don't reveal whether the number exists
+            messages.success(request, 'If an account with that number exists, password reset instructions have been sent.')
         
         return render(request, 'core/forgot_password.html')
     
@@ -256,8 +270,8 @@ def change_password(request):
             # Update session to prevent logout
             update_session_auth_hash(request, user)
             
-            # Send confirmation email
-            email_service.send_password_change_confirmation_email(user, request)
+            # Send confirmation WhatsApp message
+            whatsapp_service.send_password_change_confirmation_message(user, request)
             
             messages.success(request, 'Your password has been changed successfully.')
             return redirect('profile')
@@ -363,14 +377,14 @@ def resend_verification(request):
         
         # Send verification email
         t0 = time.monotonic()
-        success = email_service.send_verification_email(request.user, request)
+        success = whatsapp_service.send_otp_message(request.user, request.user.profile.generate_otp(), request)
         duration_s = time.monotonic() - t0
         logger.info("resend_verification:send_completed", extra={'success': success, 'duration_s': round(duration_s, 3)})
         
         if success:
-            messages.success(request, 'Verification email sent! Please check your inbox.')
+            messages.success(request, 'Verification code sent! Please check your WhatsApp.')
         else:
-            messages.error(request, 'Failed to send verification email. Please try again later.')
+            messages.error(request, 'Failed to send verification code. Please try again later.')
         
         return redirect('verification_required')
         
@@ -397,15 +411,80 @@ def welcome_onboarding(request):
             if form.is_valid():
                 # Save profile data
                 profile = form.save()
-                profile.onboarding_completed = True
-                profile.save()
                 
-                messages.success(request, 'Welcome to WozapAuto! Your profile has been set up successfully.')
-                return redirect('home')
+                # Generate and send OTP for WhatsApp verification
+                otp_code = profile.generate_otp()
+                if whatsapp_service.send_otp_message(request.user, otp_code, request):
+                    messages.success(request, 'Profile saved! Please check your WhatsApp for the verification code.')
+                    return redirect('verify_whatsapp_otp')
+                else:
+                    messages.error(request, 'Profile saved but failed to send verification code. Please contact support.')
+                    return redirect('verify_whatsapp_otp')
         else:
             form = OnboardingForm(instance=profile)
         
         return render(request, 'core/welcome_onboarding.html', {'form': form})
+        
+    except UserProfile.DoesNotExist:
+        messages.error(request, 'Profile not found. Please contact support.')
+        return redirect('home')
+
+
+@login_required
+def verify_whatsapp_otp(request):
+    """Verify WhatsApp OTP code"""
+    try:
+        profile = request.user.profile
+        
+        # Check if already verified
+        if profile.is_verified:
+            messages.info(request, 'Your WhatsApp number is already verified.')
+            return redirect('home')
+        
+        if request.method == 'POST':
+            form = OTPVerificationForm(request.POST)
+            if form.is_valid():
+                otp_code = form.cleaned_data['otp_code']
+                success, message = profile.verify_otp(otp_code)
+                
+                if success:
+                    profile.onboarding_completed = True
+                    profile.save()
+                    messages.success(request, 'WhatsApp number verified successfully! Welcome to WozapAuto!')
+                    return redirect('home')
+                else:
+                    messages.error(request, message)
+            else:
+                messages.error(request, 'Please enter a valid 6-digit code.')
+        else:
+            form = OTPVerificationForm()
+        
+        return render(request, 'core/verify_otp.html', {'form': form})
+        
+    except UserProfile.DoesNotExist:
+        messages.error(request, 'Profile not found. Please contact support.')
+        return redirect('home')
+
+
+@login_required
+def resend_otp(request):
+    """Resend OTP code"""
+    try:
+        profile = request.user.profile
+        
+        # Check if already verified
+        if profile.is_verified:
+            messages.info(request, 'Your WhatsApp number is already verified.')
+            return redirect('home')
+        
+        # Generate and send new OTP
+        otp_code = profile.generate_otp()
+        if whatsapp_service.send_otp_message(request.user, otp_code, request):
+            messages.success(request, 'New verification code sent to your WhatsApp.')
+        else:
+            messages.error(request, 'Failed to send verification code. Please contact support.')
+        
+        return redirect('verify_whatsapp_otp')
         
     except UserProfile.DoesNotExist:
         messages.error(request, 'Profile not found. Please contact support.')
