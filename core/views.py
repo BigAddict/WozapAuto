@@ -281,50 +281,7 @@ def change_password(request):
     return render(request, 'core/change_password.html', {'form': form})
 
 
-# Email Verification Views
-def verify_email_sent(request):
-    """Show 'check your email' page after signup"""
-    return render(request, 'core/verify_email_sent.html')
-
-
-def verify_email(request, token):
-    """Handle email verification"""
-    try:
-        # Find user with this verification token
-        profile = UserProfile.objects.get(email_verification_token=token)
-        
-        # Check if token is not expired (24 hours)
-        if profile.email_verification_sent_at:
-            time_diff = timezone.now() - profile.email_verification_sent_at
-            if time_diff.total_seconds() > 24 * 60 * 60:  # 24 hours
-                messages.error(request, 'Verification link has expired. Please request a new one.')
-                return redirect('verify_email_failed')
-        
-        # Mark email as verified
-        profile.is_verified = True
-        profile.email_verification_token = None  # Clear token
-        profile.email_verification_sent_at = None
-        profile.save()
-        
-        # Auto-login the user
-        login(request, profile.user)
-        
-        messages.success(request, 'Email verified successfully! Welcome to WozapAuto.')
-        return redirect('verify_email_success')
-        
-    except UserProfile.DoesNotExist:
-        messages.error(request, 'Invalid verification link.')
-        return redirect('verify_email_failed')
-
-
-def verify_email_success(request):
-    """Show email verification success page"""
-    return render(request, 'core/verify_email_success.html')
-
-
-def verify_email_failed(request):
-    """Show email verification failed page"""
-    return render(request, 'core/verify_email_failed.html')
+# WhatsApp Verification Views
 
 
 def verification_required_notice(request):
@@ -333,9 +290,9 @@ def verification_required_notice(request):
 
 
 def resend_verification(request):
-    """Resend verification email with rate limiting"""
+    """Resend verification WhatsApp message with rate limiting"""
     if not request.user.is_authenticated:
-        messages.error(request, 'Please sign in to resend verification email.')
+        messages.error(request, 'Please sign in to resend verification message.')
         return redirect('signin')
     
     try:
@@ -356,26 +313,26 @@ def resend_verification(request):
                 'profile_id': getattr(profile, 'id', None),
                 'profile_created': created,
                 'is_verified': profile.is_verified,
-                'last_sent_at': getattr(profile.email_verification_sent_at, 'isoformat', lambda: None)(),
+                'last_sent_at': getattr(profile.otp_created_at, 'isoformat', lambda: None)(),
             }
         )
         
         # Check if already verified
         if profile.is_verified:
             logger.info("resend_verification:already_verified")
-            messages.info(request, 'Your email is already verified.')
+            messages.info(request, 'Your WhatsApp number is already verified.')
             return redirect('home')
         
         # Rate limiting: max 1 request per hour (more lenient)
-        if profile.email_verification_sent_at:
-            time_diff = timezone.now() - profile.email_verification_sent_at
+        if profile.otp_created_at:
+            time_diff = timezone.now() - profile.otp_created_at
             if time_diff.total_seconds() < 60 * 60:  # 1 hour
                 wait_seconds = int(60 * 60 - time_diff.total_seconds())
                 logger.info("resend_verification:rate_limited", extra={'wait_seconds': wait_seconds})
-                messages.warning(request, 'Please wait before requesting another verification email.')
+                messages.warning(request, 'Please wait before requesting another verification message.')
                 return redirect('verification_required')
         
-        # Send verification email
+        # Send verification WhatsApp message
         t0 = time.monotonic()
         success = whatsapp_service.send_otp_message(request.user, request.user.profile.generate_otp(), request)
         duration_s = time.monotonic() - t0
