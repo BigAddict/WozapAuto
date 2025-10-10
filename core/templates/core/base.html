@@ -500,6 +500,128 @@
             scrollbar-width: thin;
             scrollbar-color: var(--primary-color) #f1f1f1;
         }
+
+        /* Header Icons Styling */
+        .header-icons .btn-link {
+            color: rgba(255,255,255,0.9) !important;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-icons .btn-link:hover {
+            color: white !important;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .header-icons .btn-link:focus {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+        }
+
+        .header-icons .btn-link:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Notification Badge */
+        .notification-badge {
+            font-size: 0.75rem;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Mobile Navigation Menu */
+        @media (max-width: 991.98px) {
+            .navbar-collapse {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(255,255,255,0.95);
+                backdrop-filter: blur(10px);
+                border-radius: 8px;
+                margin: 0.5rem;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1050;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+
+            .navbar-collapse.show {
+                display: block !important;
+                animation: slideDown 0.3s ease-out;
+            }
+
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .navbar-collapse .nav-link {
+                color: var(--text-primary) !important;
+                padding: 0.75rem 1rem;
+                border-radius: 6px;
+                margin: 0.125rem;
+                transition: all 0.2s ease;
+            }
+
+            .navbar-collapse .nav-link:hover {
+                background: var(--accent-color);
+                color: var(--secondary-color) !important;
+            }
+
+            .navbar-collapse .nav-link.active {
+                background: var(--primary-color);
+                color: white !important;
+            }
+
+            .navbar-collapse .badge {
+                font-size: 0.7rem;
+                padding: 0.25rem 0.5rem;
+            }
+        }
+
+        /* Notification Dropdown */
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: var(--accent-color);
+        }
+
+        .dropdown-header {
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+        }
+
+        /* Icon sizing */
+        .header-icons .fs-5 {
+            font-size: 1.25rem !important;
+        }
     </style>
 </head>
 <body>
@@ -515,49 +637,144 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             
+            <!-- Mobile Navigation Menu -->
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto d-lg-none" id="mobileNavMenu">
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">
-                            <i class="bi bi-house me-1"></i>Dashboard
+                            <i class="bi bi-speedometer2 me-2"></i>Dashboard
                         </a>
                     </li>
+                    {% if user.is_authenticated %}
+                    {% if user.connection_set.count > 0 %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'connections' in request.resolver_match.namespace and request.resolver_match.url_name == 'qr_display' %}active{% endif %}" href="{% url 'connections:qr_display' %}">
+                            <i class="bi bi-whatsapp me-2"></i>Manage Connection
+                            <span class="badge bg-success ms-auto">Connected</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'connections' in request.resolver_match.namespace and request.resolver_match.url_name == 'create' %}active{% endif %}" href="{% url 'connections:create' %}">
+                            <i class="bi bi-plus-circle me-2"></i>Create Connection
+                        </a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_details' %}active{% endif %}" href="{% url 'aiengine:agent_details' %}">
-                            <i class="bi bi-robot me-1"></i>AI Agent
+                            <i class="bi bi-robot me-2"></i>AI Agent
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
-                            <i class="bi bi-graph-up me-1"></i>Analytics
+                            <i class="bi bi-graph-up me-2"></i>Analytics
                         </a>
                     </li>
-                    {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-1"></i>{{ user.first_name|default:user.username }}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'profile' %}">
+                            <i class="bi bi-person-circle me-2"></i>Profile
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person-circle me-2"></i>Profile</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-question-circle me-2"></i>Help</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'signout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-gear me-2"></i>Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-plus-circle me-2"></i>Add Agent
+                        </a>
                     </li>
                     {% else %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'signin' %}">
-                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'signup' %}">
-                            <i class="bi bi-person-plus me-1"></i>Sign Up
+                            <i class="bi bi-person-plus me-2"></i>Sign Up
                         </a>
                     </li>
                     {% endif %}
                 </ul>
+            </div>
+
+            <!-- Header Icons -->
+            <div class="d-flex align-items-center header-icons">
+                {% if user.is_authenticated %}
+                <!-- Notifications Dropdown -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-link text-white position-relative" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+                        <i class="bi bi-bell-fill fs-5"></i>
+                        {% with notification_count=user.notificationlog_set.count %}
+                        {% if notification_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ notification_count }}
+                            <span class="visually-hidden">unread notifications</span>
+                        </span>
+                        {% endif %}
+                        {% endwith %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" style="min-width: 300px;">
+                        <li class="dropdown-header">
+                            <i class="bi bi-bell-fill me-2"></i>Notifications
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% with notifications=user.notificationlog_set.all|slice:":5" %}
+                        {% for notification in notifications %}
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-semibold">{{ notification.get_notification_type_display }}</span>
+                                    <small class="text-muted">{{ notification.subject }}</small>
+                                    <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                </div>
+                            </a>
+                        </li>
+                        {% empty %}
+                        <li><span class="dropdown-item-text text-muted">No notifications</span></li>
+                        {% endfor %}
+                        {% endwith %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-center" href="{% url 'audit:notifications' %}"><i class="bi bi-eye me-2"></i>View all notifications</a></li>
+                    </ul>
+                </div>
+
+                <!-- Shop Icon (Placeholder) -->
+                <button class="btn btn-link text-white me-2" type="button" disabled title="Coming soon" aria-label="Shop">
+                    <i class="bi bi-shop fs-5"></i>
+                </button>
+
+                <!-- Knowledge Base Icon -->
+                <a class="btn btn-link text-white me-2" href="{% url 'aiengine:agent_details' %}" aria-label="Knowledge Base">
+                    <i class="bi bi-book fs-5"></i>
+                </a>
+                {% endif %}
+
+                <!-- Profile Dropdown -->
+                {% if user.is_authenticated %}
+                <div class="dropdown">
+                    <button class="btn btn-link text-white dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Profile">
+                        <i class="bi bi-person-circle fs-5"></i>
+                        <span class="d-none d-md-inline ms-1">{{ user.first_name|default:user.username }}</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person-circle me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-question-circle me-2"></i>Help</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'signout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+                {% else %}
+                <a class="btn btn-link text-white me-2" href="{% url 'signin' %}" aria-label="Sign In">
+                    <i class="bi bi-box-arrow-in-right fs-5"></i>
+                </a>
+                <a class="btn btn-link text-white" href="{% url 'signup' %}" aria-label="Sign Up">
+                    <i class="bi bi-person-plus fs-5"></i>
+                </a>
+                {% endif %}
             </div>
         </div>
     </nav>

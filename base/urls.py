@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('connections/', include('connections.urls', namespace='connections')),
     path('aiengine/', include('aiengine.urls', namespace='aiengine')),
+    path('audit/', include('audit.urls', namespace='audit')),
 ]
 
 # Serve media files in development

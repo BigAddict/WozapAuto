@@ -2,15 +2,14 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils import timezone
-from .models import EmailLog
+from .models import NotificationLog
 
-@admin.register(EmailLog)
-class EmailLogAdmin(admin.ModelAdmin):
-    """Admin interface for Message Logs (Email & WhatsApp)"""
+@admin.register(NotificationLog)
+class NotificationLogAdmin(admin.ModelAdmin):
+    """Admin interface for WhatsApp Notification Logs"""
     
     list_display = [
-        'email_type_display',
-        'message_type_display',
+        'notification_type_display',
         'recipient_display',
         'recipient_user_link',
         'subject_short',
@@ -21,8 +20,7 @@ class EmailLogAdmin(admin.ModelAdmin):
     ]
     
     list_filter = [
-        'email_type',
-        'message_type',
+        'notification_type',
         'status',
         'created_at',
         'sent_at',
@@ -30,7 +28,6 @@ class EmailLogAdmin(admin.ModelAdmin):
     ]
     
     search_fields = [
-        'recipient_email',
         'recipient_phone',
         'subject',
         'recipient_user__username',
@@ -39,9 +36,7 @@ class EmailLogAdmin(admin.ModelAdmin):
     ]
     
     readonly_fields = [
-        'email_type',
-        'message_type',
-        'recipient_email',
+        'notification_type',
         'recipient_phone',
         'recipient_user',
         'subject',
@@ -58,11 +53,9 @@ class EmailLogAdmin(admin.ModelAdmin):
     ]
     
     fieldsets = (
-        ('Message Details', {
+        ('Notification Details', {
             'fields': (
-                'email_type',
-                'message_type',
-                'recipient_email',
+                'notification_type',
                 'recipient_phone',
                 'recipient_user',
                 'subject',
@@ -94,8 +87,8 @@ class EmailLogAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
     list_per_page = 50
     
-    def email_type_display(self, obj):
-        """Display email type with colored badge"""
+    def notification_type_display(self, obj):
+        """Display notification type with colored badge"""
         colors = {
             'welcome': '#28a745',
             'password_reset': '#dc3545',
@@ -105,39 +98,22 @@ class EmailLogAdmin(admin.ModelAdmin):
             'system': '#6c757d',
             'other': '#6f42c1',
         }
-        color = colors.get(obj.email_type, '#6c757d')
+        color = colors.get(obj.notification_type, '#6c757d')
         return format_html(
             '<span style="background-color: {}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
             color,
-            obj.get_email_type_display()
+            obj.get_notification_type_display()
         )
-    email_type_display.short_description = 'Type'
-    email_type_display.admin_order_field = 'email_type'
-    
-    def message_type_display(self, obj):
-        """Display message type with colored badge"""
-        colors = {
-            'email': '#007bff',
-            'whatsapp': '#25d366',
-        }
-        color = colors.get(obj.message_type, '#6c757d')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
-            color,
-            obj.get_message_type_display()
-        )
-    message_type_display.short_description = 'Channel'
-    message_type_display.admin_order_field = 'message_type'
+    notification_type_display.short_description = 'Type'
+    notification_type_display.admin_order_field = 'notification_type'
     
     def recipient_display(self, obj):
-        """Display recipient (email or phone)"""
-        if obj.message_type == 'whatsapp' and obj.recipient_phone:
+        """Display recipient phone number"""
+        if obj.recipient_phone:
             return obj.recipient_phone
-        elif obj.recipient_email:
-            return obj.recipient_email
         return '-'
     recipient_display.short_description = 'Recipient'
-    recipient_display.admin_order_field = 'recipient_email'
+    recipient_display.admin_order_field = 'recipient_phone'
     
     def recipient_user_link(self, obj):
         """Display recipient user as a link to their admin page"""
@@ -221,15 +197,15 @@ class EmailLogAdmin(admin.ModelAdmin):
     actions_column.short_description = 'Actions'
     
     def has_add_permission(self, request):
-        """Disable adding new email logs through admin"""
+        """Disable adding new notification logs through admin"""
         return False
     
     def has_change_permission(self, request, obj=None):
-        """Disable editing email logs through admin"""
+        """Disable editing notification logs through admin"""
         return False
     
     def has_delete_permission(self, request, obj=None):
-        """Allow deletion of email logs (for cleanup)"""
+        """Allow deletion of notification logs (for cleanup)"""
         return request.user.is_superuser
     
     def get_queryset(self, request):
@@ -238,6 +214,6 @@ class EmailLogAdmin(admin.ModelAdmin):
     
     class Media:
         css = {
-            'all': ('admin/css/email_log_admin.css',)
+            'all': ('admin/css/notification_log_admin.css',)
         }
-        js = ('admin/js/email_log_admin.js',)
+        js = ('admin/js/notification_log_admin.js',)

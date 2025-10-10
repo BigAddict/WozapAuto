@@ -21,7 +21,7 @@ class WhatsAppService:
                              recipient_user=None, request=None, status='pending', connection_used=None):
         """Log WhatsApp message to audit system"""
         try:
-            from audit.models import EmailLog
+            from audit.models import NotificationLog
             
             # Extract request metadata if available
             ip_address = None
@@ -31,16 +31,17 @@ class WhatsAppService:
                 user_agent = request.META.get('HTTP_USER_AGENT', '')
             
             # Create message log entry
-            message_log = EmailLog.objects.create(
-                email_type=message_type,
-                recipient_email=recipient_phone,  # Using email field for phone number
+            message_log = NotificationLog.objects.create(
+                notification_type=message_type,
+                recipient_phone=recipient_phone,
                 recipient_user=recipient_user,
                 subject=subject,
                 template_used=template_used,
                 context_data=context_data or {},
                 ip_address=ip_address,
                 user_agent=user_agent,
-                status=status
+                status=status,
+                connection_used=connection_used
             )
             
             return message_log

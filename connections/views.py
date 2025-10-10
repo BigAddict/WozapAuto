@@ -493,7 +493,9 @@ def connection_help_api(request):
 @login_required
 @require_http_methods(["POST"])
 def connection_test_api(request):
-    """API endpoint for testing connection by sending test message"""
+    """API endpoint for testing connection by sending a self-message via Evolution API
+    and logging it as a NotificationLog entry.
+    """
     logger.info(f"Connection test API called by user: {request.user.username}")
     
     connection = Connection.objects.filter(user=request.user).first()
@@ -514,33 +516,56 @@ def connection_test_api(request):
         instance_name = data.get('instance_name', connection.instance_name)
         phone_number = data.get('phone_number', connection.ownerPhone)
         
-        # Send test request to n8n webhook
-        test_data = {
-            'instance_name': instance_name,
-            'phone_number': phone_number
-        }
-        
-        logger.info(f"Sending test request for user {request.user.username}: {test_data}")
-        
-        response = requests.post(
-            'https://n8n.bigaddict.shop/webhook-test/wozapauto/test-message',
-            json=test_data,
-            timeout=30
+        # Send a self-message using Evolution API
+        from connections.services import evolution_api_service
+        from audit.models import NotificationLog
+
+        test_text = (
+            "✅ Connection Test Successful\n\n"
+            f"Instance: {instance_name}\n"
+            f"Number: {phone_number}\n\n"
+            "This is an automated test message sent to confirm your WhatsApp instance is working."
         )
-        
-        if response.status_code == 200:
-            response_data = response.json() if response.content else {}
-            logger.info(f"Test request successful for user {request.user.username}")
+
+        success, send_response = evolution_api_service.send_text_message(
+            instance_name=instance_name,
+            number=connection.ownerPhone,  # remote_jid/number
+            message=test_text,
+            reply_to_message_id=None
+        )
+
+        if success:
+            # Log notification
+            try:
+                NotificationLog.objects.create(
+                    notification_type='system',
+                    recipient_phone=connection.ownerPhone,
+                    recipient_user=request.user,
+                    subject='Connection test message sent',
+                    template_used='connections.test',
+                    context_data={
+                        'instance_name': instance_name,
+                        'owner_phone': connection.ownerPhone,
+                        'response': send_response,
+                    },
+                    status='sent',
+                    connection_used=instance_name,
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                )
+            except Exception:
+                logger.exception('Failed to log NotificationLog for connection test')
+
             return JsonResponse({
                 'status': 'success',
-                'message': response_data.get('message', 'Test message sent successfully! Check your WhatsApp for the test message.'),
-                'response_data': response_data
+                'message': 'Test message sent successfully! Check your WhatsApp for the test message.',
+                'response_data': send_response
             })
         else:
-            logger.error(f"Test request failed for user {request.user.username}: HTTP {response.status_code}")
+            logger.error(f"Evolution send_text_message failed for user {request.user.username}: {send_response}")
             return JsonResponse({
                 'status': 'error',
-                'message': f'Test request failed with status {response.status_code}. Please try again later.'
+                'message': f'Failed to send test message: {send_response}'
             }, status=400)
             
     except requests.exceptions.Timeout:
