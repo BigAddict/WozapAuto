@@ -17,4 +17,7 @@ urlpatterns = [
     # Knowledge base management
     path('knowledge-base/', views.KnowledgeBaseManagementView.as_view(), name='knowledge_base_management'),
     path('retrieve-knowledge/', views.retrieve_knowledge_view, name='retrieve_knowledge'),
+    # Knowledge graph
+    path('graph/', views.GraphExplorerView.as_view(), name='knowledge-graph'),
+    path('graph/data/', views.KnowledgeGraphView.as_view(), name='knowledge-graph-data'),
 ]

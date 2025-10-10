@@ -802,6 +802,9 @@
                         <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_details' %}active{% endif %}" href="{% url 'aiengine:agent_details' %}">
                             <i class="bi bi-robot me-2"></i>AI Agent
                         </a>
+                        <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'knowledge-graph' %}active{% endif %}" href="{% url 'aiengine:knowledge-graph' %}">
+                            <i class="bi bi-diagram-3 me-2"></i>Knowledge Graph
+                        </a>
                         <a class="nav-link" href="#">
                             <i class="bi bi-graph-up me-2"></i>Analytics
                         </a>

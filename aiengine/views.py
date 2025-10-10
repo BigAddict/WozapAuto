@@ -20,11 +20,14 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.models import User
 from django.views import View
 from django.views.generic import TemplateView
+from django.urls import reverse
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .services import WhatsAppAgentService, WhatsAppAgentError, retrieve_knowledge
 from aiengine.embedding import EmbeddingService
 from .models import Agent, WebhookData, EvolutionWebhookData, KnowledgeBase, DocumentMetadata, AgentResponse
 from .forms import PDFUploadForm, KnowledgeBaseDeleteForm
+from .graph_builder import KnowledgeGraphBuilder
 
 logger = logging.getLogger('aiengine.views')
 
@@ -659,3 +662,43 @@ def retrieve_knowledge_view(request: HttpRequest):
             'message': 'Error retrieving knowledge base entries',
             'error': str(e)
         }, status=500)
+
+
+class KnowledgeGraphView(LoginRequiredMixin, View):
+    """
+    API endpoint for knowledge graph data.
+    Returns JSON data for the graph visualization.
+    """
+    
+    def get(self, request):
+        try:
+            graph_builder = KnowledgeGraphBuilder(request.user)
+            graph_data = graph_builder.build_graph_data()
+            
+            # Calculate positions
+            graph_data['nodes'] = graph_builder.calculate_node_positions(
+                graph_data['nodes'], 
+                graph_data['edges']
+            )
+            
+            return JsonResponse(graph_data)
+            
+        except Exception as e:
+            logger.error(f"Error building knowledge graph: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Error building graph: {str(e)}'
+            }, status=500)
+
+
+class GraphExplorerView(LoginRequiredMixin, TemplateView):
+    """
+    View for the knowledge graph explorer page.
+    """
+    template_name = 'aiengine/graph_explorer.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Knowledge Graph'
+        context['graph_data_url'] = reverse('aiengine:knowledge-graph-data')
+        return context

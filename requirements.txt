@@ -16,3 +16,5 @@ reportlab
 google-adk
 psycopg2-binary
 pgvector
+networkx
+scikit-learn

@@ -96,3 +96,39 @@ class DocumentMetadata(BaseModel):
 class AgentResponse(BaseModel):
     reply_needed: bool = Field(description="Whether the agent needs to reply to the user.")
     reply_text: Optional[str] = Field(description="The text of the reply to the user.")
+
+class DocumentRelationship(models.Model):
+    RELATIONSHIP_TYPES = [
+        ('LINK', 'Explicit Link'),
+        ('SIMILAR', 'Vector Similarity'),
+        ('REFERENCE', 'Content Reference'),
+        ('TAG', 'Shared Tag'),
+    ]
+    
+    source = models.ForeignKey(KnowledgeBase, on_delete=models.CASCADE, related_name='outgoing_links')
+    target = models.ForeignKey(KnowledgeBase, on_delete=models.CASCADE, related_name='incoming_links')
+    relationship_type = models.CharField(max_length=20, choices=RELATIONSHIP_TYPES)
+    strength = models.FloatField(default=1.0)  # For similarity-based edges
+    metadata = models.JSONField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['source', 'target', 'relationship_type']
+        verbose_name = 'Document Relationship'
+        verbose_name_plural = 'Document Relationships'
+
+    def __str__(self):
+        return f"{self.source.name} -> {self.target.name} ({self.relationship_type})"
+
+class DocumentTag(models.Model):
+    knowledge_base = models.ForeignKey(KnowledgeBase, on_delete=models.CASCADE, related_name='tags')
+    name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['knowledge_base', 'name']
+        verbose_name = 'Document Tag'
+        verbose_name_plural = 'Document Tags'
+
+    def __str__(self):
+        return f"{self.name} - {self.knowledge_base.name}"
