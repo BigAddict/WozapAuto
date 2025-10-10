@@ -340,10 +340,10 @@ def resend_verification(request):
         
         if success:
             messages.success(request, 'Verification code sent! Please check your WhatsApp.')
+            return redirect('verify_whatsapp_otp')
         else:
             messages.error(request, 'Failed to send verification code. Please try again later.')
-        
-        return redirect('verification_required')
+            return redirect('verification_required')
         
     except Exception as e:
         logger.exception("resend_verification:error")
