@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import uuid
+import re
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 
@@ -385,10 +386,9 @@ class EvolutionWebhookView(View):
             print(f"\n\n\nResponse: {response}\n")
             self.update_db_with_response(data, response)
 
-            # Parse JSON response and deliver if needed
-            try:
-                parsed: Dict[str, Any] = json.loads(response)
-            except Exception:
+            # Parse JSON response and deliver if needed (robust extraction)
+            parsed: Optional[Dict[str, Any]] = self._parse_agent_response_json(response)
+            if not parsed:
                 logger.warning("Agent response is not valid JSON; skipping delivery")
                 return True
 
@@ -407,6 +407,62 @@ class EvolutionWebhookView(View):
         except Exception as e:
             logger.error(f"Error processing evolution webhook data: {e}")
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    def _extract_json_from_text(self, text: str) -> Optional[str]:
+        """
+        Try to extract a JSON object string from arbitrary LLM output that may
+        include markdown fences or explanatory text.
+
+        Returns the JSON substring if found, else None.
+        """
+        if not isinstance(text, str):
+            return None
+
+        stripped = text.strip()
+        # 1) Direct JSON
+        if stripped.startswith('{') and stripped.endswith('}'):
+            return stripped
+
+        # 2) Code fence blocks ```json ... ``` or ``` ... ```
+        fence_pattern = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
+        for match in fence_pattern.finditer(stripped):
+            candidate = match.group(1).strip()
+            if candidate.startswith('{') and candidate.endswith('}'):
+                return candidate
+
+        # 3) Fallback: find first balanced-looking brace section
+        start = stripped.find('{')
+        if start == -1:
+            return None
+        # Try progressively shorter endings from the end
+        for end in range(len(stripped) - 1, start, -1):
+            if stripped[end] == '}':
+                candidate = stripped[start:end + 1]
+                try:
+                    json.loads(candidate)
+                    return candidate
+                except Exception:
+                    continue
+        return None
+
+    def _parse_agent_response_json(self, raw_text: str) -> Optional[Dict[str, Any]]:
+        """
+        Parse and validate the agent response JSON.
+        """
+        # Try direct parse first
+        try:
+            return json.loads(raw_text)
+        except Exception:
+            pass
+
+        # Try extracting from text
+        candidate = self._extract_json_from_text(raw_text)
+        if not candidate:
+            return None
+        try:
+            return json.loads(candidate)
+        except Exception:
+            return None
 
     def _get_user_from_instance_id(self, instance_id: str) -> Optional[User]:
         try:
