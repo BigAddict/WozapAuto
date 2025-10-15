@@ -12,9 +12,14 @@ from dotenv import load_dotenv
 import logging
 import os
 
+from base.env_config import get_env_variable
+
 logger = logging.getLogger("aiengine.service")
 
 load_dotenv()
+os.environ['GOOGLE_API_KEY'] = get_env_variable('GOOGLE_API_KEY')
+os.environ['LANGSMITH_TRACING'] = get_env_variable('LANGSMITH_TRACING')
+os.environ['LANGSMITH_API_KEY'] = get_env_variable('LANGSMITH_API_KEY')
 
 class State(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
