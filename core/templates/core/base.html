@@ -661,7 +661,7 @@
                     </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_details' %}active{% endif %}" href="{% url 'aiengine:agent_details' %}">
+                        <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_detail' %}active{% endif %}" href="{% url 'aiengine:agent_detail' %}">
                             <i class="bi bi-robot me-2"></i>AI Agent
                         </a>
                     </li>
@@ -747,7 +747,7 @@
                 </button>
 
                 <!-- Knowledge Base Icon -->
-                <a class="btn btn-link text-white me-2" href="{% url 'aiengine:agent_details' %}" aria-label="Knowledge Base">
+                <a class="btn btn-link text-white me-2" href="#" aria-label="Knowledge Base">
                     <i class="bi bi-book fs-5"></i>
                 </a>
                 {% endif %}
@@ -799,10 +799,10 @@
                     <i class="bi bi-plus-circle me-2"></i>Create Connection
                 </a>
                 {% endif %}
-                        <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_details' %}active{% endif %}" href="{% url 'aiengine:agent_details' %}">
+                        <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_detail' %}active{% endif %}" href="{% url 'aiengine:agent_detail' %}">
                             <i class="bi bi-robot me-2"></i>AI Agent
                         </a>
-                        <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'knowledge-graph' %}active{% endif %}" href="{% url 'aiengine:knowledge-graph' %}">
+                        <a class="nav-link">
                             <i class="bi bi-diagram-3 me-2"></i>Knowledge Graph
                         </a>
                         <a class="nav-link" href="#">

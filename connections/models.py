@@ -8,7 +8,6 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save
 
 from aiengine.models import Agent
-from aiengine.prompt import AgentInstructions
 
 UserModel = get_user_model()
 

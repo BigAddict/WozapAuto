@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import WebhookData, Agent, KnowledgeBase
+from .models import WebhookData, Agent
 
 @admin.register(WebhookData)
 class WebhookDataAdmin(admin.ModelAdmin):
@@ -61,4 +61,3 @@ class WebhookDataAdmin(admin.ModelAdmin):
         return False
 
 admin.site.register(Agent)
-admin.site.register(KnowledgeBase)

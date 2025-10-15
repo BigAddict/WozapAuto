@@ -13,8 +13,11 @@ openpyxl
 pypdf
 numpy
 reportlab
-google-adk
 psycopg2-binary
 pgvector
-networkx
-scikit-learn
+
+langchain[google-genai]
+langchain-postgres
+langchain-core
+langgraph
+python-dotenv

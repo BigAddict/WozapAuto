@@ -204,8 +204,10 @@ class AgentEditForm(forms.Form):
         
         # Set default system prompt if not provided
         if not self.initial.get('system_prompt'):
-            from .prompt import AgentInstructions
-            self.initial['system_prompt'] = AgentInstructions
+            self.initial['system_prompt'] = (
+                "You are WozapAuto, a helpful WhatsApp assistant for the user. "
+                "Be concise, friendly, and actionable. Always consider user context."
+            )
     
     def clean_description(self):
         """Clean and validate description field."""

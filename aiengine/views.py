@@ -1,316 +1,22 @@
-"""
-Views for the AI Engine application.
-
-This module contains views for testing and interacting with the WhatsApp AI agent service.
-"""
-
-import asyncio
-import json
-import logging
-import uuid
-import re
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpRequest
+from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.contrib.auth.models import User
+from datetime import datetime, timezone
+from aiengine.models import EvolutionWebhookData, WebhookData, Agent
 from django.views import View
-from django.views.generic import TemplateView
+import logging
+import json
+from typing import Optional
+from django.contrib.auth.models import User
+
+from aiengine.service import ChatAssistant
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from .forms import AgentEditForm
 
-from .services import WhatsAppAgentService, WhatsAppAgentError, retrieve_knowledge
-from aiengine.embedding import EmbeddingService
-from .models import Agent, WebhookData, EvolutionWebhookData, KnowledgeBase, DocumentMetadata, AgentResponse
-from .forms import PDFUploadForm, KnowledgeBaseDeleteForm
-from .graph_builder import KnowledgeGraphBuilder
-from aiengine.prompt import AgentInstructions
-from connections.models import Connection
-
-logger = logging.getLogger('aiengine.views')
-
-
-class AgentTestView(View):
-    """
-    View for testing the WhatsApp AI agent service.
-    
-    Provides both GET (display form) and POST (process queries) functionality.
-    """
-    
-    @method_decorator(login_required)
-    def get(self, request: HttpRequest):
-        """
-        Display the agent testing interface.
-        
-        Args:
-            request: HTTP request object
-            
-        Returns:
-            Rendered HTML template with agent testing form
-        """
-        context = {
-            'title': 'WhatsApp AI Agent Test',
-            'user': request.user,
-        }
-        return render(request, 'aiengine/agent_test.html', context)
-    
-    @method_decorator(login_required)
-    def post(self, request: HttpRequest):
-        """
-        Process agent queries via AJAX.
-        
-        Args:
-            request: HTTP request object containing query data
-            
-        Returns:
-            JSON response with agent's response or error message
-        """
-        try:
-            # Parse JSON data
-            data = json.loads(request.body)
-            query = data.get('query', '').strip()
-            
-            if not query:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Query cannot be empty'
-                }, status=400)
-            
-            # Generate unique session ID for this test
-            session_id = f"test_session_{uuid.uuid4().hex[:8]}"
-            user_id = str(request.user.id)
-            
-            logger.info(f"Processing agent test query for user {user_id}: {query[:100]}...")
-            
-            # Create and run agent service using sync_to_async
-            response = self._run_async_agent_query(user_id, session_id, query)
-            
-            return JsonResponse({
-                'success': True,
-                'response': response,
-                'session_id': session_id,
-                'query': query
-            })
-            
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'success': False,
-                'error': 'Invalid JSON data'
-            }, status=400)
-            
-        except WhatsAppAgentError as e:
-            logger.error(f"WhatsApp Agent error: {e}")
-            return JsonResponse({
-                'success': False,
-                'error': f'Agent error: {str(e)}'
-            }, status=500)
-            
-        except Exception as e:
-            logger.error(f"Unexpected error in agent test: {e}")
-            return JsonResponse({
-                'success': False,
-                'error': f'Unexpected error: {str(e)}'
-            }, status=500)
-    
-    def _run_async_agent_query(self, user_id: str, session_id: str, query: str) -> str:
-        """
-        Run async agent query in a new event loop.
-        
-        Args:
-            user_id: User identifier
-            session_id: Session identifier
-            query: Query to process
-            
-        Returns:
-            Agent's response string
-        """
-        try:
-            # Create a new event loop for this operation
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                return loop.run_until_complete(self._process_agent_query(user_id, session_id, query))
-            finally:
-                loop.close()
-        except Exception as e:
-            logger.error(f"Error running async agent query: {e}")
-            raise
-
-    async def _process_agent_query(self, user_id: str, session_id: str, query: str) -> str:
-        """
-        Process a query using the WhatsApp agent service.
-        
-        Args:
-            user_id: User identifier
-            session_id: Session identifier
-            query: Query to process
-            
-        Returns:
-            Agent's response string
-        """
-        try:
-            # Create agent service with context manager for proper cleanup
-            async with WhatsAppAgentService(user_id, session_id).session_context() as service:
-                response = await service.process_query(query, timeout=30.0)
-                return response
-                
-        except Exception as e:
-            logger.error(f"Error processing agent query: {e}")
-            raise
-
-@method_decorator(login_required, name='dispatch')
-class AgentDetailsView(TemplateView):
-    """
-    View for displaying the details of the agent.
-    """
-    template_name = 'aiengine/agent_details.html'
-
-    def get(self, request: HttpRequest, *args, **kwargs):
-        self.user = request.user
-        return super().get(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        connection = Connection.objects.filter(user=self.user).first()
-        if not connection:
-            return context
-        agent, created = Agent.objects.get_or_create(user=self.user)
-        if created:
-            agent.name = f"{connection.instance_name} Agent"
-            agent.description = "A smart AI agent that will help you answer your WhatsApp queries."
-            agent.system_prompt = AgentInstructions
-            agent.is_active = False
-            agent.is_locked = False
-            agent.save()
-        context['agent'] = agent
-        return context
-
-
-class ToggleAgentStatusView(LoginRequiredMixin, View):
-    """
-    View for toggling agent activation status with validation checks.
-    """
-    
-    def post(self, request: HttpRequest):
-        """
-        Toggle agent activation status after validating prerequisites.
-        
-        Validates:
-        - Connection exists and is active
-        - At least one knowledge base entry exists
-        """
-        try:
-            user = request.user
-            
-            # Get or create agent for user
-            agent, created = Agent.objects.get_or_create(user=user)
-            if created:
-                connection = Connection.objects.filter(user=user).first()
-                if connection:
-                    agent.name = f"{connection.instance_name} Agent"
-                    agent.description = "A smart AI agent that will help you answer your WhatsApp queries."
-                    agent.system_prompt = AgentInstructions
-                    agent.is_active = False
-                    agent.is_locked = False
-                    agent.save()
-            
-            # Validation checks
-            connection = Connection.objects.filter(user=user, connection_status='open').first()
-            if not connection:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'No active WhatsApp connection found. Please ensure your WhatsApp connection is active.'
-                }, status=400)
-            
-            kb_count = KnowledgeBase.objects.filter(user=user).count()
-            if kb_count == 0:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'No knowledge base entries found. Please add at least one document to your knowledge base before activating the agent.'
-                }, status=400)
-            
-            # Toggle agent status
-            agent.is_active = not agent.is_active
-            agent.save()
-            
-            return JsonResponse({
-                'success': True,
-                'is_active': agent.is_active,
-                'message': f'Agent {"activated" if agent.is_active else "deactivated"} successfully.'
-            })
-            
-        except Exception as e:
-            logger.error(f"Error toggling agent status for user {request.user.id}: {str(e)}")
-            return JsonResponse({
-                'success': False,
-                'error': 'An error occurred while updating agent status. Please try again.'
-            }, status=500)
-
-
-class AgentEditView(LoginRequiredMixin, View):
-    """
-    View for editing agent description and system prompt.
-    """
-    
-    def get(self, request: HttpRequest):
-        """
-        Display the agent edit form.
-        """
-        user = request.user
-        agent, created = Agent.objects.get_or_create(user=user)
-        if created:
-            connection = Connection.objects.filter(user=user).first()
-            if connection:
-                agent.name = f"{connection.instance_name} Agent"
-                agent.description = "A smart AI agent that will help you answer your WhatsApp queries."
-                agent.system_prompt = AgentInstructions
-                agent.is_active = False
-                agent.is_locked = False
-                agent.save()
-        
-        from .forms import AgentEditForm
-        form = AgentEditForm(initial={
-            'description': agent.description,
-            'system_prompt': agent.system_prompt
-        })
-        
-        context = {
-            'agent': agent,
-            'form': form,
-            'title': f'Edit {agent.name}'
-        }
-        return render(request, 'aiengine/agent_edit.html', context)
-    
-    def post(self, request: HttpRequest):
-        """
-        Process the agent edit form submission.
-        """
-        user = request.user
-        agent = get_object_or_404(Agent, user=user)
-        
-        from .forms import AgentEditForm
-        form = AgentEditForm(request.POST)
-        
-        if form.is_valid():
-            agent.description = form.cleaned_data['description']
-            agent.system_prompt = form.cleaned_data['system_prompt']
-            agent.save()
-            
-            messages.success(request, 'Agent updated successfully!')
-            return redirect('aiengine:agent_details')
-        else:
-            context = {
-                'agent': agent,
-                'form': form,
-                'title': f'Edit {agent.name}'
-            }
-            return render(request, 'aiengine/agent_edit.html', context)
+logger = logging.getLogger("aiengine.views")
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EvolutionWebhookView(View):
@@ -322,11 +28,13 @@ class EvolutionWebhookView(View):
         try:
             data = json.loads(request.body.decode('utf-8'))
             if not data and not data.get('event', ''):
+                logger.warning("No data or event in webhook request. Skipping...")
                 return JsonResponse({'success': True})
 
             # Enforce tenant identity via webhook query param: user_id
             user_id_param = request.GET.get('user_id', '').strip()
             if not user_id_param:
+                logger.warning("Missing user_id in webhook URL. Skipping...")
                 return JsonResponse({'success': False, 'error': 'Missing user_id in webhook URL'}, status=400)
 
             payload = data.get('data', {})
@@ -335,10 +43,13 @@ class EvolutionWebhookView(View):
             quoted_message = context_info.get('quotedMessage', {})
 
             date_time_val = payload.get('messageTimestamp')
+
             try:
                 date_time_ext = datetime.fromtimestamp(date_time_val, tz=timezone.utc) if date_time_val else None
+                logger.info(f"Date time extracted from webhook: {date_time_ext}")
             except Exception:
                 date_time_ext = datetime.now(timezone.utc)
+                logger.info(f"Date time extracted from webhook: {date_time_ext}")
 
             remote_jid = key.get('remoteJid', '')
             is_group = remote_jid.endswith('@g.us')
@@ -364,168 +75,57 @@ class EvolutionWebhookView(View):
                 from connections.models import Connection
                 conn = Connection.objects.filter(instance_id=evolution_webhook_data.instance_id).first()
                 if not conn or str(conn.user_id) != user_id_param:
+                    logger.warning("Webhook user_id mismatch or unknown instance. Skipping...")
                     return JsonResponse({'success': False, 'error': 'Webhook user_id mismatch or unknown instance'}, status=403)
+                logger.info(f"Webhook user_id matched with instance: {conn.instance_name}")
             except Exception:
                 # If validation cannot be performed, still proceed but log
                 logger.warning('Could not validate webhook instance ownership for user_id=%s', user_id_param)
 
-            self._process_evolution_webhook_data(evolution_webhook_data)
+            # Processing goes here
+            self.process_webhook(evolution_webhook_data)
             return JsonResponse({'success': True})
-            
         except Exception as e:
+            logger.error(f"Error processing webhook: {e}")
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-    def _process_evolution_webhook_data(self, data: EvolutionWebhookData):
+    def process_webhook(self, data: EvolutionWebhookData) -> bool:
         try:
-            if data.from_me:
-                return True
-            if data.is_group:
-                return True
             self.save_to_db(data)
-            response = self._run_async_agent_query(data.remote_jid, data.sender, self._apply_prompt_template(data), data)
-            print(f"\n\n\nResponse: {response}\n")
-            self.update_db_with_response(data, response)
-
-            # Parse JSON response and deliver if needed (robust extraction)
-            parsed: Optional[Dict[str, Any]] = self._parse_agent_response_json(response)
-            if not parsed:
-                logger.warning("Agent response is not valid JSON; skipping delivery")
+            if data.from_me:
+                self.update_db_with_response(data, "Message from me")
+                logger.info(f"Webhook is a message from me: {data.message_id}. Skipping...")
                 return True
 
-            reply_needed = parsed.get('reply_needed') is True
-            reply_text = parsed.get('reply_text', '') if reply_needed else ''
-            if reply_needed and reply_text:
-                from connections.services import evolution_api_service
-                success, _ = evolution_api_service.send_text_message(
-                    instance_name=data.instance,
-                    number=data.remote_jid,
-                    message=reply_text,
-                    reply_to_message_id=data.message_id
-                )
-                if not success:
-                    logger.error("Failed to deliver agent reply via Evolution API")
+            if data.is_group:
+                self.update_db_with_response(data, "Message from a group")
+                logger.info(f"Webhook is a message from a group: {data.message_id}. Skipping...")
+                return True
+
+            user_agent = self._get_user_agent(user_id=self._get_user_from_instance_id(data.instance_id).id)
+            if not user_agent:
+                logger.error(f"User agent not found for user id: {self._get_user_from_instance_id(data.instance_id).id}")
+                return False
+            print(user_agent)
+            
+            from connections.services import evolution_api_service
+            chat_assistant = ChatAssistant(f"{data.sender}x{data.remote_jid}", user_agent.system_prompt)
+            response = chat_assistant.send_message(data.conversation)
+            self.update_db_with_response(data, response.content)
+
+            success, _ = evolution_api_service.send_text_message(
+                instance_name=data.instance,
+                number=data.remote_jid,
+                message=response.content,
+                reply_to_message_id=data.message_id
+            )
+            if not success:
+                logger.error(f"Failed to send message to {data.remote_jid}")
+                return False
+            return True
         except Exception as e:
-            logger.error(f"Error processing evolution webhook data: {e}")
-            return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-    def _extract_json_from_text(self, text: str) -> Optional[str]:
-        """
-        Try to extract a JSON object string from arbitrary LLM output that may
-        include markdown fences or explanatory text.
-
-        Returns the JSON substring if found, else None.
-        """
-        if not isinstance(text, str):
-            return None
-
-        stripped = text.strip()
-        # 1) Direct JSON
-        if stripped.startswith('{') and stripped.endswith('}'):
-            return stripped
-
-        # 2) Code fence blocks ```json ... ``` or ``` ... ```
-        fence_pattern = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
-        for match in fence_pattern.finditer(stripped):
-            candidate = match.group(1).strip()
-            if candidate.startswith('{') and candidate.endswith('}'):
-                return candidate
-
-        # 3) Fallback: find first balanced-looking brace section
-        start = stripped.find('{')
-        if start == -1:
-            return None
-        # Try progressively shorter endings from the end
-        for end in range(len(stripped) - 1, start, -1):
-            if stripped[end] == '}':
-                candidate = stripped[start:end + 1]
-                try:
-                    json.loads(candidate)
-                    return candidate
-                except Exception:
-                    continue
-        return None
-
-    def _parse_agent_response_json(self, raw_text: str) -> Optional[Dict[str, Any]]:
-        """
-        Parse and validate the agent response JSON.
-        """
-        # Try direct parse first
-        try:
-            return json.loads(raw_text)
-        except Exception:
-            pass
-
-        # Try extracting from text
-        candidate = self._extract_json_from_text(raw_text)
-        if not candidate:
-            return None
-        try:
-            return json.loads(candidate)
-        except Exception:
-            return None
-
-    def _get_user_from_instance_id(self, instance_id: str) -> Optional[User]:
-        try:
-            from connections.models import Connection
-            connection = Connection.objects.get(instance_id=instance_id)
-            return connection.user
-        except Exception as e:
-            return None
-
-    def _apply_prompt_template(self, data: EvolutionWebhookData) -> str:
-        prompt_template = f"""
-        ## Message Info
-        - Company Name(instance_name): {data.instance}
-        - Sender Name: {data.push_name}
-        - Sender Number: {data.remote_jid}
-        - Message ID: {data.message_id}
-        - Message Content: "{data.conversation}"
-        - Message Type: {data.message_type}
-        - Is From Owner: {data.from_me}
-        - Quoted Message: {data.quoted_message if data.quoted_message else "None"}
-        - Timestamp (UTC): {data.date_time}
-
-        ## Context Rules
-        - You receive **only 1-on-1 customer messages.**
-        - Group messages and owner messages are already filtered out in code.
-        - Sometimes the owner might take over a chat, or the customer might just be replying to a finished conversation — you must detect that.
-        - If there's nothing meaningful to reply to (e.g., “okay”, “thanks”, emojis, or closure signals), stay silent.
-        - Use past message context to maintain continuity, but only if needed.
-
-        ## Behavior Logic
-        You act as the **official customer care AI agent** for *{data.instance}*.  
-        Your job is to:
-        1. Detect whether this message needs a reply.  
-        2. If yes — craft a concise, natural, and brand-consistent response.  
-        3. If no — explain why silence is better.
-
-        ## When to Stay Silent
-        - Customer sends short acknowledgments (“okay”, “asante”, “noted”, “thank you”).  
-        - Conversation is clearly over or resolved.  
-        - Customer replies to an owner's message or when owner is active.  
-        - The message doesn't need clarification or action (e.g., random emojis).
-
-        ## When to Respond
-        - Message asks a question, shows confusion, or requests help.  
-        - Message reopens an old topic or starts a new one.  
-        - Message follows up on a previous discussion and needs closure or info.
-
-        ## Tone & Personality
-        - Be polite, helpful, and casual — sound like a real human support agent.
-        - Use short, natural sentences.  
-        - Light Swahili or Kenyan tone is okay if appropriate for the brand.
-        - Don't oversell, overexplain, or repeat previous answers.
-
-        ## Tool Directive
-        - Call `check_conversation_messages` first to fetch recent history to decide whether to reply.
-        - Do NOT send messages directly via tools. Instead, return ONLY JSON matching AgentResponse:
-          {{"reply_needed": boolean, "reply_text": string (optional)}}.
-
-        Now, analyze the message from {data.push_name} and decide whether to reply or stay silent.
-        """
-        print(prompt_template, "\n")
-        return prompt_template
-
+            logger.error(f"Error processing webhook: {e}")
+            return False
 
     def save_to_db(self, data: EvolutionWebhookData) -> bool:
         try:
@@ -547,8 +147,10 @@ class EvolutionWebhookView(View):
                 is_group=data.is_group
             )
             webhook_data.save()
+            logger.info(f"Webhook data saved to database: {webhook_data.message_id}")
             return True
         except Exception as e:
+            logger.error(f"Error saving webhook data to database: {e}")
             return False
 
     def update_db_with_response(self, data: EvolutionWebhookData, response: str) -> bool:
@@ -557,339 +159,83 @@ class EvolutionWebhookView(View):
             webhook_data.response_text = response
             webhook_data.is_processed = True
             webhook_data.save()
+            logger.info(f"Webhook{webhook_data.message_id} updated")
             return True
         except Exception as e:
+            logger.error(f"Error updating webhook data with response: {e}")
             return False
 
-    def _run_async_agent_query(self, user_id: str, session_id: str, query: str, data: EvolutionWebhookData) -> str:
-        """
-        Run async agent query in a new event loop.
-        
-        Args:
-            user_id: User identifier
-            session_id: Session identifier
-            query: Query to process
-            
-        Returns:
-            Agent's response string
-        """
+    def _get_user_from_instance_id(self, instance_id: str) -> Optional[User]:
         try:
-            # Create a new event loop for this operation
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                return loop.run_until_complete(self._process_agent_query(user_id, session_id, query, data))
-            finally:
-                loop.close()
+            from connections.models import Connection
+            connection = Connection.objects.get(instance_id=instance_id)
+            return connection.user
         except Exception as e:
-            logger.error(f"Error running async agent query: {e}")
-            raise
+            logger.error(f"Error getting user from instance id: {e}")
+            return None
 
-    async def _process_agent_query(self, user_id: str, session_id: str, query: str, data: EvolutionWebhookData) -> str:
-        """
-        Process a query using the WhatsApp agent service.
-        
-        Args:
-            user_id: User identifier
-            session_id: Session identifier
-            query: Query to process
-            
-        Returns:
-            Agent's response string
-        """
+    def _get_user_agent(self, user_id: str) -> Optional[Agent]:
         try:
-            context = {
-                'instance': data.instance,
-                'remote_jid': data.remote_jid,
-                'sender': session_id,
-                'push_name': data.push_name,
-                'message_id': data.message_id,
-                'quoted_message': data.quoted_message,
-                'is_group': data.is_group,
-            }
-            print(f"\n\nContext: {context}\n")
-
-            app_name = f"WhatsAppAgent:{context.get('instance')}" if context.get('instance') else None
-
-            async with WhatsAppAgentService(user_id, session_id, app_name_override=app_name, invocation_context=context).session_context() as service:
-                response = await service.process_query(query, timeout=30.0)
-                return response
-                
+            agent = Agent.objects.get(user_id=user_id)
+            return agent
         except Exception as e:
-            logger.error(f"Error processing agent query: {e}")
-            raise
+            logger.error(f"Error getting user agent: {e}")
+            return None
 
-@method_decorator(login_required, name='dispatch')
-class KnowledgeBaseManagementView(View):
-    """
-    View for managing knowledge base - uploading PDFs and managing existing files.
-    """
-    
-    def get(self, request: HttpRequest):
-        """
-        Display the knowledge base management interface.
-        
-        Args:
-            request: HTTP request object
-            
-        Returns:
-            Rendered HTML template with knowledge base management form
-        """
-        # Get user's knowledge base entries
-        knowledge_base_entries = KnowledgeBase.objects.filter(user=request.user).order_by('-created_at')
-        
-        # Group entries by original filename for better display
-        grouped_entries = {}
-        for entry in knowledge_base_entries:
-            filename = entry.original_filename or entry.name
-            info = grouped_entries.get(filename)
-            if not info:
-                info = {
-                    'entries': [],
-                    'entry_ids': [],
-                    'total_chunks': 0,
-                    'file_size': entry.file_size or 0,
-                    'created_at': entry.created_at,
-                    'description': None,
-                }
-                grouped_entries[filename] = info
 
-            info['entries'].append(entry)
-            info['entry_ids'].append(entry.id)
-            info['total_chunks'] += 1
-
-            # Prefer user-provided description; ignore autogenerated "Chunk N of <file>"
-            if not info['description'] and entry.description:
-                auto_prefix = 'Chunk '
-                if not (entry.description.startswith(auto_prefix) and ' of ' in entry.description and entry.description.endswith(filename)):
-                    info['description'] = entry.description
-        
-        context = {
-            'title': 'Knowledge Base Management',
-            'user': request.user,
-            'upload_form': PDFUploadForm(user=request.user),
-            'delete_form': KnowledgeBaseDeleteForm(),
-            'grouped_entries': grouped_entries,
-            'total_files': len(grouped_entries),
-            'total_entries': knowledge_base_entries.count(),
-        }
-        return render(request, 'aiengine/knowledge_base_management.html', context)
-    
-    def post(self, request: HttpRequest):
-        """
-        Handle knowledge base operations (upload/delete).
-        
-        Args:
-            request: HTTP request object containing form data
-            
-        Returns:
-            JSON response or redirect
-        """
-        action = request.POST.get('action', '')
-        
-        if action == 'upload':
-            return self._handle_upload(request)
-        elif action == 'delete':
-            return self._handle_delete(request)
-        else:
-            return JsonResponse({
-                'success': False,
-                'error': 'Invalid action specified'
-            }, status=400)
-    
-    def _handle_upload(self, request: HttpRequest):
-        """Handle PDF file uploads."""
-        try:
-            form = PDFUploadForm(request.POST, request.FILES, user=request.user)
-            
-            if form.is_valid():
-                files = form.cleaned_data['pdf_files']
-                description = form.cleaned_data.get('description', '')
-                
-                # Process each file
-                uploaded_files = []
-                embedding_service = EmbeddingService()
-                
-                for file in files:
-                    try:
-                        # Generate unique file ID for tracking chunks
-                        file_id = f"{request.user.id}_{uuid.uuid4().hex[:8]}"
-                        
-                        # Process PDF and generate embeddings
-                        results = embedding_service.embed_pdf_file(
-                            file_data=file,
-                            metadata=DocumentMetadata(
-                                name=file.name,
-                                description=description or f"Uploaded PDF: {file.name}",
-                                metadata={
-                                    "user_id": request.user.id,
-                                    "file_id": file_id,
-                                    "upload_source": "web_interface"
-                                }
-                            )
-                        )
-                        
-                        # Save each chunk to database
-                        for i, result in enumerate(results):
-                            knowledge_entry = KnowledgeBase.objects.create(
-                                user=request.user,
-                                name=f"{file.name} - Chunk {i+1}",
-                                # Store only the user-provided description (omit autogenerated per-chunk text)
-                                description=description or None,
-                                content=result.source_chunk,
-                                embedding=result.embedding_vector,
-                                metadata=result.metadata,
-                                original_filename=file.name,
-                                file_size=file.size,
-                                file_type='pdf',
-                                chunk_index=i,
-                                parent_file_id=file_id
-                            )
-                        
-                        uploaded_files.append({
-                            'filename': file.name,
-                            'chunks': len(results),
-                            'size': file.size
-                        })
-                        
-                        logger.info(f"Successfully processed PDF {file.name} for user {request.user.id}: {len(results)} chunks")
-                        
-                    except Exception as e:
-                        logger.error(f"Error processing PDF {file.name}: {e}")
-                        return JsonResponse({
-                            'success': False,
-                            'error': f'Error processing {file.name}: {str(e)}'
-                        }, status=500)
-                
-                return JsonResponse({
-                    'success': True,
-                    'message': f'Successfully uploaded {len(uploaded_files)} files',
-                    'uploaded_files': uploaded_files
-                })
-            else:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Form validation failed',
-                    'errors': form.errors
-                }, status=400)
-                
-        except Exception as e:
-            logger.error(f"Error in PDF upload: {e}")
-            return JsonResponse({
-                'success': False,
-                'error': f'Upload failed: {str(e)}'
-            }, status=500)
-    
-    def _handle_delete(self, request: HttpRequest):
-        """Handle knowledge base entry deletion."""
-        try:
-            form = KnowledgeBaseDeleteForm(request.POST)
-            
-            if form.is_valid():
-                entry_ids = form.cleaned_data['entry_ids']
-                
-                # Get entries to delete
-                entries_to_delete = KnowledgeBase.objects.filter(
-                    id__in=entry_ids,
-                    user=request.user
-                )
-                
-                if not entries_to_delete.exists():
-                    return JsonResponse({
-                        'success': False,
-                        'error': 'No entries found to delete'
-                    }, status=404)
-                
-                # Count files that will be deleted
-                deleted_files = set()
-                deleted_count = 0
-                
-                for entry in entries_to_delete:
-                    if entry.original_filename:
-                        deleted_files.add(entry.original_filename)
-                    deleted_count += 1
-                
-                # Delete entries
-                entries_to_delete.delete()
-                
-                logger.info(f"Deleted {deleted_count} knowledge base entries for user {request.user.id}")
-                
-                return JsonResponse({
-                    'success': True,
-                    'message': f'Successfully deleted {deleted_count} entries from {len(deleted_files)} files',
-                    'deleted_files': list(deleted_files)
-                })
-            else:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Form validation failed',
-                    'errors': form.errors
-                }, status=400)
-                
-        except Exception as e:
-            logger.error(f"Error deleting knowledge base entries: {e}")
-            return JsonResponse({
-                'success': False,
-                'error': f'Deletion failed: {str(e)}'
-            }, status=500)
-
-@require_http_methods(['POST'])
-@csrf_exempt
-def retrieve_knowledge_view(request: HttpRequest):
-    """Retrieve knowledge base entries."""
+@login_required
+def agent_detail(request: HttpRequest):
     try:
-        data = json.loads(request.body)
-        query = data.get('query', '')
-        top_k = data.get('top_k', 5)
-        instance_name = data.get('instance_name', '')
-        
-        results = retrieve_knowledge(query, instance_name, top_k)
-        print(f"\n\nResults: {results}\n")
-        return JsonResponse(results)
-    except Exception as e:
-        logger.error(f"Error retrieving knowledge base entries: {e}")
-        return JsonResponse({
-            'success': False,
-            'message': 'Error retrieving knowledge base entries',
-            'error': str(e)
-        }, status=500)
+        agent, _ = Agent.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'name': 'WozapAutoAgent',
+                'description': 'WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.',
+                'system_prompt': 'You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.'
+            }
+        )
+    except Exception:
+        messages.error(request, 'Unable to load your agent. Please try again later.')
+        return redirect('core:dashboard') if 'core:dashboard' else redirect('/')
+
+    return render(request, 'aiengine/agent_detail.html', {
+        'agent': agent
+    })
 
 
-class KnowledgeGraphView(LoginRequiredMixin, View):
-    """
-    API endpoint for knowledge graph data.
-    Returns JSON data for the graph visualization.
-    """
-    
-    def get(self, request):
-        try:
-            graph_builder = KnowledgeGraphBuilder(request.user)
-            graph_data = graph_builder.build_graph_data()
-            
-            # Calculate positions
-            graph_data['nodes'] = graph_builder.calculate_node_positions(
-                graph_data['nodes'], 
-                graph_data['edges']
-            )
-            
-            return JsonResponse(graph_data)
-            
-        except Exception as e:
-            logger.error(f"Error building knowledge graph: {e}")
-            return JsonResponse({
-                'success': False,
-                'error': f'Error building graph: {str(e)}'
-            }, status=500)
+@login_required
+def agent_edit(request: HttpRequest):
+    try:
+        agent, _ = Agent.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'name': 'WozapAutoAgent',
+                'description': 'WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.',
+                'system_prompt': 'You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.'
+            }
+        )
+    except Exception:
+        messages.error(request, 'Unable to load your agent. Please try again later.')
+        return redirect('aiengine:agent_detail')
 
+    if request.method == 'POST':
+        form = AgentEditForm(request.POST, initial={
+            'description': agent.description,
+            'system_prompt': agent.system_prompt
+        })
+        if form.is_valid():
+            agent.description = form.cleaned_data['description']
+            agent.system_prompt = form.cleaned_data['system_prompt']
+            agent.save()
+            messages.success(request, 'Agent updated successfully.')
+            return redirect(reverse('aiengine:agent_detail'))
+    else:
+        form = AgentEditForm(initial={
+            'description': agent.description,
+            'system_prompt': agent.system_prompt
+        })
 
-class GraphExplorerView(LoginRequiredMixin, TemplateView):
-    """
-    View for the knowledge graph explorer page.
-    """
-    template_name = 'aiengine/graph_explorer.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Knowledge Graph'
-        context['graph_data_url'] = reverse('aiengine:knowledge-graph-data')
-        return context
+    return render(request, 'aiengine/agent_edit.html', {
+        'form': form,
+        'agent': agent
+    })

@@ -1,0 +1,40 @@
+text_formatting_guide = """
+# Below is a text formatting guide for whatsapp messages
+
+Italic
+To italicize your message, place an underscore on both sides of the text:
+_text_
+
+Bold
+To bold your message, place an asterisk on both sides of the text:
+*text*
+
+Strikethrough
+To strikethrough your message, place a tilde on both sides of the text:
+~text~
+
+Monospace
+To monospace your message, place three backticks on both sides of the text:
+```text```
+
+Bulleted list
+To add a bulleted list to your message, place an asterisk or hyphen and a space before each word or sentence:
+* text
+* text
+Or
+- text
+- text
+
+Numbered list
+To add a numbered list to your message, place a number, period, and space before each line of text:
+1. text
+2. text
+
+Quote
+To add a quote to your message, place an angle bracket and space before the text:
+> text
+
+Inline code
+To add inline code to your message, place a backtick on both sides of the message:
+`text`
+"""

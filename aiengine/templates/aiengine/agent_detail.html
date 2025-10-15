@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+
+{% block title %}My Agent{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">My Agent</h1>
+        <a href="{% url 'aiengine:agent_edit' %}" class="btn btn-primary">Edit Agent</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h2 class="h5">{{ agent.name }}</h2>
+            <p class="text-muted mb-3">{{ agent.description }}</p>
+            <div>
+                <h3 class="h6">System Instructions</h3>
+                <pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ agent.system_prompt }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
