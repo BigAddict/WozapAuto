@@ -57,11 +57,14 @@ class ChatAssistant:
 
     def get_prompt_template(self) -> ChatPromptTemplate:
         logger.info("Getting prompt template")
+        # Clean the system prompt to remove any template variables that might cause issues
+        clean_system_prompt = self.system_prompt.replace('{', '{{').replace('}', '}}')
+        
         return ChatPromptTemplate.from_messages(
             [
                 (
                     "system",
-                    f"{self.system_prompt}\n{text_formatting_guide}"
+                    f"{clean_system_prompt}\n{text_formatting_guide}"
                 ),
                 MessagesPlaceholder(variable_name="messages")
             ]

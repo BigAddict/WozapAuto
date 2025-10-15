@@ -129,6 +129,12 @@ class EvolutionWebhookView(View):
 
     def save_to_db(self, data: EvolutionWebhookData) -> bool:
         try:
+            # Check if webhook data already exists
+            existing_webhook = WebhookData.objects.filter(message_id=data.message_id).first()
+            if existing_webhook:
+                logger.info(f"Webhook data already exists for message_id: {data.message_id}")
+                return True
+            
             webhook_data = WebhookData.objects.create(
                 message_id=data.message_id,
                 user=self._get_user_from_instance_id(data.instance_id),
@@ -155,12 +161,17 @@ class EvolutionWebhookView(View):
 
     def update_db_with_response(self, data: EvolutionWebhookData, response: str) -> bool:
         try:
-            webhook_data = WebhookData.objects.get(message_id=data.message_id)
-            webhook_data.response_text = response
-            webhook_data.is_processed = True
-            webhook_data.save()
-            logger.info(f"Webhook{webhook_data.message_id} updated")
-            return True
+            # Get the first webhook data record for this message_id
+            webhook_data = WebhookData.objects.filter(message_id=data.message_id).first()
+            if webhook_data:
+                webhook_data.response_text = response
+                webhook_data.is_processed = True
+                webhook_data.save()
+                logger.info(f"Webhook{webhook_data.message_id} updated")
+                return True
+            else:
+                logger.warning(f"No webhook data found for message_id: {data.message_id}")
+                return False
         except Exception as e:
             logger.error(f"Error updating webhook data with response: {e}")
             return False
