@@ -176,7 +176,8 @@ class EvolutionWebhookView(View):
 
     def _get_user_agent(self, user_id: str) -> Optional[Agent]:
         try:
-            agent = Agent.objects.get(user_id=user_id)
+            # Get the first active agent for the user, or the first one if none are active
+            agent = Agent.objects.filter(user_id=user_id).order_by('-is_active', 'created_at').first()
             return agent
         except Exception as e:
             logger.error(f"Error getting user agent: {e}")
@@ -186,14 +187,18 @@ class EvolutionWebhookView(View):
 @login_required
 def agent_detail(request: HttpRequest):
     try:
-        agent, _ = Agent.objects.get_or_create(
-            user=request.user,
-            defaults={
-                'name': 'WozapAutoAgent',
-                'description': 'WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.',
-                'system_prompt': 'You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.'
-            }
-        )
+        # Get the user's primary agent (active first, then by creation date)
+        agent = Agent.objects.filter(user=request.user).order_by('-is_active', 'created_at').first()
+        
+        # If no agent exists, create one
+        if not agent:
+            agent = Agent.objects.create(
+                user=request.user,
+                name='WozapAutoAgent',
+                description='WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.',
+                system_prompt='You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.',
+                is_active=True
+            )
     except Exception:
         messages.error(request, 'Unable to load your agent. Please try again later.')
         return redirect('core:dashboard') if 'core:dashboard' else redirect('/')
@@ -206,14 +211,18 @@ def agent_detail(request: HttpRequest):
 @login_required
 def agent_edit(request: HttpRequest):
     try:
-        agent, _ = Agent.objects.get_or_create(
-            user=request.user,
-            defaults={
-                'name': 'WozapAutoAgent',
-                'description': 'WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.',
-                'system_prompt': 'You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.'
-            }
-        )
+        # Get the user's primary agent (active first, then by creation date)
+        agent = Agent.objects.filter(user=request.user).order_by('-is_active', 'created_at').first()
+        
+        # If no agent exists, create one
+        if not agent:
+            agent = Agent.objects.create(
+                user=request.user,
+                name='WozapAutoAgent',
+                description='WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.',
+                system_prompt='You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.',
+                is_active=True
+            )
     except Exception:
         messages.error(request, 'Unable to load your agent. Please try again later.')
         return redirect('aiengine:agent_detail')

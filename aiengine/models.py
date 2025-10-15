@@ -18,6 +18,15 @@ class Agent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user'],
+                condition=models.Q(user__isnull=False),
+                name='unique_agent_per_user'
+            )
+        ]
+
     def __str__(self):
         return self.name
 
