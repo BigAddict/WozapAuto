@@ -6,10 +6,15 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h3 mb-0">My Agent</h1>
-        <a href="{% url 'aiengine:agent_edit' %}" class="btn btn-primary">Edit Agent</a>
+        <div class="btn-group">
+            <a href="{% url 'aiengine:agent_edit' %}" class="btn btn-primary">Edit Agent</a>
+            <a href="{% url 'aiengine:conversation_history' %}" class="btn btn-outline-secondary">Conversations</a>
+            <a href="{% url 'aiengine:memory_management' %}" class="btn btn-outline-info">Memory</a>
+        </div>
     </div>
 
-    <div class="card">
+    <!-- Agent Information -->
+    <div class="card mb-4">
         <div class="card-body">
             <h2 class="h5">{{ agent.name }}</h2>
             <p class="text-muted mb-3">{{ agent.description }}</p>
@@ -19,6 +24,75 @@
             </div>
         </div>
     </div>
+
+    <!-- Memory Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ memory_stats.total_threads|default:0 }}</h5>
+                    <p class="card-text">Active Conversations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ total_messages|default:0 }}</h5>
+                    <p class="card-text">Total Messages</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">{{ embedding_coverage|floatformat:1 }}%</h5>
+                    <p class="card-text">Embedding Coverage</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">{{ memory_stats.human_messages|default:0 }}</h5>
+                    <p class="card-text">User Messages</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Conversations -->
+    {% if recent_threads %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Conversations</h5>
+            <a href="{% url 'aiengine:conversation_history' %}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                {% for thread in recent_threads %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">{{ thread.remote_jid }}</h6>
+                        <small class="text-muted">Last updated: {{ thread.updated_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary rounded-pill">{{ thread.messages.count }} messages</span>
+                        <a href="{% url 'aiengine:conversation_detail' thread.thread_id %}" class="btn btn-sm btn-outline-secondary ms-2">View</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <h5 class="text-muted">No conversations yet</h5>
+            <p class="text-muted">Start a conversation with your agent to see it here.</p>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 

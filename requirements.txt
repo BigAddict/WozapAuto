@@ -21,3 +21,4 @@ langchain-postgres
 langchain-core
 langgraph
 python-dotenv
+sentence-transformers

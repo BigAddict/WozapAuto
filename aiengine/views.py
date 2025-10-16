@@ -10,10 +10,14 @@ from typing import Optional
 from django.contrib.auth.models import User
 
 from aiengine.service import ChatAssistant
+from aiengine.memory_utils import get_memory_statistics, get_user_conversation_summary, cleanup_old_conversations
+from aiengine.models import ConversationThread, ConversationMessage
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
+from django.http import JsonResponse
+from django.core.paginator import Paginator
 from .forms import AgentEditForm
 
 logger = logging.getLogger("aiengine.views")
@@ -27,6 +31,7 @@ class EvolutionWebhookView(View):
     def post(self, request: HttpRequest):
         try:
             data = json.loads(request.body.decode('utf-8'))
+            print(len(data.keys()))
             if not data and not data.get('event', ''):
                 logger.warning("No data or event in webhook request. Skipping...")
                 return JsonResponse({'success': True})
@@ -109,7 +114,20 @@ class EvolutionWebhookView(View):
             print(user_agent)
             
             from connections.services import evolution_api_service
-            chat_assistant = ChatAssistant(f"{data.sender}x{data.remote_jid}", user_agent.system_prompt)
+            # Get user from instance
+            user = self._get_user_from_instance_id(data.instance_id)
+            if not user:
+                logger.error(f"User not found for instance: {data.instance_id}")
+                return False
+            
+            # Create ChatAssistant with database-backed memory
+            chat_assistant = ChatAssistant(
+                thread_id=data.remote_jid,
+                system_instructions=user_agent.system_prompt,
+                user=user,
+                agent=user_agent,
+                remote_jid=data.remote_jid
+            )
             response = chat_assistant.send_message(data.conversation)
             self.update_db_with_response(data, response.content)
 
@@ -210,12 +228,40 @@ def agent_detail(request: HttpRequest):
                 system_prompt='You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.',
                 is_active=True
             )
-    except Exception:
+        
+        # Get memory statistics for this user
+        memory_stats = get_user_conversation_summary(request.user.id)
+        
+        # Get recent conversations
+        recent_threads = ConversationThread.objects.filter(
+            user=request.user
+        ).order_by('-updated_at')[:5]
+        
+        # Get conversation statistics
+        total_messages = ConversationMessage.objects.filter(
+            thread__user=request.user
+        ).count()
+        
+        # Get messages with embeddings
+        messages_with_embeddings = ConversationMessage.objects.filter(
+            thread__user=request.user,
+            embedding__isnull=False
+        ).count()
+        
+        # Calculate embedding coverage
+        embedding_coverage = (messages_with_embeddings / total_messages * 100) if total_messages > 0 else 0
+        
+    except Exception as e:
+        logger.error(f"Error loading agent detail: {e}")
         messages.error(request, 'Unable to load your agent. Please try again later.')
         return redirect('core:dashboard') if 'core:dashboard' else redirect('/')
 
     return render(request, 'aiengine/agent_detail.html', {
-        'agent': agent
+        'agent': agent,
+        'memory_stats': memory_stats,
+        'recent_threads': recent_threads,
+        'total_messages': total_messages,
+        'embedding_coverage': embedding_coverage,
     })
 
 
@@ -259,3 +305,167 @@ def agent_edit(request: HttpRequest):
         'form': form,
         'agent': agent
     })
+
+
+@login_required
+def conversation_history(request: HttpRequest):
+    """View to display conversation history with pagination."""
+    try:
+        # Get all conversation threads for the user
+        threads = ConversationThread.objects.filter(user=request.user).order_by('-updated_at')
+        
+        # Paginate threads
+        paginator = Paginator(threads, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        # Get message counts for each thread
+        for thread in page_obj:
+            thread.message_count = ConversationMessage.objects.filter(thread=thread).count()
+            thread.last_message = ConversationMessage.objects.filter(
+                thread=thread
+            ).order_by('-created_at').first()
+        
+    except Exception as e:
+        logger.error(f"Error loading conversation history: {e}")
+        messages.error(request, 'Unable to load conversation history.')
+        return redirect('aiengine:agent_detail')
+    
+    return render(request, 'aiengine/conversation_history.html', {
+        'page_obj': page_obj,
+    })
+
+
+@login_required
+def conversation_detail(request: HttpRequest, thread_id: str):
+    """View to display detailed conversation for a specific thread."""
+    try:
+        thread = get_object_or_404(ConversationThread, thread_id=thread_id, user=request.user)
+        
+        # Get messages for this thread
+        messages = ConversationMessage.objects.filter(thread=thread).order_by('created_at')
+        
+        # Paginate messages
+        paginator = Paginator(messages, 20)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        # Get conversation summary
+        from aiengine.memory_service import MemoryService
+        memory_service = MemoryService(thread)
+        summary = memory_service.get_conversation_summary()
+        
+    except Exception as e:
+        logger.error(f"Error loading conversation detail: {e}")
+        messages.error(request, 'Unable to load conversation details.')
+        return redirect('aiengine:conversation_history')
+    
+    return render(request, 'aiengine/conversation_detail.html', {
+        'thread': thread,
+        'page_obj': page_obj,
+        'summary': summary,
+    })
+
+
+@login_required
+def memory_management(request: HttpRequest):
+    """View for memory management and statistics."""
+    try:
+        # Get system-wide memory statistics
+        system_stats = get_memory_statistics()
+        
+        # Get user-specific statistics
+        user_stats = get_user_conversation_summary(request.user.id)
+        
+        # Get threads that need cleanup (old inactive threads)
+        from datetime import datetime, timedelta
+        cutoff_date = datetime.now() - timedelta(days=30)
+        old_threads = ConversationThread.objects.filter(
+            user=request.user,
+            updated_at__lt=cutoff_date,
+            is_active=False
+        ).count()
+        
+    except Exception as e:
+        logger.error(f"Error loading memory management: {e}")
+        messages.error(request, 'Unable to load memory management.')
+        return redirect('aiengine:agent_detail')
+    
+    return render(request, 'aiengine/memory_management.html', {
+        'system_stats': system_stats,
+        'user_stats': user_stats,
+        'old_threads': old_threads,
+    })
+
+
+@login_required
+def cleanup_memory(request: HttpRequest):
+    """AJAX view to clean up old memory."""
+    if request.method == 'POST':
+        try:
+            days_old = int(request.POST.get('days_old', 30))
+            keep_recent = int(request.POST.get('keep_recent', 50))
+            
+            # Perform cleanup
+            cleanup_stats = cleanup_old_conversations(days_old=days_old, keep_recent_messages=keep_recent)
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Memory cleanup completed. Removed {cleanup_stats.get("messages_cleaned", 0)} messages from {cleanup_stats.get("threads_updated", 0)} threads.',
+                'stats': cleanup_stats
+            })
+            
+        except Exception as e:
+            logger.error(f"Error during memory cleanup: {e}")
+            return JsonResponse({
+                'success': False,
+                'message': f'Error during cleanup: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@login_required
+def test_semantic_search(request: HttpRequest):
+    """AJAX view to test semantic search functionality."""
+    if request.method == 'POST':
+        try:
+            query = request.POST.get('query', '').strip()
+            thread_id = request.POST.get('thread_id', '')
+            
+            if not query or not thread_id:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Query and thread ID are required'
+                })
+            
+            # Get thread and perform semantic search
+            thread = get_object_or_404(ConversationThread, thread_id=thread_id, user=request.user)
+            from aiengine.memory_service import MemoryService
+            memory_service = MemoryService(thread)
+            
+            relevant_messages = memory_service.get_relevant_messages(query, limit=5)
+            
+            results = []
+            for msg in relevant_messages:
+                results.append({
+                    'content': msg.content[:200] + '...' if len(msg.content) > 200 else msg.content,
+                    'message_type': msg.message_type,
+                    'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'query': query,
+                'results': results,
+                'count': len(results)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error during semantic search test: {e}")
+            return JsonResponse({
+                'success': False,
+                'message': f'Error during search: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})

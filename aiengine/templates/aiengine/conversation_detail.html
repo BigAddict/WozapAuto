@@ -1,0 +1,197 @@
+{% extends 'core/base.html' %}
+{% load memory_filters %}
+
+{% block title %}Conversation Details{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">Conversation with {{ thread.remote_jid }}</h1>
+        <div class="btn-group">
+            <a href="{% url 'aiengine:conversation_history' %}" class="btn btn-outline-secondary">Back to History</a>
+            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#searchModal">Test Search</button>
+        </div>
+    </div>
+
+    <!-- Conversation Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ summary.total_messages|default:0 }}</h5>
+                    <p class="card-text">Total Messages</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ summary.human_messages|default:0 }}</h5>
+                    <p class="card-text">User Messages</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">{{ summary.ai_messages|default:0 }}</h5>
+                    <p class="card-text">AI Messages</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">{{ thread.created_at|timesince }}</h5>
+                    <p class="card-text">Duration</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if page_obj %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Messages</h5>
+        </div>
+        <div class="card-body">
+            {% for message in page_obj %}
+            <div class="mb-3 p-3 rounded {% if message.message_type == 'human' %}bg-light border-start border-primary border-3{% elif message.message_type == 'ai' %}bg-primary bg-opacity-10 border-start border-success border-3{% else %}bg-secondary bg-opacity-10{% endif %}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge {% if message.message_type == 'human' %}bg-primary{% elif message.message_type == 'ai' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ message.message_type|title }}
+                    </span>
+                    <small class="text-muted">{{ message.created_at|date:"M d, Y H:i:s" }}</small>
+                </div>
+                <div class="message-content">
+                    {{ message.content|linebreaks }}
+                </div>
+                {% if message.embedding|has_embedding %}
+                    <small class="text-success">✓ Has embedding ({{ message.embedding|embedding_length }} dims)</small>
+                {% else %}
+                    <small class="text-warning">⚠ No embedding</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Message pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <h5 class="text-muted">No messages in this conversation</h5>
+            <p class="text-muted">Start chatting to see messages here.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Semantic Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Test Semantic Search</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="searchForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="thread_id" value="{{ thread.thread_id }}">
+                    <div class="mb-3">
+                        <label for="searchQuery" class="form-label">Search Query</label>
+                        <input type="text" class="form-control" id="searchQuery" name="query" placeholder="Enter a search query..." required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </form>
+                <div id="searchResults" class="mt-3" style="display: none;">
+                    <h6>Search Results:</h6>
+                    <div id="searchResultsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const resultsDiv = document.getElementById('searchResults');
+    const resultsContent = document.getElementById('searchResultsContent');
+    
+    resultsDiv.style.display = 'block';
+    resultsContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    
+    fetch('{% url "aiengine:test_semantic_search" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            let html = `<p class="text-success">Found ${data.count} relevant messages for "${data.query}":</p>`;
+            if (data.results.length > 0) {
+                html += '<div class="list-group">';
+                data.results.forEach(result => {
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="badge bg-${result.message_type === 'human' ? 'primary' : 'success'}">${result.message_type}</span>
+                                <small class="text-muted">${result.created_at}</small>
+                            </div>
+                            <p class="mb-0 mt-2">${result.content}</p>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                html += '<p class="text-muted">No relevant messages found.</p>';
+            }
+            resultsContent.innerHTML = html;
+        } else {
+            resultsContent.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+        }
+    })
+    .catch(error => {
+        resultsContent.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+    });
+});
+</script>
+{% endblock %}
