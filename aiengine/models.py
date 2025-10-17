@@ -104,6 +104,13 @@ class ConversationMessage(models.Model):
     content = models.TextField()
     embedding = VectorField(dimensions=384, null=True, blank=True)  # Using 384 dimensions for all-MiniLM-L6-v2
     metadata = models.JSONField(default=dict, blank=True)
+    
+    # Token usage tracking
+    input_tokens = models.IntegerField(null=True, blank=True, help_text="Number of input tokens used")
+    output_tokens = models.IntegerField(null=True, blank=True, help_text="Number of output tokens generated")
+    total_tokens = models.IntegerField(null=True, blank=True, help_text="Total tokens used (input + output)")
+    model_name = models.CharField(max_length=100, null=True, blank=True, help_text="Model used for this message")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

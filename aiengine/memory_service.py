@@ -57,7 +57,7 @@ class MemoryService:
             self.embedding_model = None
             self.embedding_dimensions = 0
         
-    def add_message(self, message_type: str, content: str, metadata: Dict[str, Any] = None) -> ConversationMessage:
+    def add_message(self, message_type: str, content: str, metadata: Dict[str, Any] = None, token_usage: Dict[str, Any] = None) -> ConversationMessage:
         """
         Add a new message to the conversation with embedding.
         
@@ -65,6 +65,7 @@ class MemoryService:
             message_type: Type of message ('human', 'ai', 'system')
             content: Message content
             metadata: Additional metadata
+            token_usage: Token usage information (for AI messages)
             
         Returns:
             ConversationMessage instance
@@ -79,13 +80,29 @@ class MemoryService:
                     logger.warning(f"Error generating embedding: {e}")
                     embedding = None
             
+            # Extract token usage information
+            input_tokens = None
+            output_tokens = None
+            total_tokens = None
+            model_name = None
+            
+            if token_usage:
+                input_tokens = token_usage.get('input_tokens')
+                output_tokens = token_usage.get('output_tokens')
+                total_tokens = token_usage.get('total_tokens')
+                model_name = token_usage.get('model_name')
+            
             # Create message
             message = ConversationMessage.objects.create(
                 thread=self.thread,
                 message_type=message_type,
                 content=content,
                 embedding=embedding,
-                metadata=metadata or {}
+                metadata=metadata or {},
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
+                model_name=model_name
             )
             
             logger.info(f"Added {message_type} message to thread {self.thread.thread_id}")
@@ -135,7 +152,8 @@ class MemoryService:
             # Calculate similarities
             similarities = []
             for message in messages:
-                if message.embedding:
+                # Check if embedding exists and is not None
+                if message.embedding is not None and len(message.embedding) > 0:
                     try:
                         # Safely convert embeddings to numpy arrays
                         query_vec = np.array(query_embedding, dtype=np.float32)

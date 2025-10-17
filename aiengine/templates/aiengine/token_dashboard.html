@@ -1,0 +1,226 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Token Usage Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Token Usage Dashboard</h2>
+            <small class="text-muted">
+                <i class="fas fa-shield-alt"></i> Admin Only - Token usage statistics and analytics
+            </small>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'aiengine:token_export' %}?days={{ selected_days }}" class="btn btn-outline-primary">
+                <i class="fas fa-download"></i> Export Data
+            </a>
+            <a href="{% url 'aiengine:memory_management' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-memory"></i> Memory Management
+            </a>
+        </div>
+    </div>
+
+    <!-- Period Selector -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Time Period</h5>
+            <div class="btn-group" role="group">
+                {% for period in available_periods %}
+                <a href="?days={{ period }}" 
+                   class="btn {% if period == selected_days %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    {% if period == 7 %}Last 7 days
+                    {% elif period == 30 %}Last 30 days
+                    {% elif period == 90 %}Last 90 days
+                    {% elif period == 365 %}Last 365 days
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ token_stats.summary.total_messages|floatformat:0 }}</h5>
+                    <p class="card-text">Total Messages</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ token_stats.summary.total_input_tokens|floatformat:0 }}</h5>
+                    <p class="card-text">Input Tokens</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">{{ token_stats.summary.total_output_tokens|floatformat:0 }}</h5>
+                    <p class="card-text">Output Tokens</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">{{ token_stats.summary.total_tokens|floatformat:0 }}</h5>
+                    <p class="card-text">Total Tokens</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Average Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Average Input Tokens</h6>
+                    <h4 class="text-primary">{{ token_stats.summary.avg_input_tokens }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Average Output Tokens</h6>
+                    <h4 class="text-info">{{ token_stats.summary.avg_output_tokens }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Average Total Tokens</h6>
+                    <h4 class="text-warning">{{ token_stats.summary.avg_total_tokens }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Daily Breakdown -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Daily Token Usage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Messages</th>
+                                    <th>Input</th>
+                                    <th>Output</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for day in token_stats.daily_breakdown %}
+                                <tr>
+                                    <td>{{ day.date }}</td>
+                                    <td>{{ day.messages }}</td>
+                                    <td>{{ day.input_tokens }}</td>
+                                    <td>{{ day.output_tokens }}</td>
+                                    <td><strong>{{ day.total_tokens }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Breakdown -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Model Usage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Messages</th>
+                                    <th>Total Tokens</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model in token_stats.model_breakdown %}
+                                <tr>
+                                    <td>{{ model.model_name|default:"Unknown" }}</td>
+                                    <td>{{ model.messages }}</td>
+                                    <td><strong>{{ model.total_tokens }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Users -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Top Users by Token Usage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Total Messages</th>
+                                    <th>Input Tokens</th>
+                                    <th>Output Tokens</th>
+                                    <th>Total Tokens</th>
+                                    <th>Recent (7d)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in top_users %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ user.user }}</strong>
+                                        <br><small class="text-muted">{{ user.total.threads_count }} threads</small>
+                                    </td>
+                                    <td>{{ user.total.messages }}</td>
+                                    <td>{{ user.total.input_tokens }}</td>
+                                    <td>{{ user.total.output_tokens }}</td>
+                                    <td><strong>{{ user.total.total_tokens }}</strong></td>
+                                    <td>
+                                        {{ user.recent.messages }} msgs<br>
+                                        <small>{{ user.recent.tokens }} tokens</small>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'aiengine:user_token_details' user.user %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

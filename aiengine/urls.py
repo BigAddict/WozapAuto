@@ -18,4 +18,9 @@ urlpatterns = [
     path('memory/', views.memory_management, name='memory_management'),
     path('memory/cleanup/', views.cleanup_memory, name='cleanup_memory'),
     path('memory/search/', views.test_semantic_search, name='test_semantic_search'),
+    
+    # Token usage dashboard (admin only)
+    path('tokens/', views.token_dashboard, name='token_dashboard'),
+    path('tokens/user/<int:user_id>/', views.user_token_details, name='user_token_details'),
+    path('tokens/export/', views.token_export, name='token_export'),
 ]

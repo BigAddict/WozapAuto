@@ -4,7 +4,7 @@ Custom LangGraph checkpointer that uses Django database for persistent storage.
 import json
 import uuid
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-from datetime import datetime
+from datetime import datetime, timezone
 
 from langgraph.checkpoint.base import BaseCheckpointSaver, Checkpoint, CheckpointMetadata, CheckpointTuple
 from langgraph.errors import GraphRecursionError
@@ -80,7 +80,6 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
                     writes=checkpoint_data.get('writes', {}),
                     parents=checkpoint_data.get('parents', {}),
                 ),
-                created_at=checkpoint.created_at,
             )
         except Exception as e:
             print(f"Error getting checkpoint tuple: {e}")
@@ -135,7 +134,6 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
                         writes=checkpoint_data.get('writes', {}),
                         parents=checkpoint_data.get('parents', {}),
                     ),
-                    created_at=checkpoint.created_at,
                 ))
             
             for checkpoint_tuple in checkpoints:
@@ -208,7 +206,7 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
             )
             
             # Update thread timestamp
-            self.thread.updated_at = datetime.now()
+            self.thread.updated_at = datetime.now(timezone.utc)
             self.thread.save(update_fields=['updated_at'])
             
             return config
@@ -294,7 +292,6 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
                     writes=checkpoint_data.get('writes', {}),
                     parents=checkpoint_data.get('parents', {}),
                 ),
-                created_at=checkpoint.created_at,
             )
         except Exception as e:
             print(f"Error getting checkpoint by ID: {e}")

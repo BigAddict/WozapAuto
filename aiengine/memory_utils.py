@@ -23,9 +23,9 @@ def cleanup_old_conversations(days_old: int = 30, keep_recent_messages: int = 50
     Returns:
         Dictionary with cleanup statistics
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     
-    cutoff_date = datetime.now() - timedelta(days=days_old)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_old)
     
     stats = {
         'conversations_cleaned': 0,
@@ -138,8 +138,8 @@ def get_memory_statistics() -> Dict[str, Any]:
         stats['message_types'] = {item['message_type']: item['count'] for item in message_types}
         
         # Add recent activity (last 7 days)
-        from datetime import datetime, timedelta
-        week_ago = datetime.now() - timedelta(days=7)
+        from datetime import datetime, timedelta, timezone
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         stats['recent_messages'] = ConversationMessage.objects.filter(
             created_at__gte=week_ago
         ).count()

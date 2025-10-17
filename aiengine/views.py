@@ -11,8 +11,9 @@ from django.contrib.auth.models import User
 
 from aiengine.service import ChatAssistant
 from aiengine.memory_utils import get_memory_statistics, get_user_conversation_summary, cleanup_old_conversations
+from aiengine.token_utils import get_token_statistics, get_user_token_summary, get_top_token_users
 from aiengine.models import ConversationThread, ConversationMessage
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
@@ -379,7 +380,7 @@ def memory_management(request: HttpRequest):
         
         # Get threads that need cleanup (old inactive threads)
         from datetime import datetime, timedelta
-        cutoff_date = datetime.now() - timedelta(days=30)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
         old_threads = ConversationThread.objects.filter(
             user=request.user,
             updated_at__lt=cutoff_date,
@@ -469,3 +470,82 @@ def test_semantic_search(request: HttpRequest):
             })
     
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+def admin_required(user):
+    """Check if user is admin/staff."""
+    return user.is_authenticated and user.is_staff
+
+@login_required
+@user_passes_test(admin_required)
+def token_dashboard(request):
+    """Admin dashboard for token usage statistics."""
+    
+    # Get time period from request
+    days = int(request.GET.get('days', 30))
+    
+    # Get token statistics
+    token_stats = get_token_statistics(days=days)
+    
+    # Get top users
+    top_users = get_top_token_users(limit=10)
+    
+    context = {
+        'token_stats': token_stats,
+        'top_users': top_users,
+        'selected_days': days,
+        'available_periods': [7, 30, 90, 365]
+    }
+    
+    return render(request, 'aiengine/token_dashboard.html', context)
+
+
+@login_required
+@user_passes_test(admin_required)
+def user_token_details(request, user_id):
+    """Detailed token usage for a specific user."""
+    
+    user = get_object_or_404(User, id=user_id)
+    
+    # Get time period from request
+    days = int(request.GET.get('days', 30))
+    
+    # Get user's token statistics
+    user_stats = get_token_statistics(user=user, days=days)
+    user_summary = get_user_token_summary(user)
+    
+    # Get user's recent conversations
+    recent_threads = ConversationThread.objects.filter(user=user).order_by('-updated_at')[:10]
+    
+    context = {
+        'target_user': user,
+        'user_stats': user_stats,
+        'user_summary': user_summary,
+        'recent_threads': recent_threads,
+        'selected_days': days,
+        'available_periods': [7, 30, 90, 365]
+    }
+    
+    return render(request, 'aiengine/user_token_details.html', context)
+
+
+@login_required
+@user_passes_test(admin_required)
+def token_export(request):
+    """Export token usage data as JSON."""
+    
+    # Get time period from request
+    days = int(request.GET.get('days', 30))
+    
+    # Get comprehensive token statistics
+    token_stats = get_token_statistics(days=days)
+    top_users = get_top_token_users(limit=50)
+    
+    export_data = {
+        'export_date': datetime.now(timezone.utc).isoformat(),
+        'period_days': days,
+        'statistics': token_stats,
+        'top_users': top_users
+    }
+    
+    return JsonResponse(export_data, json_dumps_params={'indent': 2})
