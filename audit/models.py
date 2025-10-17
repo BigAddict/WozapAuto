@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -189,3 +190,325 @@ class NotificationLog(models.Model):
             sent=Count('id', filter=models.Q(status='sent')),
             failed=Count('id', filter=models.Q(status='failed'))
         ).order_by('date')
+
+
+class AIConversationLog(models.Model):
+    """
+    Model to track all AI conversation interactions for analytics and auditing.
+    """
+    
+    MESSAGE_TYPES = [
+        ('human', 'Human Message'),
+        ('ai', 'AI Response'),
+        ('system', 'System Message'),
+    ]
+    
+    # Core fields
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ai_conversation_logs')
+    agent = models.ForeignKey('aiengine.Agent', on_delete=models.SET_NULL, null=True, blank=True)
+    thread_id = models.CharField(max_length=255, db_index=True, help_text="Conversation thread ID")
+    remote_jid = models.CharField(max_length=255, help_text="WhatsApp contact/group ID")
+    message_type = models.CharField(max_length=10, choices=MESSAGE_TYPES)
+    
+    # Token usage tracking
+    input_tokens = models.IntegerField(null=True, blank=True, help_text="Number of input tokens used")
+    output_tokens = models.IntegerField(null=True, blank=True, help_text="Number of output tokens generated")
+    total_tokens = models.IntegerField(null=True, blank=True, help_text="Total tokens used (input + output)")
+    model_name = models.CharField(max_length=100, null=True, blank=True, help_text="Model used for this message")
+    
+    # Performance metrics
+    response_time_ms = models.IntegerField(null=True, blank=True, help_text="Response time in milliseconds")
+    conversation_turn = models.IntegerField(default=1, help_text="Turn number in conversation")
+    
+    # Feature usage tracking
+    search_performed = models.BooleanField(default=False, help_text="Whether knowledge base search was performed")
+    knowledge_base_used = models.BooleanField(default=False, help_text="Whether knowledge base was used in response")
+    
+    # Metadata
+    metadata = models.JSONField(default=dict, blank=True, help_text="Additional metadata")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "AI Conversation Log"
+        verbose_name_plural = "AI Conversation Logs"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['thread_id', 'created_at']),
+            models.Index(fields=['message_type']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_message_type_display()} - {self.user.username} - {self.created_at}"
+    
+    @classmethod
+    def get_user_stats(cls, user, days=30):
+        """Get conversation statistics for a user over the last N days"""
+        start_date = timezone.now() - timedelta(days=days)
+        
+        return cls.objects.filter(
+            user=user,
+            created_at__gte=start_date
+        ).aggregate(
+            total_conversations=models.Count('id'),
+            total_tokens=models.Sum('total_tokens'),
+            avg_response_time=models.Avg('response_time_ms'),
+            knowledge_base_searches=models.Count('id', filter=models.Q(search_performed=True))
+        )
+    
+    @classmethod
+    def get_daily_stats(cls, user=None, days=30):
+        """Get daily conversation statistics"""
+        from django.db.models import Count, Sum
+        from django.db.models.functions import TruncDate
+        
+        start_date = timezone.now() - timedelta(days=days)
+        queryset = cls.objects.filter(created_at__gte=start_date)
+        
+        if user:
+            queryset = queryset.filter(user=user)
+        
+        return queryset.annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            conversations=Count('id'),
+            total_tokens=Sum('total_tokens'),
+            avg_response_time=models.Avg('response_time_ms')
+        ).order_by('date')
+
+
+class WebhookActivityLog(models.Model):
+    """
+    Model to track all webhook activity for analytics and auditing.
+    """
+    
+    EVENT_TYPES = [
+        ('message', 'Message Received'),
+        ('status', 'Status Update'),
+        ('connection', 'Connection Event'),
+        ('error', 'Error Event'),
+        ('other', 'Other'),
+    ]
+    
+    # Core fields
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='webhook_logs')
+    instance = models.CharField(max_length=255, help_text="WhatsApp instance ID")
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES)
+    message_id = models.CharField(max_length=255, null=True, blank=True)
+    remote_jid = models.CharField(max_length=255, help_text="WhatsApp contact/group ID")
+    is_group = models.BooleanField(default=False)
+    
+    # Processing metrics
+    processing_time_ms = models.IntegerField(null=True, blank=True, help_text="Processing time in milliseconds")
+    is_processed = models.BooleanField(default=False)
+    response_sent = models.BooleanField(default=False, help_text="Whether a response was sent")
+    error_message = models.TextField(blank=True, help_text="Error message if processing failed")
+    
+    # Metadata
+    metadata = models.JSONField(default=dict, blank=True, help_text="Additional webhook metadata")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Webhook Activity Log"
+        verbose_name_plural = "Webhook Activity Logs"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['instance', 'created_at']),
+            models.Index(fields=['event_type']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_event_type_display()} - {self.instance} - {self.created_at}"
+    
+    @classmethod
+    def get_user_stats(cls, user, days=30):
+        """Get webhook statistics for a user over the last N days"""
+        start_date = timezone.now() - timedelta(days=days)
+        
+        return cls.objects.filter(
+            user=user,
+            created_at__gte=start_date
+        ).aggregate(
+            total_webhooks=models.Count('id'),
+            processed_webhooks=models.Count('id', filter=models.Q(is_processed=True)),
+            failed_webhooks=models.Count('id', filter=models.Q(error_message__isnull=False)),
+            avg_processing_time=models.Avg('processing_time_ms')
+        )
+
+
+class ConnectionActivityLog(models.Model):
+    """
+    Model to track connection lifecycle events for analytics and auditing.
+    """
+    
+    EVENT_TYPES = [
+        ('created', 'Connection Created'),
+        ('connected', 'Connection Established'),
+        ('disconnected', 'Connection Lost'),
+        ('qr_requested', 'QR Code Requested'),
+        ('retry_attempted', 'Retry Attempted'),
+        ('status_changed', 'Status Changed'),
+        ('deleted', 'Connection Deleted'),
+    ]
+    
+    # Core fields
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='connection_logs')
+    connection = models.ForeignKey('connections.Connection', on_delete=models.CASCADE, null=True, blank=True)
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES)
+    connection_status = models.CharField(max_length=20, null=True, blank=True)
+    
+    # Metadata
+    metadata = models.JSONField(default=dict, blank=True, help_text="Additional event metadata")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Connection Activity Log"
+        verbose_name_plural = "Connection Activity Logs"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['connection', 'created_at']),
+            models.Index(fields=['event_type']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_event_type_display()} - {self.user.username} - {self.created_at}"
+    
+    @classmethod
+    def get_user_stats(cls, user, days=30):
+        """Get connection activity statistics for a user over the last N days"""
+        start_date = timezone.now() - timedelta(days=days)
+        
+        return cls.objects.filter(
+            user=user,
+            created_at__gte=start_date
+        ).values('event_type').annotate(
+            count=models.Count('id')
+        ).order_by('event_type')
+
+
+class KnowledgeBaseActivityLog(models.Model):
+    """
+    Model to track knowledge base operations for analytics and auditing.
+    """
+    
+    ACTION_TYPES = [
+        ('upload', 'Document Uploaded'),
+        ('delete', 'Document Deleted'),
+        ('search', 'Knowledge Base Search'),
+        ('chunk_created', 'Document Chunked'),
+        ('embedding_created', 'Embedding Generated'),
+    ]
+    
+    # Core fields
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='knowledge_base_logs')
+    document_id = models.CharField(max_length=255, null=True, blank=True, help_text="Document identifier")
+    action = models.CharField(max_length=20, choices=ACTION_TYPES)
+    file_name = models.CharField(max_length=255, null=True, blank=True)
+    file_size = models.BigIntegerField(null=True, blank=True, help_text="File size in bytes")
+    chunks_count = models.IntegerField(null=True, blank=True, help_text="Number of chunks created")
+    
+    # Search-specific fields
+    search_query = models.TextField(null=True, blank=True, help_text="Search query used")
+    results_count = models.IntegerField(null=True, blank=True, help_text="Number of results returned")
+    
+    # Performance metrics
+    processing_time_ms = models.IntegerField(null=True, blank=True, help_text="Processing time in milliseconds")
+    
+    # Metadata
+    metadata = models.JSONField(default=dict, blank=True, help_text="Additional metadata")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Knowledge Base Activity Log"
+        verbose_name_plural = "Knowledge Base Activity Logs"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['action']),
+            models.Index(fields=['document_id']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_action_display()} - {self.user.username} - {self.created_at}"
+    
+    @classmethod
+    def get_user_stats(cls, user, days=30):
+        """Get knowledge base statistics for a user over the last N days"""
+        start_date = timezone.now() - timedelta(days=days)
+        
+        return cls.objects.filter(
+            user=user,
+            created_at__gte=start_date
+        ).aggregate(
+            total_uploads=models.Count('id', filter=models.Q(action='upload')),
+            total_searches=models.Count('id', filter=models.Q(action='search')),
+            total_documents=models.Count('document_id', distinct=True, filter=models.Q(action='upload')),
+            total_storage=models.Sum('file_size', filter=models.Q(action='upload'))
+        )
+
+
+class UserActivityLog(models.Model):
+    """
+    Model to track general user activities for analytics and auditing.
+    """
+    
+    ACTION_TYPES = [
+        ('login', 'User Login'),
+        ('logout', 'User Logout'),
+        ('profile_update', 'Profile Updated'),
+        ('password_change', 'Password Changed'),
+        ('email_verification', 'Email Verified'),
+        ('whatsapp_verification', 'WhatsApp Verified'),
+        ('onboarding_completed', 'Onboarding Completed'),
+        ('api_access', 'API Access'),
+        ('other', 'Other'),
+    ]
+    
+    # Core fields
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activity_logs')
+    action = models.CharField(max_length=25, choices=ACTION_TYPES)
+    
+    # Request metadata
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    
+    # Additional data
+    metadata = models.JSONField(default=dict, blank=True, help_text="Additional activity metadata")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "User Activity Log"
+        verbose_name_plural = "User Activity Logs"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['action']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_action_display()} - {self.user.username} - {self.created_at}"
+    
+    @classmethod
+    def get_user_stats(cls, user, days=30):
+        """Get user activity statistics over the last N days"""
+        start_date = timezone.now() - timedelta(days=days)
+        
+        return cls.objects.filter(
+            user=user,
+            created_at__gte=start_date
+        ).values('action').annotate(
+            count=models.Count('id')
+        ).order_by('action')

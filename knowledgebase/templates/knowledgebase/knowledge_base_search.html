@@ -1,0 +1,315 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Search Knowledge Base{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+<style>
+    .search-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .search-form {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .search-input {
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 1.1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .search-input:focus {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        border: none;
+        outline: none;
+    }
+    
+    .btn-search {
+        background: rgba(255,255,255,0.2);
+        border: 2px solid rgba(255,255,255,0.3);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-search:hover {
+        background: rgba(255,255,255,0.3);
+        border-color: rgba(255,255,255,0.5);
+        color: white;
+        transform: translateY(-1px);
+    }
+    
+    .result-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+        transition: all 0.3s ease;
+    }
+    
+    .result-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .result-header {
+        display: flex;
+        justify-content-between;
+        align-items-start;
+        margin-bottom: 1rem;
+    }
+    
+    .result-filename {
+        font-weight: 600;
+        color: #495057;
+        margin: 0;
+    }
+    
+    .similarity-score {
+        background: #e9ecef;
+        color: #495057;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .result-text {
+        color: #6c757d;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    
+    .result-meta {
+        display: flex;
+        justify-content-between;
+        align-items-center;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .chunk-info {
+        display: flex;
+        align-items-center;
+        gap: 1rem;
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #6c757d;
+    }
+    
+    .no-results i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .search-stats {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content-between;
+        align-items-center;
+    }
+    
+    .back-link {
+        color: #6c757d;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    
+    .back-link:hover {
+        color: #007bff;
+    }
+    
+    .highlight {
+        background: #fff3cd;
+        padding: 0.1rem 0.2rem;
+        border-radius: 3px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="search-container">
+        <!-- Header -->
+        <div class="d-flex align-items-center mb-4">
+            <a href="{% url 'knowledgebase:knowledge_base_list' %}" class="back-link me-3">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h3 mb-1">Search Knowledge Base</h1>
+                <p class="text-muted">Find relevant information from your documents using semantic search</p>
+            </div>
+        </div>
+
+        <!-- Search Form -->
+        <div class="search-form">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group mb-0">
+                            {{ search_form.query }}
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group mb-0">
+                            {{ search_form.top_k }}
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-search w-100">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Search Results -->
+        {% if query %}
+            <div class="search-stats">
+                <div>
+                    <strong>Search Results for:</strong> "{{ query }}"
+                </div>
+                <div>
+                    <span class="badge bg-primary">{{ results_count }} results found</span>
+                </div>
+            </div>
+
+            {% if results %}
+                <div class="row">
+                    {% for result in results %}
+                        <div class="col-12">
+                            <div class="result-card">
+                                <div class="result-header">
+                                    <h5 class="result-filename">
+                                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                                        {{ result.original_filename }}
+                                    </h5>
+                                    <div class="similarity-score">
+                                        {% if result.similarity_score %}
+                                            {{ result.similarity_score|floatformat:2 }}% match
+                                        {% else %}
+                                            Relevant
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="result-text">
+                                    {{ result.chunk_text|truncatewords:50 }}
+                                </div>
+                                
+                                <div class="result-meta">
+                                    <div class="chunk-info">
+                                        <span>
+                                            <i class="fas fa-layer-group me-1"></i>
+                                            Chunk {{ result.chunk_index|add:1 }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ result.created_at|date:"M d, Y" }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'knowledgebase:knowledge_base_document_detail' result.parent_document_id %}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>View Document
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-results">
+                    <i class="fas fa-search"></i>
+                    <h4>No results found</h4>
+                    <p>Try adjusting your search query or check if you have documents in your knowledge base.</p>
+                    <a href="{% url 'knowledgebase:knowledge_base_list' %}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload Documents
+                    </a>
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- Initial State -->
+            <div class="text-center py-5">
+                <div class="search-form" style="background: #f8f9fa; color: #495057;">
+                    <i class="fas fa-search fa-3x mb-3" style="color: #6c757d;"></i>
+                    <h4 class="mb-3">Search Your Knowledge Base</h4>
+                    <p class="text-muted mb-4">
+                        Enter a search query to find relevant information from your uploaded documents.
+                        Our AI will understand the meaning of your query and find the most relevant content.
+                    </p>
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        {{ search_form.query }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        {{ search_form.top_k }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-search me-1"></i>Search
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus search input
+    const searchInput = document.querySelector('input[name="query"]');
+    if (searchInput) {
+        searchInput.focus();
+    }
+    
+    // Add search suggestions or tips
+    const searchForm = document.querySelector('form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            const query = document.querySelector('input[name="query"]').value.trim();
+            if (!query) {
+                e.preventDefault();
+                alert('Please enter a search query.');
+                return;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

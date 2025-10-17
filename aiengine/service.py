@@ -9,11 +9,14 @@ from aiengine.checkpointer import DatabaseCheckpointSaver
 from aiengine.memory_service import MemoryService
 from aiengine.memory_tools import MemorySearchTool
 from aiengine.models import ConversationThread, Agent
+from knowledgebase.service import KnowledgeBaseService
+from audit.services import AuditService
 from typing_extensions import Annotated, TypedDict
 from typing import Sequence, Optional
 from dotenv import load_dotenv
 import logging
 import os
+import time
 
 from base.env_config import get_env_variable
 
@@ -41,6 +44,8 @@ class ChatAssistant:
                 self.memory_service = MemoryService(self.checkpointer.thread)
                 # Initialize memory tools
                 self.memory_tools = MemorySearchTool(self.memory_service)
+                # Initialize knowledge base service
+                self.knowledge_base_service = KnowledgeBaseService()
             except Exception as e:
                 logger.error(f"Error initializing database-backed memory: {e}")
                 # Fallback to in-memory storage
@@ -48,12 +53,14 @@ class ChatAssistant:
                 self.checkpointer = MemorySaver()
                 self.memory_service = None
                 self.memory_tools = None
+                self.knowledge_base_service = None
         else:
             # Fallback to in-memory storage for backward compatibility
             from langgraph.checkpoint.memory import MemorySaver
             self.checkpointer = MemorySaver()
             self.memory_service = None
             self.memory_tools = None
+            self.knowledge_base_service = None
         
         self.prompt_template = self.get_prompt_template()
         self.init_workflow()
@@ -78,6 +85,9 @@ class ChatAssistant:
     def send_message(self, message: str) -> AIMessage:
         logger.info(f"Sending message: {message}")
         
+        # Start timing for response time tracking
+        start_time = time.time()
+        
         # Store human message in database if memory service is available
         if self.memory_service:
             self.memory_service.add_message('human', message)
@@ -85,6 +95,9 @@ class ChatAssistant:
         input_messages = [HumanMessage(message)]
         output = self.app.invoke({"messages": input_messages}, self.config)
         ai_response = output["messages"][-1]
+        
+        # Calculate response time
+        response_time_ms = int((time.time() - start_time) * 1000)
         
         # Store AI response in database if memory service is available
         if self.memory_service:
@@ -101,6 +114,50 @@ class ChatAssistant:
                     }
             
             self.memory_service.add_message('ai', ai_response.content, token_usage=token_usage)
+            
+            # Log AI conversation for audit/analytics
+            try:
+                # Get user and agent info for logging
+                user = getattr(self.memory_service, 'user', None)
+                agent = getattr(self.memory_service, 'agent', None)
+                thread = getattr(self.memory_service, 'thread', None)
+                
+                if user:
+                    # Log the AI response
+                    AuditService.log_ai_conversation(
+                        user=user,
+                        agent_id=agent.id if agent else None,
+                        thread_id=thread.thread_id if thread else self.thread_id,
+                        remote_jid=getattr(thread, 'remote_jid', '') if thread else '',
+                        message_type='ai',
+                        input_tokens=token_usage.get('input_tokens') if token_usage else None,
+                        output_tokens=token_usage.get('output_tokens') if token_usage else None,
+                        total_tokens=token_usage.get('total_tokens') if token_usage else None,
+                        model_name=token_usage.get('model_name') if token_usage else 'gemini-2.5-flash',
+                        response_time_ms=response_time_ms,
+                        conversation_turn=getattr(self, '_conversation_turn', 1),
+                        search_performed=getattr(self, '_search_performed', False),
+                        knowledge_base_used=getattr(self, '_knowledge_base_used', False),
+                        metadata={
+                            'message_length': len(message),
+                            'response_length': len(ai_response.content) if ai_response.content else 0
+                        }
+                    )
+                    
+                    # Log the human message as well
+                    AuditService.log_ai_conversation(
+                        user=user,
+                        agent_id=agent.id if agent else None,
+                        thread_id=thread.thread_id if thread else self.thread_id,
+                        remote_jid=getattr(thread, 'remote_jid', '') if thread else '',
+                        message_type='human',
+                        conversation_turn=getattr(self, '_conversation_turn', 1),
+                        metadata={
+                            'message_length': len(message)
+                        }
+                    )
+            except Exception as e:
+                logger.error(f"Failed to log AI conversation: {e}")
         
         return ai_response
 
@@ -131,6 +188,26 @@ class ChatAssistant:
                 unique_context = [msg for msg in context_messages if msg.content not in existing_contents]
                 state["messages"] = unique_context + state['messages']
         
+        # Add knowledge base context if available
+        if self.knowledge_base_service and state.get('messages'):
+            # Extract the latest human message for knowledge base search
+            latest_human_message = None
+            for msg in reversed(state['messages']):
+                if isinstance(msg, HumanMessage):
+                    latest_human_message = msg.content
+                    break
+            
+            if latest_human_message and self._should_search_knowledge_base(latest_human_message):
+                try:
+                    kb_context = self.get_knowledge_base_context(latest_human_message, max_chunks=3, min_similarity=0.7)
+                    if kb_context:
+                        # Add knowledge base context as a system message
+                        kb_system_msg = SystemMessage(content=f"Relevant information from knowledge base:\n\n{kb_context}")
+                        state["messages"] = [kb_system_msg] + state['messages']
+                        logger.info("Added knowledge base context to conversation")
+                except Exception as e:
+                    logger.error(f"Error adding knowledge base context: {e}")
+        
         # Trim messages to fit context window
         state["messages"] = self.trimmer.invoke(state['messages'])
         prompt = self.prompt_template.invoke(state)
@@ -156,6 +233,26 @@ class ChatAssistant:
                 existing_contents = {msg.content for msg in state['messages']}
                 unique_context = [msg for msg in context_messages if msg.content not in existing_contents]
                 state["messages"] = unique_context + state['messages']
+        
+        # Add knowledge base context if available
+        if self.knowledge_base_service and state.get('messages'):
+            # Extract the latest human message for knowledge base search
+            latest_human_message = None
+            for msg in reversed(state['messages']):
+                if isinstance(msg, HumanMessage):
+                    latest_human_message = msg.content
+                    break
+            
+            if latest_human_message and self._should_search_knowledge_base(latest_human_message):
+                try:
+                    kb_context = self.get_knowledge_base_context(latest_human_message, max_chunks=3, min_similarity=0.7)
+                    if kb_context:
+                        # Add knowledge base context as a system message
+                        kb_system_msg = SystemMessage(content=f"Relevant information from knowledge base:\n\n{kb_context}")
+                        state["messages"] = [kb_system_msg] + state['messages']
+                        logger.info("Added knowledge base context to conversation")
+                except Exception as e:
+                    logger.error(f"Error adding knowledge base context: {e}")
         
         # Trim messages to fit context window
         state["messages"] = self.trimmer.invoke(state['messages'])
@@ -344,6 +441,110 @@ Example usage:
         if self.memory_service:
             return self.memory_service.update_message_embeddings()
         return 0
+    
+    def search_knowledge_base(self, query: str, top_k: int = 3) -> list:
+        """
+        Search the user's knowledge base for relevant information.
+        
+        Args:
+            query: Search query
+            top_k: Number of top results to return
+            
+        Returns:
+            List of relevant knowledge base chunks
+        """
+        if not self.knowledge_base_service:
+            logger.warning("Knowledge base service not available")
+            return []
+        
+        try:
+            # Get user from memory service if available
+            user = None
+            if self.memory_service and hasattr(self.memory_service, 'thread'):
+                user = self.memory_service.thread.user
+            
+            if not user:
+                logger.warning("User not available for knowledge base search")
+                return []
+            
+            results = self.knowledge_base_service.search_knowledge_base(user, query, top_k)
+            logger.info(f"Found {len(results)} knowledge base results for query: {query}")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error searching knowledge base: {e}")
+            return []
+    
+    def get_knowledge_base_context(self, query: str, max_chunks: int = 3, min_similarity: float = 0.7) -> str:
+        """
+        Get relevant knowledge base context for a query with filtering.
+        
+        Args:
+            query: Search query
+            max_chunks: Maximum number of chunks to include
+            min_similarity: Minimum similarity threshold (0.0 to 1.0)
+            
+        Returns:
+            Formatted knowledge base context string
+        """
+        results = self.search_knowledge_base(query, max_chunks)
+        
+        if not results:
+            return ""
+        
+        # Filter results by similarity threshold
+        filtered_results = []
+        for result in results:
+            similarity_score = getattr(result, 'similarity_score', 0.0)
+            if similarity_score >= min_similarity:
+                filtered_results.append(result)
+        
+        if not filtered_results:
+            logger.info(f"No knowledge base results above similarity threshold {min_similarity}")
+            return ""
+        
+        context_parts = []
+        for i, result in enumerate(filtered_results, 1):
+            similarity_score = getattr(result, 'similarity_score', 0.0)
+            context_parts.append(
+                f"Knowledge Base Reference {i} (from {result.original_filename}, similarity: {similarity_score:.2f}):\n"
+                f"{result.chunk_text}\n"
+            )
+        
+        logger.info(f"Added {len(filtered_results)} knowledge base chunks to context")
+        return "\n".join(context_parts)
+    
+    def _should_search_knowledge_base(self, query: str) -> bool:
+        """
+        Determine if the knowledge base should be searched for this query.
+        
+        Args:
+            query: User query
+            
+        Returns:
+            True if knowledge base search should be performed
+        """
+        # Skip very short queries
+        if len(query.strip()) < 10:
+            return False
+        
+        # Skip simple greetings and commands
+        skip_patterns = [
+            'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
+            'thank you', 'thanks', 'bye', 'goodbye', 'see you',
+            'help', 'what can you do', 'who are you'
+        ]
+        
+        query_lower = query.lower().strip()
+        for pattern in skip_patterns:
+            if pattern in query_lower:
+                return False
+        
+        # Skip queries that are just punctuation or very short
+        if len(query.strip()) < 10 or query.strip() in ['?', '!', '.', ',']:
+            return False
+        
+        return True
     
 if __name__ == '__main__':
     assistant = ChatAssistant("user001")

@@ -1,0 +1,187 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Analytics Dashboard - WozapAuto{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/analytics.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="analytics-container">
+    <!-- Header -->
+    <div class="analytics-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="analytics-title">Analytics Dashboard</h1>
+                <p class="analytics-subtitle">Track your AI conversations, webhook activity, and system usage</p>
+            </div>
+            <div class="time-range-selector">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary time-btn" data-days="7">7 Days</button>
+                    <button type="button" class="btn btn-outline-primary time-btn active" data-days="30">30 Days</button>
+                    <button type="button" class="btn btn-outline-primary time-btn" data-days="90">90 Days</button>
+                </div>
+                <div class="custom-range mt-2">
+                    <input type="date" id="start-date" class="form-control form-control-sm" value="{{ start_date }}">
+                    <span class="mx-2">to</span>
+                    <input type="date" id="end-date" class="form-control form-control-sm" value="{{ end_date }}">
+                    <button type="button" class="btn btn-primary btn-sm ms-2" id="apply-custom-range">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="analytics-card">
+                <div class="analytics-card-icon">
+                    <i class="bi bi-chat-dots text-primary"></i>
+                </div>
+                <div class="analytics-card-content">
+                    <h3 class="analytics-card-number" id="total-conversations">
+                        {{ analytics.ai_conversations.stats.total_conversations|default:0 }}
+                    </h3>
+                    <p class="analytics-card-label">AI Conversations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="analytics-card">
+                <div class="analytics-card-icon">
+                    <i class="bi bi-cpu text-success"></i>
+                </div>
+                <div class="analytics-card-content">
+                    <h3 class="analytics-card-number" id="total-tokens">
+                        {{ analytics.ai_conversations.stats.total_tokens|default:0|floatformat:0 }}
+                    </h3>
+                    <p class="analytics-card-label">Tokens Used</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="analytics-card">
+                <div class="analytics-card-icon">
+                    <i class="bi bi-webhook text-info"></i>
+                </div>
+                <div class="analytics-card-content">
+                    <h3 class="analytics-card-number" id="total-webhooks">
+                        {{ analytics.webhook_activity.stats.total_webhooks|default:0 }}
+                    </h3>
+                    <p class="analytics-card-label">Webhook Events</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="analytics-card">
+                <div class="analytics-card-icon">
+                    <i class="bi bi-file-earmark-text text-warning"></i>
+                </div>
+                <div class="analytics-card-content">
+                    <h3 class="analytics-card-number" id="total-documents">
+                        {{ analytics.knowledge_base.stats.total_documents|default:0 }}
+                    </h3>
+                    <p class="analytics-card-label">Knowledge Base Docs</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row g-4 mb-4">
+        <!-- AI Conversations Chart -->
+        <div class="col-lg-8">
+            <div class="analytics-chart-card">
+                <div class="analytics-chart-header">
+                    <h4>AI Conversations Over Time</h4>
+                    <div class="chart-controls">
+                        <button class="btn btn-sm btn-outline-secondary" id="conversations-chart-type" data-type="line">Line</button>
+                    </div>
+                </div>
+                <div class="analytics-chart-container">
+                    <canvas id="conversationsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Token Usage Chart -->
+        <div class="col-lg-4">
+            <div class="analytics-chart-card">
+                <div class="analytics-chart-header">
+                    <h4>Token Usage</h4>
+                </div>
+                <div class="analytics-chart-container">
+                    <canvas id="tokensChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Breakdown -->
+    <div class="row g-4 mb-4">
+        <!-- Webhook Activity -->
+        <div class="col-lg-6">
+            <div class="analytics-chart-card">
+                <div class="analytics-chart-header">
+                    <h4>Webhook Activity</h4>
+                </div>
+                <div class="analytics-chart-container">
+                    <canvas id="webhookChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Knowledge Base Activity -->
+        <div class="col-lg-6">
+            <div class="analytics-chart-card">
+                <div class="analytics-chart-header">
+                    <h4>Knowledge Base Activity</h4>
+                </div>
+                <div class="analytics-chart-container">
+                    <canvas id="knowledgeBaseChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Timeline -->
+    <div class="row">
+        <div class="col-12">
+            <div class="analytics-chart-card">
+                <div class="analytics-chart-header">
+                    <h4>Recent Activity Timeline</h4>
+                </div>
+                <div class="activity-timeline" id="activity-timeline">
+                    <!-- Activity items will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/analytics.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize analytics dashboard
+    const analyticsDashboard = new AnalyticsDashboard({
+        apiUrl: '{% url "audit:analytics_api" %}',
+        currentDays: {{ selected_days }},
+        startDate: '{{ start_date }}',
+        endDate: '{{ end_date }}'
+    });
+    
+    analyticsDashboard.init();
+});
+</script>
+{% endblock %}

@@ -21,6 +21,7 @@ from .models import UserProfile
 from .forms import CustomUserCreationForm, OnboardingForm, OTPVerificationForm
 from .decorators import verified_email_required, onboarding_required
 from .whatsapp_service import whatsapp_service
+from audit.services import AuditService
 
 logger = logging.getLogger('core.views')
 
@@ -61,6 +62,19 @@ def signin(request):
 
         if user is not None:
             login(request, user)
+            
+            # Log user login activity
+            try:
+                AuditService.log_user_activity(
+                    user=user,
+                    action='login',
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={'username': username}
+                )
+            except Exception as e:
+                logger.error(f"Failed to log user login: {e}")
+            
             messages.success(request, f'Welcome back, {user.first_name or user.username}!')
             next_url = request.POST.get('next')
             if next_url:
@@ -74,6 +88,19 @@ def signin(request):
     return render(request, 'core/signin.html')
 
 def signout(request):
+    # Log user logout activity before logout
+    if request.user.is_authenticated:
+        try:
+            AuditService.log_user_activity(
+                user=request.user,
+                action='logout',
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                metadata={'username': request.user.username}
+            )
+        except Exception as e:
+            logger.error(f"Failed to log user logout: {e}")
+    
     logout(request)
     messages.success(request, 'Logged out successfully')
     return redirect('home')
@@ -169,6 +196,20 @@ def profile_edit(request):
         profile.timezone = request.POST.get('timezone', 'UTC')
         profile.language = request.POST.get('language', 'en')
         profile.save()
+        
+        # Log profile update activity
+        try:
+            AuditService.log_user_activity(
+                user=request.user,
+                action='profile_update',
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                metadata={
+                    'updated_fields': ['first_name', 'last_name', 'email', 'phone_number', 'company_name', 'timezone', 'language']
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to log profile update: {e}")
         
         messages.success(request, 'Profile updated successfully!')
         return redirect('profile')
@@ -272,6 +313,18 @@ def change_password(request):
             
             # Send confirmation WhatsApp message
             whatsapp_service.send_password_change_confirmation_message(user, request)
+            
+            # Log password change activity
+            try:
+                AuditService.log_user_activity(
+                    user=user,
+                    action='password_change',
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={'username': user.username}
+                )
+            except Exception as e:
+                logger.error(f"Failed to log password change: {e}")
             
             messages.success(request, 'Your password has been changed successfully.')
             return redirect('profile')
@@ -407,6 +460,19 @@ def verify_whatsapp_otp(request):
                 if success:
                     profile.onboarding_completed = True
                     profile.save()
+                    
+                    # Log WhatsApp verification activity
+                    try:
+                        AuditService.log_user_activity(
+                            user=request.user,
+                            action='whatsapp_verification',
+                            ip_address=request.META.get('REMOTE_ADDR'),
+                            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                            metadata={'phone_number': profile.phone_number}
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to log WhatsApp verification: {e}")
+                    
                     messages.success(request, 'WhatsApp number verified successfully! Welcome to WozapAuto!')
                     return redirect('home')
                 else:

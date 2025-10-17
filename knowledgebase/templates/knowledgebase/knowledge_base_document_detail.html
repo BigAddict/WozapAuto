@@ -1,0 +1,336 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ document.filename }} - Knowledge Base{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+<style>
+    .document-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .chunk-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+        transition: all 0.3s ease;
+    }
+    
+    .chunk-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .chunk-header {
+        display: flex;
+        justify-content-between;
+        align-items-center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .chunk-number {
+        background: #007bff;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .chunk-text {
+        color: #495057;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    
+    .chunk-meta {
+        display: flex;
+        justify-content-between;
+        align-items-center;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .back-link {
+        color: #6c757d;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    
+    .back-link:hover {
+        color: #007bff;
+    }
+    
+    .document-stats {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #007bff;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-delete {
+        background: #dc3545;
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+    
+    .btn-delete:hover {
+        background: #c82333;
+        color: white;
+    }
+    
+    .chunk-search {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-highlight {
+        background: #fff3cd;
+        padding: 0.1rem 0.2rem;
+        border-radius: 3px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{% url 'knowledgebase:knowledge_base_list' %}" class="back-link me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h1 class="h3 mb-1">Document Details</h1>
+                    <p class="text-muted">View and manage document chunks</p>
+                </div>
+            </div>
+
+            <!-- Document Header -->
+            <div class="document-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-file-pdf fa-2x me-3"></i>
+                            <div>
+                                <h2 class="h4 mb-1">{{ document.filename }}</h2>
+                                <p class="mb-0 opacity-75">
+                                    Uploaded on {{ document.created_at|date:"F d, Y \a\t g:i A" }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="d-flex gap-2 justify-content-md-end">
+                            <a href="{% url 'knowledgebase:knowledge_base_search' %}" class="btn btn-light">
+                                <i class="fas fa-search me-1"></i>Search
+                            </a>
+                            <form method="post" action="{% url 'knowledgebase:knowledge_base_delete' document.document_id %}" 
+                                  class="d-inline" onsubmit="return confirm('Are you sure you want to delete this document? This action cannot be undone.')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-delete">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document Stats -->
+            <div class="document-stats">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ document.chunk_count }}</div>
+                            <div class="stat-label">Chunks</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ document.file_size|filesizeformat }}</div>
+                            <div class="stat-label">File Size</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ document.created_at|timesince }}</div>
+                            <div class="stat-label">Age</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">PDF</div>
+                            <div class="stat-label">Format</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chunk Search -->
+            <div class="chunk-search">
+                <div class="row">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="chunk-search" placeholder="Search within this document...">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" id="search-chunks">
+                            <i class="fas fa-search me-1"></i>Search Chunks
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chunks List -->
+            <div class="row">
+                <div class="col-12">
+                    <h4 class="mb-3">Document Chunks</h4>
+                    <div id="chunks-container">
+                        {% for chunk in chunks %}
+                            <div class="chunk-card" data-chunk-index="{{ chunk.chunk_index }}">
+                                <div class="chunk-header">
+                                    <div class="chunk-number">
+                                        Chunk {{ chunk.chunk_index|add:1 }}
+                                    </div>
+                                    <div class="text-muted">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        {{ chunk.created_at|date:"M d, Y" }}
+                                    </div>
+                                </div>
+                                
+                                <div class="chunk-text">
+                                    {{ chunk.chunk_text }}
+                                </div>
+                                
+                                <div class="chunk-meta">
+                                    <div>
+                                        <i class="fas fa-layer-group me-1"></i>
+                                        {{ chunk.chunk_text|length }} characters
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-database me-1"></i>
+                                        Embedded
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('chunk-search');
+    const searchButton = document.getElementById('search-chunks');
+    const chunksContainer = document.getElementById('chunks-container');
+    const chunkCards = document.querySelectorAll('.chunk-card');
+
+    // Search functionality
+    function searchChunks() {
+        const query = searchInput.value.toLowerCase().trim();
+        
+        if (!query) {
+            // Show all chunks
+            chunkCards.forEach(card => {
+                card.style.display = 'block';
+                card.querySelector('.chunk-text').innerHTML = card.querySelector('.chunk-text').textContent;
+            });
+            return;
+        }
+
+        let visibleCount = 0;
+        
+        chunkCards.forEach(card => {
+            const chunkText = card.querySelector('.chunk-text');
+            const originalText = chunkText.textContent;
+            const lowerText = originalText.toLowerCase();
+            
+            if (lowerText.includes(query)) {
+                card.style.display = 'block';
+                visibleCount++;
+                
+                // Highlight search terms
+                const highlightedText = originalText.replace(
+                    new RegExp(`(${query})`, 'gi'),
+                    '<span class="search-highlight">$1</span>'
+                );
+                chunkText.innerHTML = highlightedText;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Show results count
+        if (visibleCount === 0) {
+            chunksContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No chunks found matching "${query}"</p>
+                </div>
+            `;
+        }
+    }
+
+    // Event listeners
+    searchButton.addEventListener('click', searchChunks);
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchChunks();
+        }
+    });
+
+    // Clear search on empty input
+    searchInput.addEventListener('input', function() {
+        if (this.value.trim() === '') {
+            chunkCards.forEach(card => {
+                card.style.display = 'block';
+                card.querySelector('.chunk-text').innerHTML = card.querySelector('.chunk-text').textContent;
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

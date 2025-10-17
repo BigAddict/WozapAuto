@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'connections',
     'audit',
     'aiengine',
+    'knowledgebase',
 ]
 
 MIDDLEWARE = [
@@ -199,6 +200,13 @@ LOGIN_URL = 'signin'
 
 # Site URL for WhatsApp links
 SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
+
+# Google Gemini API Configuration
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+
+# File upload settings for knowledge base
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
 
 # Logging Configuration
 LOGGING = {
