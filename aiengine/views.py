@@ -97,7 +97,20 @@ class EvolutionWebhookView(View):
 
     def process_webhook(self, data: EvolutionWebhookData) -> bool:
         try:
-            self.save_to_db(data)
+            # Check if this message was already processed
+            existing_webhook = WebhookData.objects.filter(message_id=data.message_id).first()
+            if existing_webhook and existing_webhook.is_processed:
+                logger.info(f"Message {data.message_id} already processed. Skipping...")
+                return True
+            
+            # Save to database (this will skip if already exists)
+            was_new_message = self.save_to_db(data)
+            
+            # If this was not a new message, don't process it again
+            if not was_new_message:
+                logger.info(f"Message {data.message_id} already exists in database. Skipping processing...")
+                return True
+            
             if data.from_me:
                 self.update_db_with_response(data, "Message from me")
                 logger.info(f"Webhook is a message from me: {data.message_id}. Skipping...")
@@ -148,32 +161,37 @@ class EvolutionWebhookView(View):
 
     def save_to_db(self, data: EvolutionWebhookData) -> bool:
         try:
-            # Check if webhook data already exists
-            existing_webhook = WebhookData.objects.filter(message_id=data.message_id).first()
-            if existing_webhook:
-                logger.info(f"Webhook data already exists for message_id: {data.message_id}")
-                return True
+            from django.db import transaction
             
-            webhook_data = WebhookData.objects.create(
-                message_id=data.message_id,
-                user=self._get_user_from_instance_id(data.instance_id),
-                event=data.event,
-                instance=data.instance,
-                remote_jid=data.remote_jid,
-                from_me=data.from_me,
-                push_name=data.push_name,
-                status=data.status,
-                conversation=data.conversation,
-                message_type=data.message_type,
-                instance_id=data.instance_id,
-                date_time=data.date_time,
-                sender=data.sender,
-                quoted_message=data.quoted_message,
-                is_group=data.is_group
-            )
-            webhook_data.save()
-            logger.info(f"Webhook data saved to database: {webhook_data.message_id}")
-            return True
+            with transaction.atomic():
+                # Use get_or_create to handle race conditions
+                webhook_data, created = WebhookData.objects.get_or_create(
+                    message_id=data.message_id,
+                    defaults={
+                        'user': self._get_user_from_instance_id(data.instance_id),
+                        'event': data.event,
+                        'instance': data.instance,
+                        'remote_jid': data.remote_jid,
+                        'from_me': data.from_me,
+                        'push_name': data.push_name,
+                        'status': data.status,
+                        'conversation': data.conversation,
+                        'message_type': data.message_type,
+                        'instance_id': data.instance_id,
+                        'date_time': data.date_time,
+                        'sender': data.sender,
+                        'quoted_message': data.quoted_message,
+                        'is_group': data.is_group
+                    }
+                )
+                
+                if created:
+                    logger.info(f"Webhook data saved to database: {webhook_data.message_id}")
+                    return True
+                else:
+                    logger.info(f"Webhook data already exists for message_id: {data.message_id}")
+                    return False
+                    
         except Exception as e:
             logger.error(f"Error saving webhook data to database: {e}")
             return False

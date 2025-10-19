@@ -32,7 +32,7 @@ class Agent(models.Model):
         return self.name
 
 class WebhookData(models.Model):
-    message_id = models.CharField(max_length=255)
+    message_id = models.CharField(max_length=255, unique=True)  # Added unique constraint
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     event = models.CharField(max_length=255)
     instance = models.CharField(max_length=255)
@@ -54,6 +54,10 @@ class WebhookData(models.Model):
         ordering = ['-date_time']
         verbose_name = 'Webhook Data'
         verbose_name_plural = 'Webhook Data'
+        indexes = [
+            models.Index(fields=['message_id']),  # Add index for faster lookups
+            models.Index(fields=['is_processed']),
+        ]
 
     def __str__(self):
         return f"{self.message_id} - {self.date_time}"

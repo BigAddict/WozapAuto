@@ -18,8 +18,7 @@ Restart=always
 RestartSec=10
 
 # Resource limits to prevent memory issues
-MemoryMax=2G
-CPUQuota=200%
+MemoryMax=5G
 
 # Security settings
 NoNewPrivileges=true
