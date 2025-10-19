@@ -92,6 +92,14 @@ class ChatAssistant:
         if self.memory_service:
             self.memory_service.add_message('human', message)
         
+        # Clean up old messages to prevent timeout issues
+        if self.memory_service:
+            try:
+                # Keep only the last 50 messages to prevent memory issues
+                self.memory_service.cleanup_old_messages(keep_recent=50)
+            except Exception as e:
+                logger.warning(f"Failed to cleanup old messages: {e}")
+        
         input_messages = [HumanMessage(message)]
         output = self.app.invoke({"messages": input_messages}, self.config)
         ai_response = output["messages"][-1]
@@ -212,8 +220,19 @@ class ChatAssistant:
                 except Exception as e:
                     logger.error(f"Error adding knowledge base context: {e}")
         
-        # Trim messages to fit context window
-        state["messages"] = self.trimmer.invoke(state['messages'])
+        # Trim messages to fit context window with safety checks
+        try:
+            # Check if we have too many messages and trim manually first
+            if len(state['messages']) > 100:
+                logger.warning(f"Large conversation detected ({len(state['messages'])} messages), pre-trimming")
+                # Keep only the last 50 messages before applying token-based trimming
+                state['messages'] = state['messages'][-50:]
+            
+            state["messages"] = self.trimmer.invoke(state['messages'])
+        except Exception as e:
+            logger.error(f"Error during message trimming: {e}")
+            # Fallback: keep only the last 20 messages
+            state["messages"] = state['messages'][-20:] if len(state['messages']) > 20 else state['messages']
         prompt = self.prompt_template.invoke(state)
         response = self.model.invoke(prompt)
         return {"messages": response}
@@ -262,8 +281,19 @@ class ChatAssistant:
                 except Exception as e:
                     logger.error(f"Error adding knowledge base context: {e}")
         
-        # Trim messages to fit context window
-        state["messages"] = self.trimmer.invoke(state['messages'])
+        # Trim messages to fit context window with safety checks
+        try:
+            # Check if we have too many messages and trim manually first
+            if len(state['messages']) > 100:
+                logger.warning(f"Large conversation detected ({len(state['messages'])} messages), pre-trimming")
+                # Keep only the last 50 messages before applying token-based trimming
+                state['messages'] = state['messages'][-50:]
+            
+            state["messages"] = self.trimmer.invoke(state['messages'])
+        except Exception as e:
+            logger.error(f"Error during message trimming: {e}")
+            # Fallback: keep only the last 20 messages
+            state["messages"] = state['messages'][-20:] if len(state['messages']) > 20 else state['messages']
         prompt = self.prompt_template.invoke(state)
         
         # Use model with tools
@@ -396,7 +426,7 @@ Example usage:
     
     def message_trimmer(
             self,
-            max_tokens: int = 65,
+            max_tokens: int = 2000,  # Increased from 65 to handle longer conversations
             strategy: str = "last",
             token_counter: Optional[BaseChatModel] = None,
             include_system: bool = True,

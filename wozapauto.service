@@ -1,0 +1,32 @@
+[Unit]
+Description=WozapAuto Django app
+After=network.target
+
+[Service]
+Type=notify
+User=earlykey
+Group=earlykey
+WorkingDirectory=/home/earlykey/projects/WozapAuto
+Environment=PATH=/home/earlykey/projects/WozapAuto/.venv/bin
+Environment=DJANGO_SETTINGS_MODULE=base.settings
+ExecStart=/home/earlykey/projects/WozapAuto/.venv/bin/gunicorn --config gunicorn.conf.py base.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=always
+RestartSec=10
+
+# Resource limits to prevent memory issues
+MemoryMax=2G
+CPUQuota=200%
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/earlykey/projects/WozapAuto
+ReadWritePaths=/tmp
+
+[Install]
+WantedBy=multi-user.target
