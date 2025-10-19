@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reprocess Documents - Knowledge Base{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Reprocess Documents</h1>
+                <div>
+                    <a href="{% url 'knowledgebase:knowledge_base_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Knowledge Base
+                    </a>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="card-title">{{ total_documents }}</h4>
+                                    <p class="card-text">Total Documents</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-file-alt fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="card-title">{{ documents_needing_reprocessing }}</h4>
+                                    <p class="card-text">Need Reprocessing</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="card-title">{{ current_embedding_dimensions }}</h4>
+                                    <p class="card-text">Current Dimensions</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-cogs fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="card-title">{{ total_documents|add:"-"|add:documents_needing_reprocessing }}</h4>
+                                    <p class="card-text">Up to Date</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-check-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Document Status</h5>
+                </div>
+                <div class="card-body">
+                    {% if documents %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Filename</th>
+                                        <th>Chunks</th>
+                                        <th>Embeddings</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in documents %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ doc.filename }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ doc.file_size|filesizeformat }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info">{{ doc.chunk_count }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-success">{{ doc.chunks_with_embeddings }}</span>
+                                            {% if doc.chunks_without_embeddings > 0 %}
+                                                <span class="badge badge-danger">{{ doc.chunks_without_embeddings }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if doc.needs_reprocessing %}
+                                                <span class="badge badge-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i> Needs Reprocessing
+                                                </span>
+                                            {% else %}
+                                                <span class="badge badge-success">
+                                                    <i class="fas fa-check-circle"></i> Up to Date
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small>{{ doc.created_at|date:"M d, Y H:i" }}</small>
+                                        </td>
+                                        <td>
+                                            {% if doc.needs_reprocessing %}
+                                                <button class="btn btn-sm btn-warning reprocess-btn" 
+                                                        data-document-id="{{ doc.document_id }}"
+                                                        data-filename="{{ doc.filename }}">
+                                                    <i class="fas fa-sync-alt"></i> Reprocess
+                                                </button>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                    <i class="fas fa-check"></i> Up to Date
+                                                </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No documents found</h5>
+                            <p class="text-muted">Upload some documents to get started.</p>
+                            <a href="{% url 'knowledgebase:knowledge_base_upload' %}" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Upload Documents
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progressModal" tabindex="-1" role="dialog" aria-labelledby="progressModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="progressModalLabel">Reprocessing Document</h5>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p id="progressText">Reprocessing document...</p>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reprocessButtons = document.querySelectorAll('.reprocess-btn');
+    const progressModal = document.getElementById('progressModal');
+    const progressText = document.getElementById('progressText');
+    const progressBar = document.querySelector('.progress-bar');
+
+    reprocessButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const documentId = this.dataset.documentId;
+            const filename = this.dataset.filename;
+            
+            // Show progress modal
+            progressText.textContent = `Reprocessing "${filename}"...`;
+            progressBar.style.width = '0%';
+            $(progressModal).modal('show');
+            
+            // Disable button
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            // Make AJAX request
+            fetch(`/knowledgebase/reprocess/${documentId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    progressText.textContent = `Successfully reprocessed ${data.processed_chunks} out of ${data.total_chunks} chunks`;
+                    progressBar.style.width = '100%';
+                    progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+                    progressBar.classList.add('bg-success');
+                    
+                    // Reload page after a short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    progressText.textContent = `Error: ${data.error}`;
+                    progressBar.classList.add('bg-danger');
+                    
+                    // Re-enable button
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-sync-alt"></i> Reprocess';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                progressText.textContent = `Error: ${error.message}`;
+                progressBar.classList.add('bg-danger');
+                
+                // Re-enable button
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-sync-alt"></i> Reprocess';
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

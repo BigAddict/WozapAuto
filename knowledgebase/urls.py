@@ -14,6 +14,10 @@ urlpatterns = [
     path('delete/<str:document_id>/', views.knowledge_base_delete, name='knowledge_base_delete'),
     path('document/<str:document_id>/', views.knowledge_base_document_detail, name='knowledge_base_document_detail'),
     
+    # Reprocessing views
+    path('reprocess/', views.knowledge_base_reprocess, name='knowledge_base_reprocess'),
+    path('reprocess/<str:document_id>/', views.knowledge_base_reprocess_document, name='knowledge_base_reprocess_document'),
+    
     # API endpoints
     path('api/', views.KnowledgeBaseAPIView.as_view(), name='knowledge_base_api'),
 ]

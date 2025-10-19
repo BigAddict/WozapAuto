@@ -16,7 +16,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import pypdf
 import numpy as np
 
-from .models import KnowledgeBase
+from .models import KnowledgeBase, KnowledgeBaseSettings
 
 logger = logging.getLogger("knowledgebase.service")
 
@@ -24,15 +24,18 @@ logger = logging.getLogger("knowledgebase.service")
 class KnowledgeBaseService:
     """Service for managing knowledge base documents with PDF processing and semantic search."""
     
-    def __init__(self):
-        """Initialize the service with Google Gemini embeddings."""
+    def __init__(self, user=None):
+        """Initialize the service with Google Gemini embeddings and user settings."""
+        self.user = user
         self.embeddings = None
+        self.settings = None
         self._initialize_embeddings()
+        self._load_user_settings()
         
-        # Text splitter configuration
+        # Text splitter configuration (will be updated based on settings)
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=self.settings.chunk_size if self.settings else 1000,
+            chunk_overlap=self.settings.chunk_overlap if self.settings else 200,
             length_function=len,
             separators=["\n\n", "\n", " ", ""]
         )
@@ -53,6 +56,32 @@ class KnowledgeBaseService:
         except Exception as e:
             logger.error(f"Failed to initialize Google Gemini embeddings: {e}")
             self.embeddings = None
+    
+    def _load_user_settings(self):
+        """Load or create user settings."""
+        if self.user:
+            try:
+                self.settings, created = KnowledgeBaseSettings.objects.get_or_create(
+                    user=self.user,
+                    defaults={
+                        'embedding_dimensions': 3072,
+                        'similarity_threshold': 0.5,
+                        'top_k_results': 5,
+                        'max_chunks_in_context': 3,
+                        'chunk_size': 1000,
+                        'chunk_overlap': 200,
+                    }
+                )
+                if created:
+                    logger.info(f"Created default settings for user {self.user.username}")
+                else:
+                    logger.info(f"Loaded existing settings for user {self.user.username}")
+            except Exception as e:
+                logger.error(f"Error loading settings for user {self.user.username}: {e}")
+                self.settings = None
+        else:
+            logger.warning("No user provided, using default settings")
+            self.settings = None
     
     def upload_pdf(self, user: User, pdf_file) -> Dict[str, Any]:
         """
@@ -104,15 +133,8 @@ class KnowledgeBaseService:
                 for i, chunk_text in enumerate(chunks):
                     # Generate embedding for chunk
                     try:
-                        # Try to get 768 dimensions by truncating if needed
                         embedding_vector = self.embeddings.embed_query(chunk_text)
-                        
-                        # If we get 3072 dimensions, truncate to 768 for efficiency
-                        if len(embedding_vector) == 3072:
-                            embedding_vector = embedding_vector[:768]
-                            logger.info(f"Truncated embedding from 3072 to 768 dimensions for chunk {i}")
-                        elif len(embedding_vector) != 768:
-                            logger.warning(f"Unexpected embedding dimension: {len(embedding_vector)} for chunk {i}")
+                        logger.info(f"Generated embedding with {len(embedding_vector)} dimensions for chunk {i}")
                             
                     except Exception as e:
                         logger.error(f"Failed to generate embedding for chunk {i}: {e}")
@@ -185,14 +207,14 @@ class KnowledgeBaseService:
             logger.error(f"Error extracting text from PDF: {e}")
             return ""
     
-    def search_knowledge_base(self, user: User, query: str, top_k: int = 5) -> List[KnowledgeBase]:
+    def search_knowledge_base(self, user: User, query: str, top_k: int = None) -> List[KnowledgeBase]:
         """
         Perform semantic search on user's knowledge base.
         
         Args:
             user: User whose knowledge base to search
             query: Search query
-            top_k: Number of top results to return
+            top_k: Number of top results to return (uses settings if None)
             
         Returns:
             List of KnowledgeBase entries ordered by relevance
@@ -201,16 +223,14 @@ class KnowledgeBaseService:
             logger.warning("Embeddings not available for search")
             return []
         
+        # Use settings if top_k not provided
+        if top_k is None:
+            top_k = self.settings.top_k_results if self.settings else 5
+        
         try:
             # Generate embedding for query
             query_embedding = self.embeddings.embed_query(query)
-            
-            # If we get 3072 dimensions, truncate to 768 for efficiency
-            if len(query_embedding) == 3072:
-                query_embedding = query_embedding[:768]
-                logger.info("Truncated query embedding from 3072 to 768 dimensions")
-            elif len(query_embedding) != 768:
-                logger.warning(f"Unexpected query embedding dimension: {len(query_embedding)}")
+            logger.info(f"Generated query embedding with {len(query_embedding)} dimensions")
             
             # Perform vector similarity search
             # Using raw SQL for pgvector similarity search
@@ -362,3 +382,73 @@ class KnowledgeBaseService:
         except Exception as e:
             logger.error(f"Error getting document chunks: {e}")
             return []
+    
+    def reprocess_document(self, document_id: str) -> Dict[str, Any]:
+        """
+        Reprocess a document by regenerating embeddings for all its chunks.
+        
+        Args:
+            document_id: Document ID to reprocess
+            
+        Returns:
+            Dictionary with reprocessing results
+        """
+        if not self.embeddings:
+            return {
+                'success': False,
+                'error': 'Embeddings not available. Please check Google API key configuration.'
+            }
+        
+        try:
+            # Get all chunks for this document
+            chunks = KnowledgeBase.objects.filter(
+                user=self.user,
+                parent_document_id=document_id
+            )
+            
+            if not chunks.exists():
+                return {
+                    'success': False,
+                    'error': 'Document not found'
+                }
+            
+            total_chunks = chunks.count()
+            processed_count = 0
+            error_count = 0
+            
+            # Process chunks in transaction
+            with transaction.atomic():
+                for chunk in chunks:
+                    try:
+                        # Generate new embedding
+                        embedding_vector = self.embeddings.embed_query(chunk.chunk_text)
+                        
+                        # Update chunk
+                        chunk.embedding = embedding_vector
+                        chunk.save(update_fields=['embedding'])
+                        
+                        processed_count += 1
+                        
+                    except Exception as e:
+                        error_count += 1
+                        logger.error(f"Error reprocessing chunk {chunk.id}: {e}")
+                        continue
+            
+            logger.info(f"Reprocessed document {document_id}: {processed_count}/{total_chunks} chunks successful")
+            
+            return {
+                'success': True,
+                'document_id': document_id,
+                'total_chunks': total_chunks,
+                'processed_chunks': processed_count,
+                'error_chunks': error_count,
+                'message': f'Successfully reprocessed {processed_count} out of {total_chunks} chunks'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error reprocessing document {document_id}: {e}")
+            return {
+                'success': False,
+                'error': f'Error reprocessing document: {str(e)}'
+            }
+    

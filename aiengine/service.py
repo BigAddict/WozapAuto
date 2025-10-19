@@ -44,8 +44,8 @@ class ChatAssistant:
                 self.memory_service = MemoryService(self.checkpointer.thread)
                 # Initialize memory tools
                 self.memory_tools = MemorySearchTool(self.memory_service)
-                # Initialize knowledge base service
-                self.knowledge_base_service = KnowledgeBaseService()
+                # Initialize knowledge base service with user
+                self.knowledge_base_service = KnowledgeBaseService(user=user)
             except Exception as e:
                 logger.error(f"Error initializing database-backed memory: {e}")
                 # Fallback to in-memory storage
@@ -199,7 +199,11 @@ class ChatAssistant:
             
             if latest_human_message and self._should_search_knowledge_base(latest_human_message):
                 try:
-                    kb_context = self.get_knowledge_base_context(latest_human_message, max_chunks=3, min_similarity=0.7)
+                    # Use settings from knowledge base service
+                    settings = self.knowledge_base_service.settings
+                    max_chunks = settings.max_chunks_in_context if settings else 3
+                    min_similarity = settings.similarity_threshold if settings else 0.5
+                    kb_context = self.get_knowledge_base_context(latest_human_message, max_chunks=max_chunks, min_similarity=min_similarity)
                     if kb_context:
                         # Add knowledge base context as a system message
                         kb_system_msg = SystemMessage(content=f"Relevant information from knowledge base:\n\n{kb_context}")
@@ -245,7 +249,11 @@ class ChatAssistant:
             
             if latest_human_message and self._should_search_knowledge_base(latest_human_message):
                 try:
-                    kb_context = self.get_knowledge_base_context(latest_human_message, max_chunks=3, min_similarity=0.7)
+                    # Use settings from knowledge base service
+                    settings = self.knowledge_base_service.settings
+                    max_chunks = settings.max_chunks_in_context if settings else 3
+                    min_similarity = settings.similarity_threshold if settings else 0.5
+                    kb_context = self.get_knowledge_base_context(latest_human_message, max_chunks=max_chunks, min_similarity=min_similarity)
                     if kb_context:
                         # Add knowledge base context as a system message
                         kb_system_msg = SystemMessage(content=f"Relevant information from knowledge base:\n\n{kb_context}")

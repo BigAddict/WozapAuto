@@ -116,7 +116,7 @@ class MemoryService:
         self, 
         query: str, 
         limit: int = 10, 
-        similarity_threshold: float = 0.7
+        similarity_threshold: float = 0.5
     ) -> List[ConversationMessage]:
         """
         Get relevant messages using semantic search.

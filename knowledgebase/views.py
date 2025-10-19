@@ -239,3 +239,107 @@ class KnowledgeBaseAPIView(View):
         except Exception as e:
             logger.error(f"Error in KnowledgeBaseAPIView: {e}")
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def knowledge_base_reprocess(request):
+    """Show documents that need reprocessing and allow manual reprocessing."""
+    try:
+        service = KnowledgeBaseService(user=request.user)
+        
+        # Get all user's documents with stats
+        all_chunks = KnowledgeBase.objects.filter(user=request.user)
+        
+        # Group by parent_document_id to get unique documents
+        documents_dict = {}
+        for chunk in all_chunks:
+            doc_id = chunk.parent_document_id
+            if doc_id not in documents_dict:
+                documents_dict[doc_id] = {
+                    'document_id': doc_id,
+                    'filename': chunk.original_filename,
+                    'file_size': chunk.file_size,
+                    'chunk_count': 0,
+                    'chunks_with_embeddings': 0,
+                    'chunks_without_embeddings': 0,
+                    'created_at': chunk.created_at,
+                    'needs_reprocessing': False
+                }
+            
+            documents_dict[doc_id]['chunk_count'] += 1
+            if chunk.embedding is not None:
+                documents_dict[doc_id]['chunks_with_embeddings'] += 1
+            else:
+                documents_dict[doc_id]['chunks_without_embeddings'] += 1
+        
+        # Check if documents need reprocessing (no embeddings or wrong dimensions)
+        current_dimensions = service.settings.embedding_dimensions if service.settings else 3072
+        for doc_data in documents_dict.values():
+            if doc_data['chunks_without_embeddings'] > 0:
+                doc_data['needs_reprocessing'] = True
+            else:
+                # Check if existing embeddings have wrong dimensions
+                sample_chunk = all_chunks.filter(
+                    parent_document_id=doc_data['document_id'],
+                    embedding__isnull=False
+                ).first()
+                if sample_chunk and len(sample_chunk.embedding) != current_dimensions:
+                    doc_data['needs_reprocessing'] = True
+        
+        # Convert to list and sort by creation date (newest first)
+        documents = list(documents_dict.values())
+        documents.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        context = {
+            'documents': documents,
+            'total_documents': len(documents),
+            'documents_needing_reprocessing': sum(1 for d in documents if d['needs_reprocessing']),
+            'current_embedding_dimensions': current_dimensions,
+        }
+        
+        return render(request, 'knowledgebase/knowledge_base_reprocess.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in knowledge_base_reprocess: {e}")
+        messages.error(request, f"An error occurred: {str(e)}")
+        return redirect('knowledgebase:knowledge_base_list')
+
+
+@login_required
+def knowledge_base_reprocess_document(request, document_id):
+    """Reprocess a specific document."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST requests allowed'})
+    
+    try:
+        service = KnowledgeBaseService(user=request.user)
+        
+        if not service.embeddings:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Embeddings not available. Please check Google API key configuration.'
+            })
+        
+        # Get all chunks for this document
+        chunks = KnowledgeBase.objects.filter(
+            user=request.user,
+            parent_document_id=document_id
+        )
+        
+        if not chunks.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Document not found'
+            })
+        
+        # Reprocess document
+        result = service.reprocess_document(document_id)
+        
+        return JsonResponse(result)
+        
+    except Exception as e:
+        logger.error(f"Error reprocessing document {document_id}: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Error reprocessing document: {str(e)}'
+        })

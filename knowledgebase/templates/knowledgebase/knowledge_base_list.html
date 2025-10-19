@@ -107,9 +107,14 @@
                     <h1 class="h3 mb-1">Knowledge Base</h1>
                     <p class="text-muted">Manage your PDF documents and search your knowledge base</p>
                 </div>
-                <a href="{% url 'knowledgebase:knowledge_base_upload' %}" class="btn btn-upload">
-                    <i class="fas fa-upload me-2"></i>Upload PDF
-                </a>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'knowledgebase:knowledge_base_upload' %}" class="btn btn-upload">
+                        <i class="fas fa-upload me-2"></i>Upload PDF
+                    </a>
+                    <a href="{% url 'knowledgebase:knowledge_base_reprocess' %}" class="btn btn-outline-warning">
+                        <i class="fas fa-sync-alt me-2"></i>Reprocess Documents
+                    </a>
+                </div>
             </div>
 
             <!-- Stats Card -->
