@@ -1,11 +1,11 @@
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph import add_messages
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, trim_messages
 from langchain_core.language_models import BaseChatModel
 from langchain.chat_models import init_chat_model
 
-from aiengine.prompts import text_formatting_guide
+from aiengine.prompts import create_prompt_template
 from aiengine.checkpointer import DatabaseCheckpointSaver
 from aiengine.memory_service import MemoryService
 from aiengine.memory_tools import MemorySearchTool
@@ -125,7 +125,14 @@ class ChatAssistant:
         self._cleanup_messages_if_needed()
         
         # Process with agent (agent handles tools automatically)
-        input_messages = [HumanMessage(message)]
+        # Create properly formatted user message
+        user_message = HumanMessage(content=message)
+        input_messages = [user_message]
+        
+        logger.info(f"Sending to agent: {message[:100]}...")
+        logger.debug(f"System instructions: {self.system_prompt[:200]}...")
+        logger.debug(f"User message: {message}")
+        
         output = self.app.invoke({"messages": input_messages}, self.config)
         ai_response = output["messages"][-1]
         
@@ -196,11 +203,7 @@ class ChatAssistant:
     def get_prompt_template(self) -> ChatPromptTemplate:
         """Get prompt template for the agent."""
         logger.info("Building prompt template")
-        
-        return ChatPromptTemplate.from_messages([
-            ("system", self.system_prompt + "\n" + text_formatting_guide),
-            MessagesPlaceholder(variable_name="messages")
-        ])
+        return create_prompt_template(self.system_prompt)
     
     def message_trimmer(
             self,

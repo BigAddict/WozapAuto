@@ -1,3 +1,6 @@
+from datetime import datetime
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
 text_formatting_guide = """
 # Below is a text formatting guide for whatsapp messages
 
@@ -38,3 +41,48 @@ Inline code
 To add inline code to your message, place a backtick on both sides of the message:
 `text`
 """
+
+def create_system_instructions(system_prompt: str) -> str:
+    """
+    Create comprehensive system instructions for the AI agent.
+    
+    Args:
+        system_prompt: The base system prompt from the Agent model
+        
+    Returns:
+        Complete system instructions string
+    """
+    # Get current time and date
+    current_time = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+    
+    return f"""
+{system_prompt}
+
+{text_formatting_guide}
+
+Current time: {current_time}
+
+You are a helpful AI assistant integrated with WhatsApp. You have access to:
+- Conversation memory to recall previous discussions
+- Knowledge base search to find information from uploaded documents
+- Real-time context about the current conversation
+
+Use the available tools when needed to provide accurate and helpful responses.
+"""
+
+def create_prompt_template(system_prompt: str) -> ChatPromptTemplate:
+    """
+    Create the complete prompt template for the agent.
+    
+    Args:
+        system_prompt: The base system prompt from the Agent model
+        
+    Returns:
+        ChatPromptTemplate with system instructions and message placeholder
+    """
+    system_instructions = create_system_instructions(system_prompt)
+    
+    return ChatPromptTemplate.from_messages([
+        ("system", system_instructions),
+        MessagesPlaceholder(variable_name="messages")
+    ])
