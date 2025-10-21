@@ -66,8 +66,11 @@ class Command(BaseCommand):
             if not dry_run:
                 try:
                     with transaction.atomic():
-                        # Delete the oldest messages
-                        deleted_count, _ = messages_to_delete.delete()
+                        # Delete the oldest messages one by one to avoid limit/offset issues
+                        deleted_count = 0
+                        for message in messages_to_delete:
+                            message.delete()
+                            deleted_count += 1
                         total_deleted += deleted_count
                         self.stdout.write(f"  Deleted {deleted_count} messages")
                 except Exception as e:
