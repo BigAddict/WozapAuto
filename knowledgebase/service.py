@@ -289,19 +289,51 @@ class KnowledgeBaseService:
                     'error': 'Document not found'
                 }
             
-            # Get file path for cleanup
+            # Get file path for cleanup BEFORE deleting chunks
             file_path = chunks.first().file_path
-            
-            # Delete all chunks
             deleted_count = chunks.count()
+            
+            # Delete all chunks first
             chunks.delete()
             
-            # Clean up file
-            try:
-                if file_path and default_storage.exists(file_path):
-                    default_storage.delete(file_path)
-            except Exception as e:
-                logger.warning(f"Failed to delete file {file_path}: {e}")
+            # Clean up file from disk
+            if file_path:
+                try:
+                    # Try multiple approaches to ensure file deletion
+                    file_deleted = False
+                    
+                    # Method 1: Use Django's default storage
+                    if default_storage.exists(file_path):
+                        default_storage.delete(file_path)
+                        file_deleted = True
+                        logger.info(f"Deleted file using default_storage: {file_path}")
+                    
+                    # Method 2: Direct file system deletion as backup
+                    if not file_deleted:
+                        import os
+                        from pathlib import Path
+                        
+                        # Try absolute path
+                        full_path = os.path.join(settings.MEDIA_ROOT, str(file_path))
+                        if os.path.exists(full_path):
+                            os.remove(full_path)
+                            file_deleted = True
+                            logger.info(f"Deleted file using direct path: {full_path}")
+                        
+                        # Try relative path from MEDIA_ROOT
+                        elif os.path.exists(str(file_path)):
+                            os.remove(str(file_path))
+                            file_deleted = True
+                            logger.info(f"Deleted file using relative path: {file_path}")
+                    
+                    if not file_deleted:
+                        logger.warning(f"File not found for deletion: {file_path}")
+                    else:
+                        logger.info(f"Successfully deleted file: {file_path}")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to delete file {file_path}: {e}")
+                    # Don't fail the entire operation if file deletion fails
             
             logger.info(f"Deleted document {document_id} with {deleted_count} chunks")
             
