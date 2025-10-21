@@ -89,6 +89,11 @@ class ChatAssistant:
         elif tool_type == 'search_performed':
             self._search_performed = used
     
+    def _get_system_instructions(self) -> str:
+        """Get the complete system instructions."""
+        from aiengine.prompts import create_system_instructions
+        return create_system_instructions(self.system_prompt)
+    
     def _create_agent(self):
         """Create agent using LangGraph's create_react_agent."""
         tools = []
@@ -103,16 +108,13 @@ class ChatAssistant:
         
         logger.info(f"Creating agent with {len(tools)} tools")
         
-        # Bind the prompt template to the model
-        prompt_template = self.get_prompt_template()
-        model_with_prompt = prompt_template | self.model
-        
         # Debug: Log the system instructions being used
         logger.info(f"System instructions: {self.system_prompt[:100]}...")
         logger.info(f"Prompt template created with system instructions")
         
+        # Create agent with tools first, then we'll handle the prompt in send_message
         self.app = create_react_agent(
-            model=model_with_prompt,
+            model=self.model,
             tools=tools,
             checkpointer=self.checkpointer
         )
@@ -132,10 +134,10 @@ class ChatAssistant:
         # Cleanup old messages if needed
         self._cleanup_messages_if_needed()
         
-        # Process with agent (agent handles tools automatically)
-        # Create properly formatted user message
+        # Create messages with system instructions
+        system_message = SystemMessage(content=self._get_system_instructions())
         user_message = HumanMessage(content=message)
-        input_messages = [user_message]
+        input_messages = [system_message, user_message]
         
         logger.info(f"Sending to agent: {message[:100]}...")
         logger.debug(f"System instructions: {self.system_prompt[:200]}...")
