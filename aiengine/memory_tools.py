@@ -29,7 +29,10 @@ class MemorySearchTool:
             String containing relevant messages from conversation history
         """
         try:
+            logger.info(f"Memory search tool called with query: {query}")
+            
             if not self.memory_service:
+                logger.warning("Memory service not available")
                 return "Memory service not available."
             
             # Get relevant messages using semantic search
@@ -40,6 +43,7 @@ class MemorySearchTool:
             )
             
             if not relevant_messages:
+                logger.info(f"No relevant messages found for query: {query}")
                 return f"No relevant messages found for query: '{query}'"
             
             # Format the results
@@ -49,6 +53,7 @@ class MemorySearchTool:
                 timestamp = msg.created_at.strftime("%Y-%m-%d %H:%M")
                 result_parts.append(f"{i}. [{msg.message_type.upper()}] ({timestamp}): {msg.content}")
             
+            logger.info(f"Memory search completed: {len(relevant_messages)} results found")
             return "\n".join(result_parts)
             
         except Exception as e:
@@ -63,12 +68,16 @@ class MemorySearchTool:
             String containing conversation statistics and summary
         """
         try:
+            logger.info("Conversation summary tool called")
+            
             if not self.memory_service:
+                logger.warning("Memory service not available")
                 return "Memory service not available."
             
             summary = self.memory_service.get_conversation_summary()
             
             if not summary:
+                logger.info("No conversation data available")
                 return "No conversation data available."
             
             result_parts = [
@@ -76,11 +85,11 @@ class MemorySearchTool:
                 f"- Total messages: {summary.get('total_messages', 0)}",
                 f"- Human messages: {summary.get('human_messages', 0)}",
                 f"- AI messages: {summary.get('ai_messages', 0)}",
-                f"- Messages with embeddings: {summary.get('messages_with_embeddings', 0)}",
-                f"- Conversation started: {summary.get('first_message_date', 'Unknown')}",
-                f"- Last activity: {summary.get('last_message_date', 'Unknown')}"
+                f"- Conversation started: {summary.get('first_message_at', 'Unknown')}",
+                f"- Last activity: {summary.get('last_message_at', 'Unknown')}"
             ]
             
+            logger.info("Conversation summary completed")
             return "\n".join(result_parts)
             
         except Exception as e:
