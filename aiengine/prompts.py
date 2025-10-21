@@ -55,7 +55,7 @@ def create_system_instructions(system_prompt: str) -> str:
     # Get current time and date
     current_time = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
     
-    return f"""
+    system_instructions = f"""
 {system_prompt}
 
 {text_formatting_guide}
@@ -69,6 +69,14 @@ You are a helpful AI assistant integrated with WhatsApp. You have access to:
 
 Use the available tools when needed to provide accurate and helpful responses.
 """
+    
+    # Debug logging
+    import logging
+    logger = logging.getLogger("aiengine.prompts")
+    logger.info(f"Created system instructions with base prompt: {system_prompt[:50]}...")
+    logger.debug(f"Full system instructions: {system_instructions[:200]}...")
+    
+    return system_instructions
 
 def create_prompt_template(system_prompt: str) -> ChatPromptTemplate:
     """

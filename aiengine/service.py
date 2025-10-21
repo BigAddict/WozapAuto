@@ -103,8 +103,16 @@ class ChatAssistant:
         
         logger.info(f"Creating agent with {len(tools)} tools")
         
+        # Bind the prompt template to the model
+        prompt_template = self.get_prompt_template()
+        model_with_prompt = prompt_template | self.model
+        
+        # Debug: Log the system instructions being used
+        logger.info(f"System instructions: {self.system_prompt[:100]}...")
+        logger.info(f"Prompt template created with system instructions")
+        
         self.app = create_react_agent(
-            model=self.model,
+            model=model_with_prompt,
             tools=tools,
             checkpointer=self.checkpointer
         )
@@ -228,6 +236,14 @@ class ChatAssistant:
     
     
 if __name__ == '__main__':
-    assistant = ChatAssistant("user001")
-    query = input("Enter your message: ")
-    print(assistant.send_message(query).content)
+    # Test system instructions
+    test_system_prompt = "You are a helpful AI assistant. Always respond with 'I understand' followed by the user's message."
+    assistant = ChatAssistant("test_thread", test_system_prompt)
+    
+    # Test the system instructions
+    test_message = "Hello, how are you?"
+    print(f"Testing with message: {test_message}")
+    print(f"System prompt: {assistant.system_prompt}")
+    
+    response = assistant.send_message(test_message)
+    print(f"Response: {response.content}")
