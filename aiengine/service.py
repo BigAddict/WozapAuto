@@ -317,8 +317,8 @@ class ChatAssistant:
                 tool_func = getattr(self.memory_tools, tool_name, None)
                 if tool_func:
                     try:
-                        # Execute the tool
-                        tool_result = tool_func.invoke(tool_args)
+                        # Execute the tool - call it directly since it's a regular function
+                        tool_result = tool_func(**tool_args)
                         
                         # Add tool result as a message
                         from langchain_core.messages import ToolMessage
