@@ -56,9 +56,9 @@ def create_system_instructions(system_prompt: str) -> str:
     current_time = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
     
     system_instructions = f"""
-{system_prompt}
-
 {text_formatting_guide}
+
+{system_prompt}
 
 Current time: {current_time}
 
