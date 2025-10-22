@@ -56,10 +56,6 @@ def create_system_instructions(system_prompt: str) -> str:
     current_time = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
     
     system_instructions = f"""
-{text_formatting_guide}
-
-{system_prompt}
-
 Current time: {current_time}
 
 You are a helpful AI assistant integrated with WhatsApp. You have access to:
@@ -68,6 +64,8 @@ You are a helpful AI assistant integrated with WhatsApp. You have access to:
 - Real-time context about the current conversation
 
 Use the available tools when needed to provide accurate and helpful responses.
+{system_prompt}
+{text_formatting_guide}
 """
     
     # Debug logging

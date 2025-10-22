@@ -20,6 +20,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from .forms import AgentEditForm
+from django.views.generic import TemplateView
 
 logger = logging.getLogger("aiengine.views")
 
@@ -232,56 +233,60 @@ class EvolutionWebhookView(View):
             return None
 
 
-@login_required
-def agent_detail(request: HttpRequest):
-    try:
-        # Get the user's primary agent (active first, then by creation date)
-        agent = Agent.objects.filter(user=request.user).order_by('-is_active', 'created_at').first()
-        
-        # If no agent exists, create one
-        if not agent:
-            agent = Agent.objects.create(
-                user=request.user,
-                name='WozapAutoAgent',
-                description='WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.',
-                system_prompt='You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.',
-                is_active=True
-            )
-        
-        # Get memory statistics for this user
-        memory_stats = get_user_conversation_summary(request.user.id)
-        
-        # Get recent conversations
-        recent_threads = ConversationThread.objects.filter(
-            user=request.user
-        ).order_by('-updated_at')[:5]
-        
-        # Get conversation statistics
-        total_messages = ConversationMessage.objects.filter(
-            thread__user=request.user
-        ).count()
-        
-        # Get messages with embeddings
-        messages_with_embeddings = ConversationMessage.objects.filter(
-            thread__user=request.user,
-            embedding__isnull=False
-        ).count()
-        
-        # Calculate embedding coverage
-        embedding_coverage = (messages_with_embeddings / total_messages * 100) if total_messages > 0 else 0
-        
-    except Exception as e:
-        logger.error(f"Error loading agent detail: {e}")
-        messages.error(request, 'Unable to load your agent. Please try again later.')
-        return redirect('core:dashboard') if 'core:dashboard' else redirect('/')
+@method_decorator(login_required, name='dispatch')
+class AgentDetailView(TemplateView):
+    template_name = 'aiengine/agent_detail.html'
 
-    return render(request, 'aiengine/agent_detail.html', {
-        'agent': agent,
-        'memory_stats': memory_stats,
-        'recent_threads': recent_threads,
-        'total_messages': total_messages,
-        'embedding_coverage': embedding_coverage,
-    })
+    def get(self, request: HttpRequest, *args, **kwargs):
+        try:
+            # Get the user's primary agent (active first, then by creation date)
+            agent = Agent.objects.filter(user=request.user).order_by('-is_active', 'created_at').first()
+            
+            # If no agent exists, create one
+            if not agent:
+                agent = Agent.objects.create(
+                    user=request.user,
+                    name='WozapAutoAgent',
+                    description='WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.',
+                    system_prompt='You are WozapAuto, a helpful WhatsApp assistant for the user. Be concise, friendly, and actionable. Always consider user context.',
+                    is_active=True
+                )
+            
+            # Get memory statistics for this user
+            memory_stats = get_user_conversation_summary(request.user.id)
+            
+            # Get recent conversations
+            recent_threads = ConversationThread.objects.filter(
+                user=request.user
+            ).order_by('-updated_at')[:5]
+            
+            # Get conversation statistics
+            total_messages = ConversationMessage.objects.filter(
+                thread__user=request.user
+            ).count()
+            
+            # Get messages with embeddings
+            messages_with_embeddings = ConversationMessage.objects.filter(
+                thread__user=request.user,
+                embedding__isnull=False
+            ).count()
+            
+            # Calculate embedding coverage
+            embedding_coverage = (messages_with_embeddings / total_messages * 100) if total_messages > 0 else 0
+            
+            context = self.get_context_data(**kwargs)
+            context.update({
+                'agent': agent,
+                'memory_stats': memory_stats,
+                'recent_threads': recent_threads,
+                'total_messages': total_messages,
+                'embedding_coverage': embedding_coverage,
+            })
+            return self.render_to_response(context)
+        except Exception as e:
+            logger.error(f"Error loading agent detail: {e}")
+            messages.error(request, 'Unable to load your agent. Please try again later.')
+            return redirect('core:dashboard') if 'core:dashboard' else redirect('/')
 
 
 @login_required
@@ -326,95 +331,105 @@ def agent_edit(request: HttpRequest):
     })
 
 
-@login_required
-def conversation_history(request: HttpRequest):
-    """View to display conversation history with pagination."""
-    try:
-        # Get all conversation threads for the user
-        threads = ConversationThread.objects.filter(user=request.user).order_by('-updated_at')
-        
-        # Paginate threads
-        paginator = Paginator(threads, 10)
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-        
-        # Get message counts for each thread
-        for thread in page_obj:
-            thread.message_count = ConversationMessage.objects.filter(thread=thread).count()
-            thread.last_message = ConversationMessage.objects.filter(
-                thread=thread
-            ).order_by('-created_at').first()
-        
-    except Exception as e:
-        logger.error(f"Error loading conversation history: {e}")
-        messages.error(request, 'Unable to load conversation history.')
-        return redirect('aiengine:agent_detail')
-    
-    return render(request, 'aiengine/conversation_history.html', {
-        'page_obj': page_obj,
-    })
+@method_decorator(login_required, name='dispatch')
+class ConversationHistoryView(TemplateView):
+    template_name = 'aiengine/conversation_history.html'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        try:
+            # Get all conversation threads for the user
+            threads = ConversationThread.objects.filter(user=request.user).order_by('-updated_at')
+            
+            # Paginate threads
+            paginator = Paginator(threads, 10)
+            page_number = request.GET.get('page')
+            page_obj = paginator.get_page(page_number)
+            
+            # Get message counts for each thread
+            for thread in page_obj:
+                thread.message_count = ConversationMessage.objects.filter(thread=thread).count()
+                thread.last_message = ConversationMessage.objects.filter(
+                    thread=thread
+                ).order_by('-created_at').first()
+            
+            context = self.get_context_data(**kwargs)
+            context.update({
+                'page_obj': page_obj,
+            })
+            return self.render_to_response(context)
+        except Exception as e:
+            logger.error(f"Error loading conversation history: {e}")
+            messages.error(request, 'Unable to load conversation history.')
+            return redirect('aiengine:agent_detail')
 
 
-@login_required
-def conversation_detail(request: HttpRequest, thread_id: str):
-    """View to display detailed conversation for a specific thread."""
-    try:
-        thread = get_object_or_404(ConversationThread, thread_id=thread_id, user=request.user)
-        
-        # Get messages for this thread
-        messages = ConversationMessage.objects.filter(thread=thread).order_by('created_at')
-        
-        # Paginate messages
-        paginator = Paginator(messages, 20)
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-        
-        # Get conversation summary
-        from aiengine.memory_service import MemoryService
-        memory_service = MemoryService(thread)
-        summary = memory_service.get_conversation_summary()
-        
-    except Exception as e:
-        logger.error(f"Error loading conversation detail: {e}")
-        messages.error(request, 'Unable to load conversation details.')
-        return redirect('aiengine:conversation_history')
-    
-    return render(request, 'aiengine/conversation_detail.html', {
-        'thread': thread,
-        'page_obj': page_obj,
-        'summary': summary,
-    })
+@method_decorator(login_required, name='dispatch')
+class ConversationDetailView(TemplateView):
+    template_name = 'aiengine/conversation_detail.html'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        try:
+            thread_id = kwargs.get('thread_id')
+            thread = get_object_or_404(ConversationThread, thread_id=thread_id, user=request.user)
+            
+            # Get messages for this thread
+            msgs = ConversationMessage.objects.filter(thread=thread).order_by('created_at')
+            
+            # Paginate messages
+            paginator = Paginator(msgs, 20)
+            page_number = request.GET.get('page')
+            page_obj = paginator.get_page(page_number)
+            
+            # Get conversation summary
+            from aiengine.memory_service import MemoryService
+            memory_service = MemoryService(thread)
+            summary = memory_service.get_conversation_summary()
+            
+            context = self.get_context_data(**kwargs)
+            context.update({
+                'thread': thread,
+                'page_obj': page_obj,
+                'summary': summary,
+            })
+            return self.render_to_response(context)
+        except Exception as e:
+            logger.error(f"Error loading conversation detail: {e}")
+            messages.error(request, 'Unable to load conversation details.')
+            return redirect('aiengine:conversation_history')
 
 
-@login_required
-def memory_management(request: HttpRequest):
-    """View for memory management and statistics."""
-    try:
-        # Get system-wide memory statistics
-        system_stats = get_memory_statistics()
-        
-        # Get user-specific statistics
-        user_stats = get_user_conversation_summary(request.user.id)
-        
-        # Get threads that need cleanup (old inactive threads)
-        from datetime import datetime, timedelta
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
-        old_threads = ConversationThread.objects.filter(
-            user=request.user,
-            updated_at__lt=cutoff_date,
-            is_active=False
-        ).count()
-        
-    except Exception as e:
-        logger.error(f"Error loading memory management: {e}")
-        messages.error(request, 'Unable to load memory management.')
-        return redirect('aiengine:agent_detail')
-    
-    return render(request, 'aiengine/memory_management.html', {
-        'system_stats': system_stats,
-        'user_stats': user_stats,
-        'old_threads': old_threads,
-    })
+@method_decorator(login_required, name='dispatch')
+class MemoryManagementView(TemplateView):
+    template_name = 'aiengine/memory_management.html'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        try:
+            # Get system-wide memory statistics
+            system_stats = get_memory_statistics()
+            
+            # Get user-specific statistics
+            user_stats = get_user_conversation_summary(request.user.id)
+            
+            # Get threads that need cleanup (old inactive threads)
+            from datetime import datetime, timedelta
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
+            old_threads = ConversationThread.objects.filter(
+                user=request.user,
+                updated_at__lt=cutoff_date,
+                is_active=False
+            ).count()
+            
+            context = self.get_context_data(**kwargs)
+            context.update({
+                'system_stats': system_stats,
+                'user_stats': user_stats,
+                'old_threads': old_threads,
+            })
+            return self.render_to_response(context)
+        except Exception as e:
+            logger.error(f"Error loading memory management: {e}")
+            messages.error(request, 'Unable to load memory management.')
+            return redirect('aiengine:agent_detail')
 
 
 @login_required
@@ -494,57 +509,60 @@ def admin_required(user):
     """Check if user is admin/staff."""
     return user.is_authenticated and user.is_staff
 
-@login_required
-@user_passes_test(admin_required)
-def token_dashboard(request):
-    """Admin dashboard for token usage statistics."""
-    
-    # Get time period from request
-    days = int(request.GET.get('days', 30))
-    
-    # Get token statistics
-    token_stats = get_token_statistics(days=days)
-    
-    # Get top users
-    top_users = get_top_token_users(limit=10)
-    
-    context = {
-        'token_stats': token_stats,
-        'top_users': top_users,
-        'selected_days': days,
-        'available_periods': [7, 30, 90, 365]
-    }
-    
-    return render(request, 'aiengine/token_dashboard.html', context)
+@method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(admin_required), name='dispatch')
+class TokenDashboardView(TemplateView):
+    template_name = 'aiengine/token_dashboard.html'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        # Get time period from request
+        days = int(request.GET.get('days', 30))
+        
+        # Get token statistics
+        token_stats = get_token_statistics(days=days)
+        
+        # Get top users
+        top_users = get_top_token_users(limit=10)
+        
+        context = self.get_context_data(**kwargs)
+        context.update({
+            'token_stats': token_stats,
+            'top_users': top_users,
+            'selected_days': days,
+            'available_periods': [7, 30, 90, 365]
+        })
+        return self.render_to_response(context)
 
 
-@login_required
-@user_passes_test(admin_required)
-def user_token_details(request, user_id):
-    """Detailed token usage for a specific user."""
-    
-    user = get_object_or_404(User, id=user_id)
-    
-    # Get time period from request
-    days = int(request.GET.get('days', 30))
-    
-    # Get user's token statistics
-    user_stats = get_token_statistics(user=user, days=days)
-    user_summary = get_user_token_summary(user)
-    
-    # Get user's recent conversations
-    recent_threads = ConversationThread.objects.filter(user=user).order_by('-updated_at')[:10]
-    
-    context = {
-        'target_user': user,
-        'user_stats': user_stats,
-        'user_summary': user_summary,
-        'recent_threads': recent_threads,
-        'selected_days': days,
-        'available_periods': [7, 30, 90, 365]
-    }
-    
-    return render(request, 'aiengine/user_token_details.html', context)
+@method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(admin_required), name='dispatch')
+class UserTokenDetailsView(TemplateView):
+    template_name = 'aiengine/user_token_details.html'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        user_id = kwargs.get('user_id')
+        user = get_object_or_404(User, id=user_id)
+        
+        # Get time period from request
+        days = int(request.GET.get('days', 30))
+        
+        # Get user's token statistics
+        user_stats = get_token_statistics(user=user, days=days)
+        user_summary = get_user_token_summary(user)
+        
+        # Get user's recent conversations
+        recent_threads = ConversationThread.objects.filter(user=user).order_by('-updated_at')[:10]
+        
+        context = self.get_context_data(**kwargs)
+        context.update({
+            'target_user': user,
+            'user_stats': user_stats,
+            'user_summary': user_summary,
+            'recent_threads': recent_threads,
+            'selected_days': days,
+            'available_periods': [7, 30, 90, 365]
+        })
+        return self.render_to_response(context)
 
 
 @login_required
