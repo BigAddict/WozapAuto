@@ -62,23 +62,76 @@
             <h5 class="mb-0">Messages</h5>
         </div>
         <div class="card-body">
-            {% for message in page_obj %}
-            <div class="mb-3 p-3 rounded chat-bubble {% if message.message_type == 'human' %}bg-light border-start border-primary border-3{% elif message.message_type == 'ai' %}bg-primary bg-opacity-10 border-start border-success border-3{% else %}bg-secondary bg-opacity-10{% endif %}">
+            {% for item in page_obj %}
+            {% if item.type == 'conversation' %}
+            <!-- Regular conversation message -->
+            <div class="mb-3 p-3 rounded chat-bubble {% if item.message.message_type == 'human' %}bg-light border-start border-primary border-3{% elif item.message.message_type == 'ai' %}bg-primary bg-opacity-10 border-start border-success border-3{% else %}bg-secondary bg-opacity-10{% endif %}">
                 <div class="d-flex justify-content-between align-items-start mb-2">
-                    <span class="badge {% if message.message_type == 'human' %}bg-primary{% elif message.message_type == 'ai' %}bg-success{% else %}bg-secondary{% endif %}">
-                        {{ message.message_type|title }}
+                    <span class="badge {% if item.message.message_type == 'human' %}bg-primary{% elif item.message.message_type == 'ai' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ item.message.message_type|title }}
                     </span>
-                    <small class="text-muted">{{ message.created_at|date:"M d, Y H:i:s" }}</small>
+                    <small class="text-muted">{{ item.timestamp|date:"M d, Y H:i:s" }}</small>
                 </div>
                 <div class="message-content">
-                    {{ message.content|whatsapp_markdown_preview }}
+                    {{ item.message.content|whatsapp_markdown_preview }}
                 </div>
-                {% if message.embedding|has_embedding %}
-                    <small class="text-success">✓ Has embedding ({{ message.embedding|embedding_length }} dims)</small>
+                {% if item.message.embedding|has_embedding %}
+                    <small class="text-success">✓ Has embedding ({{ item.message.embedding|embedding_length }} dims)</small>
                 {% else %}
                     <small class="text-warning">⚠ No embedding</small>
                 {% endif %}
             </div>
+            {% else %}
+            <!-- Webhook message -->
+            <div class="mb-3 p-3 rounded chat-bubble {% if item.webhook_data.can_reengage %}bg-warning bg-opacity-10 border-start border-warning border-3{% else %}bg-secondary bg-opacity-10 border-start border-secondary border-3{% endif %}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge bg-info">Webhook</span>
+                        <code class="text-muted ms-2">{{ item.webhook_data.message_id|truncatechars:15 }}</code>
+                        {% if item.webhook_data.needs_reply %}
+                            <span class="badge bg-success ms-1">Reply Sent</span>
+                        {% else %}
+                            <span class="badge bg-warning ms-1">No Reply</span>
+                        {% endif %}
+                        {% if item.webhook_data.is_processed %}
+                            <span class="badge bg-info ms-1">Processed</span>
+                        {% else %}
+                            <span class="badge bg-danger ms-1">Failed</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">{{ item.timestamp|date:"M d, Y H:i:s" }}</small>
+                </div>
+                <div class="mb-2">
+                    <strong>From:</strong> {{ item.webhook_data.push_name }}<br>
+                    <strong>Message:</strong> {{ item.webhook_data.conversation|truncatechars:200 }}
+                </div>
+                
+                {% if item.webhook_data.response_text %}
+                <div class="alert alert-light mb-2">
+                    <strong>AI Response:</strong> {{ item.webhook_data.response_text|truncatechars:200 }}
+                </div>
+                {% endif %}
+                
+                {% if item.webhook_data.can_reengage %}
+                <div class="mt-2">
+                    <form class="reengage-form" data-message-id="{{ item.webhook_data.message_id }}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-sm" 
+                                   name="extra_prompt" 
+                                   placeholder="Additional context (optional)">
+                            <button type="submit" class="btn btn-warning btn-sm">
+                                <i class="bi bi-arrow-clockwise"></i> Re-engage
+                            </button>
+                        </div>
+                    </form>
+                    <div class="reengage-result mt-2" style="display:none;"></div>
+                </div>
+                {% else %}
+                <small class="text-muted">Not eligible for re-engagement</small>
+                {% endif %}
+            </div>
+            {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -197,6 +250,70 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
     })
     .catch(error => {
         resultsContent.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+    });
+});
+
+// Re-engage submit handlers for each webhook message
+document.addEventListener('DOMContentLoaded', function() {
+    const reengageForms = document.querySelectorAll('.reengage-form');
+    if (reengageForms.length === 0) {
+        console.log('No re-engage forms found');
+        return;
+    }
+    
+    reengageForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const messageId = this.dataset.messageId;
+            const resultBox = this.querySelector('.reengage-result');
+            const formData = new FormData(this);
+            formData.append('message_id', messageId);
+            
+            // Check if resultBox exists before manipulating it
+            if (resultBox) {
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = '<div class="alert alert-info">Re-engaging, please wait...</div>';
+            }
+            
+            // Get CSRF token safely
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfToken) {
+                console.error('CSRF token not found');
+                if (resultBox) {
+                    resultBox.innerHTML = '<div class="alert alert-danger">CSRF token not found</div>';
+                }
+                return;
+            }
+            
+            fetch('{% url "aiengine:reengage_webhook" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken.value
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (resultBox) {
+                    if (data.success) {
+                        resultBox.innerHTML = `<div class="alert alert-success">Success! needs_reply=${data.needs_reply}.<br>Response: ${data.response_text}</div>`;
+                        // Disable the form after successful re-engagement
+                        const button = this.querySelector('button');
+                        const input = this.querySelector('input');
+                        if (button) button.disabled = true;
+                        if (input) input.disabled = true;
+                    } else {
+                        resultBox.innerHTML = `<div class="alert alert-danger">${data.message || 'Re-engage failed'}</div>`;
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Re-engage error:', err);
+                if (resultBox) {
+                    resultBox.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+                }
+            });
+        });
     });
 });
 </script>

@@ -810,9 +810,7 @@
                         <a class="nav-link {% if 'knowledgebase' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'knowledgebase:knowledge_base_list' %}">
                             <i class="bi bi-book me-2"></i>Knowledge Base
                         </a>
-                        <a class="nav-link">
-                            <i class="bi bi-diagram-3 me-2"></i>Knowledge Graph
-                        </a>
+                        
                         <a class="nav-link {% if 'audit' in request.resolver_match.namespace and request.resolver_match.url_name == 'analytics_dashboard' %}active{% endif %}" href="{% url 'audit:analytics_dashboard' %}">
                             <i class="bi bi-graph-up me-2"></i>Analytics
                         </a>

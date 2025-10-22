@@ -49,6 +49,7 @@ class WebhookData(models.Model):
     is_group = models.BooleanField()
     is_processed = models.BooleanField(default=False)
     response_text = models.TextField(null=True, blank=True)
+    needs_reply = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-date_time']
@@ -61,6 +62,12 @@ class WebhookData(models.Model):
 
     def __str__(self):
         return f"{self.message_id} - {self.date_time}"
+
+    @property
+    def can_reengage(self) -> bool:
+        """Eligible for re-engagement if no reply was needed or previous processing failed."""
+        processing_error = getattr(self, 'processing_error', None)
+        return (not self.needs_reply) or (not self.is_processed) or bool(processing_error)
 
 class EvolutionWebhookData(BaseModel):
     message_id: str

@@ -21,6 +21,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from .forms import AgentEditForm
 from django.views.generic import TemplateView
+from django.views.decorators.http import require_POST
 
 logger = logging.getLogger("aiengine.views")
 
@@ -144,17 +145,36 @@ class EvolutionWebhookView(View):
                 remote_jid=data.remote_jid
             )
             response = chat_assistant.send_message(data.conversation)
-            self.update_db_with_response(data, response.content)
+            needs_reply = getattr(response, 'needs_reply', True)
+            response_text = getattr(response, 'response_text', response.content)
 
-            success, _ = evolution_api_service.send_text_message(
-                instance_name=data.instance,
-                number=data.remote_jid,
-                message=response.content,
-                reply_to_message_id=data.message_id
-            )
-            if not success:
-                logger.error(f"Failed to send message to {data.remote_jid}")
-                return False
+            # Update DB with structured result
+            try:
+                webhook_data = WebhookData.objects.filter(message_id=data.message_id).first()
+                if webhook_data:
+                    webhook_data.response_text = response_text
+                    webhook_data.needs_reply = needs_reply
+                    webhook_data.is_processed = True
+                    from django.utils import timezone as _tz
+                    if hasattr(webhook_data, 'last_processed_at'):
+                        webhook_data.last_processed_at = _tz.now()
+                    webhook_data.processing_attempts = getattr(webhook_data, 'processing_attempts', 0) + 1
+                    webhook_data.processing_error = None
+                    webhook_data.save()
+            except Exception as e:
+                logger.warning(f"Failed to update webhook structured fields: {e}")
+
+            # Only send to WhatsApp if needs_reply
+            if needs_reply:
+                success, _ = evolution_api_service.send_text_message(
+                    instance_name=data.instance,
+                    number=data.remote_jid,
+                    message=response_text,
+                    reply_to_message_id=data.message_id
+                )
+                if not success:
+                    logger.error(f"Failed to send message to {data.remote_jid}")
+                    return False
             return True
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")
@@ -375,8 +395,38 @@ class ConversationDetailView(TemplateView):
             # Get messages for this thread
             msgs = ConversationMessage.objects.filter(thread=thread).order_by('created_at')
             
-            # Paginate messages
-            paginator = Paginator(msgs, 20)
+            # Get webhook data for this thread and merge with messages
+            webhook_messages = WebhookData.objects.filter(
+                user=request.user,
+                remote_jid=thread.remote_jid
+            ).order_by('date_time')
+            
+            # Create a combined list of messages and webhook messages
+            combined_messages = []
+            
+            # Add regular conversation messages
+            for msg in msgs:
+                combined_messages.append({
+                    'type': 'conversation',
+                    'message': msg,
+                    'webhook_data': None,
+                    'timestamp': msg.created_at
+                })
+            
+            # Add webhook messages
+            for webhook in webhook_messages:
+                combined_messages.append({
+                    'type': 'webhook',
+                    'message': None,
+                    'webhook_data': webhook,
+                    'timestamp': webhook.date_time
+                })
+            
+            # Sort by timestamp
+            combined_messages.sort(key=lambda x: x['timestamp'])
+            
+            # Paginate combined messages
+            paginator = Paginator(combined_messages, 20)
             page_number = request.GET.get('page')
             page_obj = paginator.get_page(page_number)
             
@@ -585,3 +635,73 @@ def token_export(request):
     }
     
     return JsonResponse(export_data, json_dumps_params={'indent': 2})
+
+
+@login_required
+@require_POST
+def reengage_webhook(request: HttpRequest):
+    """Re-engage agent for a specific webhook message with optional extra prompt."""
+    try:
+        message_id = request.POST.get('message_id', '').strip()
+        extra_prompt = request.POST.get('extra_prompt', '').strip()
+        if not message_id:
+            return JsonResponse({'success': False, 'message': 'message_id is required'}, status=400)
+
+        webhook = WebhookData.objects.filter(message_id=message_id, user=request.user).first()
+        if not webhook:
+            return JsonResponse({'success': False, 'message': 'Webhook not found or not owned by user'}, status=404)
+
+        # Eligibility: no reply previously OR previous processing failed
+        if not (getattr(webhook, 'can_reengage', False)):
+            return JsonResponse({'success': False, 'message': 'Webhook not eligible for re-engagement'}, status=400)
+
+        # Build context: original conversation + extra prompt
+        reengage_text = webhook.conversation
+        if extra_prompt:
+            reengage_text = f"{reengage_text}\n\nAdditional context: {extra_prompt}"
+
+        # Resolve user and agent
+        user = webhook.user
+        agent = Agent.objects.filter(user=user).order_by('-is_active', 'created_at').first()
+        if not agent:
+            return JsonResponse({'success': False, 'message': 'Agent not found'}, status=404)
+
+        chat_assistant = ChatAssistant(
+            thread_id=webhook.remote_jid,
+            system_instructions=agent.system_prompt,
+            user=user,
+            agent=agent,
+            remote_jid=webhook.remote_jid
+        )
+
+        response = chat_assistant.send_message(reengage_text)
+        needs_reply = getattr(response, 'needs_reply', True)
+        response_text = getattr(response, 'response_text', response.content)
+
+        # Send if needed
+        if needs_reply:
+            from connections.services import evolution_api_service
+            success, send_result = evolution_api_service.send_text_message(
+                instance_name=webhook.instance,
+                number=webhook.remote_jid,
+                message=response_text,
+                reply_to_message_id=webhook.message_id
+            )
+            if not success:
+                return JsonResponse({'success': False, 'message': 'Failed to send WhatsApp message'}, status=502)
+
+        # Update webhook record
+        from django.utils import timezone as _tz
+        webhook.response_text = response_text
+        webhook.needs_reply = needs_reply
+        webhook.is_processed = True
+        if hasattr(webhook, 'last_processed_at'):
+            webhook.last_processed_at = _tz.now()
+        webhook.processing_attempts = getattr(webhook, 'processing_attempts', 0) + 1
+        webhook.processing_error = None
+        webhook.save()
+
+        return JsonResponse({'success': True, 'needs_reply': needs_reply, 'response_text': response_text})
+    except Exception as e:
+        logger.error(f"Error in reengage_webhook: {e}")
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)

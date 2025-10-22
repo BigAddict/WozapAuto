@@ -4,10 +4,10 @@ Memory service for semantic search and context window management.
 import numpy as np
 from typing import List, Optional, Tuple, Dict, Any
 from django.db.models import Q
-from sentence_transformers import SentenceTransformer
 import logging
 
 from .models import ConversationThread, ConversationMessage
+from .model_cache import model_cache
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 
 logger = logging.getLogger("aiengine.memory_service")
@@ -29,28 +29,15 @@ class MemoryService:
         self.thread = thread
         self.max_context_messages = max_context_messages
         
-        # Initialize embedding model with error handling
-        self.embedding_model = None
-        self.embedding_dimensions = 0
-        
-        # Try different embedding models in order of preference
-        models_to_try = [
-            'all-MiniLM-L6-v2',
-            'paraphrase-MiniLM-L6-v2', 
-            'all-MiniLM-L12-v2',
-            'distilbert-base-nli-mean-tokens'
-        ]
-        
-        for model_name in models_to_try:
-            try:
-                logger.info(f"Trying to initialize embedding model: {model_name}")
-                self.embedding_model = SentenceTransformer(model_name)
-                self.embedding_dimensions = 384  # Most models use 384 dimensions
-                logger.info(f"Successfully initialized embedding model: {model_name}")
-                break
-            except Exception as e:
-                logger.warning(f"Failed to initialize {model_name}: {e}")
-                continue
+        # Use global model cache for better performance
+        try:
+            self.embedding_model = model_cache.get_model()
+            self.embedding_dimensions = model_cache.get_embedding_dimensions()
+            logger.info(f"Using cached embedding model: {model_cache.get_model_name()}")
+        except Exception as e:
+            logger.error(f"Failed to get model from cache: {e}")
+            self.embedding_model = None
+            self.embedding_dimensions = 0
         
         if not self.embedding_model:
             logger.error("Failed to initialize any embedding model. Semantic search will be disabled.")

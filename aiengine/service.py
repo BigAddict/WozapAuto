@@ -10,6 +10,7 @@ from aiengine.checkpointer import DatabaseCheckpointSaver
 from aiengine.memory_service import MemoryService
 from aiengine.memory_tools import MemorySearchTool
 from aiengine.models import ConversationThread, Agent
+from aiengine.structured_output import AIResponse
 from knowledgebase.service import KnowledgeBaseService
 from knowledgebase.tools import KnowledgeBaseTool
 from audit.services import AuditService
@@ -112,7 +113,7 @@ class ChatAssistant:
         logger.info(f"System instructions: {self.system_prompt[:100]}...")
         logger.info(f"Prompt template created with system instructions")
         
-        # Create agent with tools first, then we'll handle the prompt in send_message
+        # Create agent with tools (without structured output at model level)
         self.app = create_react_agent(
             model=self.model,
             tools=tools,
@@ -143,15 +144,42 @@ class ChatAssistant:
         logger.debug(f"System instructions: {self.system_prompt[:200]}...")
         logger.debug(f"User message: {message}")
         
+        # Get the agent response
         output = self.app.invoke({"messages": input_messages}, self.config)
         ai_response = output["messages"][-1]
+
+        # Parse structured output from the AI response
+        needs_reply = True
+        response_text = str(ai_response.content) if ai_response.content else "No response generated"
+        
+        try:
+            import json
+            # Try to parse JSON from the response
+            parsed_response = json.loads(response_text)
+            if isinstance(parsed_response, dict) and "needs_reply" in parsed_response and "response_text" in parsed_response:
+                needs_reply = bool(parsed_response.get("needs_reply", True))
+                response_text = str(parsed_response.get("response_text", ""))
+                logger.info(f"Parsed structured response: needs_reply={needs_reply}")
+            else:
+                logger.warning("Response is JSON but missing required fields")
+        except (json.JSONDecodeError, TypeError):
+            # Not JSON, use the raw response
+            logger.info("Response is not JSON, using raw content")
+            pass
         
         # Calculate response time
         response_time_ms = int((time.time() - start_time) * 1000)
         
         # Store AI response with audit logging
+        ai_response = AIMessage(
+            content=response_text, 
+            response_metadata=getattr(ai_response, 'response_metadata', {})
+        )
         self._store_ai_response(ai_response, response_time_ms)
         
+        # Attach structured fields to the message for callers to use
+        setattr(ai_response, "needs_reply", needs_reply)
+        setattr(ai_response, "response_text", response_text)
         return ai_response
 
     def _store_human_message(self, message: str):

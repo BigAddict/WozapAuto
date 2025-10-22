@@ -18,6 +18,7 @@ urlpatterns = [
     path('memory/', views.MemoryManagementView.as_view(), name='memory_management'),
     path('memory/cleanup/', views.cleanup_memory, name='cleanup_memory'),
     path('memory/search/', views.test_semantic_search, name='test_semantic_search'),
+    path('webhook/reengage/', views.reengage_webhook, name='reengage_webhook'),
     
     # Token usage dashboard (admin only)
     path('tokens/', views.TokenDashboardView.as_view(), name='token_dashboard'),

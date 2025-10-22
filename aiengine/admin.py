@@ -14,6 +14,7 @@ class WebhookDataAdmin(admin.ModelAdmin):
         'message_type',
         'from_me',
         'is_group',
+        'needs_reply',
         'date_time',
         'is_processed'
     ]
@@ -43,6 +44,7 @@ class WebhookDataAdmin(admin.ModelAdmin):
         'message_type',
         'from_me',
         'is_group',
+        'needs_reply',
         'quoted_message',
         'date_time',
         'is_processed',
