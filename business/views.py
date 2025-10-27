@@ -74,6 +74,16 @@ class BusinessDetailView(ProfileRequiredMixin, AuditLogMixin, DetailView):
     template_name = 'business/business_detail.html'
     context_object_name = 'business'
     
+    def dispatch(self, request, *args, **kwargs):
+        """Check if user has business profile before proceeding."""
+        business = get_user_business(request.user)
+        if not business:
+            from django.shortcuts import redirect
+            from django.contrib import messages
+            messages.info(request, 'Please create your business profile first.')
+            return redirect('business:business_create')
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_object(self, queryset=None):
         """Get the user's business profile."""
         return get_user_business(self.request.user)
