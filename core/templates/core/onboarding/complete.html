@@ -1,0 +1,182 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Welcome to WozapAuto! - Onboarding Complete{% endblock %}
+
+{% block extra_css %}
+<style>
+    .completion-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .completion-card {
+        max-width: 600px;
+        text-align: center;
+        padding: 3rem 2rem;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .completion-icon {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+        animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-10px);
+        }
+        60% {
+            transform: translateY(-5px);
+        }
+    }
+    
+    .completion-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    
+    .completion-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    
+    .btn-dashboard {
+        background: rgba(255,255,255,0.2);
+        border: 2px solid rgba(255,255,255,0.3);
+        color: white;
+        padding: 1rem 2.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        margin-right: 1rem;
+    }
+    
+    .btn-dashboard:hover {
+        background: rgba(255,255,255,0.3);
+        border-color: rgba(255,255,255,0.5);
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .btn-explore {
+        background: transparent;
+        border: 2px solid rgba(255,255,255,0.5);
+        color: white;
+        padding: 1rem 2.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-explore:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.7);
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .features-grid {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        opacity: 0.9;
+    }
+    
+    .feature-icon {
+        background: rgba(255,255,255,0.2);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="completion-container">
+        <div class="completion-card">
+            <div class="completion-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            
+            <h1 class="completion-title">Welcome to WozapAuto!</h1>
+            
+            <p class="completion-subtitle">
+                Congratulations! Your business profile has been set up successfully. 
+                You're now ready to start automating your WhatsApp business communications.
+            </p>
+            
+            <div class="mb-4">
+                <a href="{% url 'home' %}" class="btn btn-dashboard">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Go to Dashboard
+                </a>
+                
+                <a href="{% url 'business:business_detail' %}" class="btn btn-explore">
+                    <i class="fas fa-building me-2"></i>
+                    View Business Profile
+                </a>
+            </div>
+            
+            <div class="features-grid">
+                <h4 class="mb-3">What you can do now:</h4>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <span>Set up automated WhatsApp responses</span>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <span>Create and manage your product catalog</span>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <span>Schedule appointments and bookings</span>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span>Track customer interactions and analytics</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -50,19 +50,20 @@ def onboarding_required(view_func):
         
         # Check if onboarding is completed
         try:
-            if not request.user.profile.onboarding_completed:
+            profile = request.user.profile
+            if not profile.is_onboarding_complete():
                 messages.info(
                     request, 
                     'Please complete your profile setup to continue.'
                 )
-                return redirect('welcome_onboarding')
+                return redirect(profile.get_onboarding_redirect_url())
         except AttributeError:
             # Profile doesn't exist, redirect to onboarding
             messages.info(
                 request, 
                 'Please complete your profile setup to continue.'
             )
-            return redirect('welcome_onboarding')
+            return redirect('onboarding_welcome')
         
         return view_func(request, *args, **kwargs)
     
@@ -89,7 +90,7 @@ def business_profile_required(view_func):
                 request, 
                 'Please create your business profile to continue.'
             )
-            return redirect('create_business_profile')
+            return redirect('onboarding_business')
         
         return view_func(request, *args, **kwargs)
     

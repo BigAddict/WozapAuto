@@ -25,12 +25,12 @@ class ProfileRequiredMixin(LoginRequiredMixin):
         
         try:
             profile = request.user.profile
-            if not profile.onboarding_completed:
+            if not profile.is_onboarding_complete():
                 messages.info(request, 'Please complete your profile setup to continue.')
-                return redirect('welcome_onboarding')
+                return redirect(profile.get_onboarding_redirect_url())
         except UserProfile.DoesNotExist:
             messages.info(request, 'Please complete your profile setup to continue.')
-            return redirect('welcome_onboarding')
+            return redirect('onboarding_welcome')
         
         return super().dispatch(request, *args, **kwargs)
 
@@ -54,7 +54,7 @@ class BusinessProfileRequiredMixin(ProfileRequiredMixin):
         except AttributeError:
             # Business profile doesn't exist
             messages.info(request, 'Please create your business profile to continue.')
-            return redirect('create_business_profile')
+            return redirect('onboarding_business')
         
         return super().dispatch(request, *args, **kwargs)
 

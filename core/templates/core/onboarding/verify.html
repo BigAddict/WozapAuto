@@ -1,0 +1,268 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Verification - Onboarding{% endblock %}
+
+{% block extra_css %}
+<style>
+    .onboarding-container {
+        min-height: 80vh;
+        padding: 2rem 0;
+    }
+    
+    .onboarding-card {
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .onboarding-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .onboarding-body {
+        padding: 2rem;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    
+    .step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 0.5rem;
+        font-weight: 600;
+        position: relative;
+    }
+    
+    .step.active {
+        background: #667eea;
+        color: white;
+    }
+    
+    .step.completed {
+        background: #28a745;
+        color: white;
+    }
+    
+    .step.inactive {
+        background: #e9ecef;
+        color: #6c757d;
+    }
+    
+    .step::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 100%;
+        width: 20px;
+        height: 2px;
+        background: #e9ecef;
+        transform: translateY(-50%);
+    }
+    
+    .step:last-child::after {
+        display: none;
+    }
+    
+    .step.completed::after {
+        background: #28a745;
+    }
+    
+    .verification-icon {
+        font-size: 4rem;
+        color: #28a745;
+        margin-bottom: 1rem;
+    }
+    
+    .phone-display {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .otp-input {
+        font-size: 1.5rem;
+        text-align: center;
+        letter-spacing: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .btn-verify {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-verify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+    }
+    
+    .btn-resend {
+        background: transparent;
+        border: 1px solid #6c757d;
+        color: #6c757d;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-resend:hover {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .countdown {
+        color: #dc3545;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="onboarding-container">
+        <div class="onboarding-card">
+            <div class="onboarding-header">
+                <h2 class="mb-0">
+                    <i class="fas fa-mobile-alt me-2"></i>
+                    WhatsApp Verification
+                </h2>
+                <p class="mb-0 mt-2 opacity-75">Step 3 of 3 - Verify your WhatsApp number</p>
+            </div>
+            
+            <div class="onboarding-body">
+                <div class="step-indicator">
+                    <div class="step completed">1</div>
+                    <div class="step completed">2</div>
+                    <div class="step active">3</div>
+                </div>
+                
+                <div class="text-center mb-4">
+                    <div class="verification-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h4>Verify Your WhatsApp Number</h4>
+                    <p class="text-muted">We've sent a 6-digit verification code to your WhatsApp number</p>
+                    
+                    <div class="phone-display">
+                        <i class="fas fa-phone me-2"></i>
+                        <strong>{{ user.business_profile.phone_number }}</strong>
+                    </div>
+                </div>
+                
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.otp_code.id_for_label }}" class="form-label">Verification Code</label>
+                        {{ form.otp_code }}
+                        {% if form.otp_code.help_text %}
+                            <div class="form-text">{{ form.otp_code.help_text }}</div>
+                        {% endif %}
+                        {% if form.otp_code.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.otp_code.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="submit" class="btn btn-success btn-verify">
+                            <i class="fas fa-check me-2"></i>Verify Code
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="text-center">
+                    <p class="text-muted small mb-2">Didn't receive the code?</p>
+                    <a href="{% url 'resend_otp' %}" class="btn btn-resend">
+                        <i class="fas fa-redo me-1"></i>Resend Code
+                    </a>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-clock me-1"></i>
+                        Code expires in <span class="countdown" id="countdown">10:00</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInput = document.getElementById('{{ form.otp_code.id_for_label }}');
+    const countdownElement = document.getElementById('countdown');
+    
+    // Auto-focus on OTP input
+    if (otpInput) {
+        otpInput.focus();
+        
+        // Auto-submit when 6 digits are entered
+        otpInput.addEventListener('input', function(e) {
+            const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+            e.target.value = value;
+            
+            if (value.length === 6) {
+                // Auto-submit after a short delay
+                setTimeout(() => {
+                    e.target.form.submit();
+                }, 500);
+            }
+        });
+    }
+    
+    // Countdown timer
+    let timeLeft = 600; // 10 minutes in seconds
+    
+    function updateCountdown() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        countdownElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timeLeft > 0) {
+            timeLeft--;
+            setTimeout(updateCountdown, 1000);
+        } else {
+            countdownElement.textContent = 'Expired';
+            countdownElement.style.color = '#dc3545';
+        }
+    }
+    
+    updateCountdown();
+});
+</script>
+{% endblock %}

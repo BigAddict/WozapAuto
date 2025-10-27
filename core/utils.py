@@ -81,3 +81,96 @@ def get_user_display_name(user: User) -> str:
         return user.first_name
     else:
         return user.username
+
+
+def get_onboarding_progress(user: User) -> Dict[str, Any]:
+    """
+    Get onboarding progress information for a user.
+    
+    Args:
+        user: Django User instance
+        
+    Returns:
+        Dictionary with onboarding progress information
+    """
+    try:
+        profile = user.profile
+        return {
+            'is_complete': profile.is_onboarding_complete(),
+            'current_step': profile.onboarding_step,
+            'next_url': profile.get_onboarding_redirect_url(),
+            'steps': {
+                'welcome': profile.onboarding_step == 'welcome',
+                'profile': profile.onboarding_step in ['profile', 'business', 'verify', 'complete'],
+                'business': profile.onboarding_step in ['business', 'verify', 'complete'],
+                'verify': profile.onboarding_step in ['verify', 'complete'],
+                'complete': profile.onboarding_step == 'complete'
+            }
+        }
+    except UserProfile.DoesNotExist:
+        return {
+            'is_complete': False,
+            'current_step': 'welcome',
+            'next_url': '/onboarding/',
+            'steps': {
+                'welcome': True,
+                'profile': False,
+                'business': False,
+                'verify': False,
+                'complete': False
+            }
+        }
+
+
+def reset_user_onboarding(user: User) -> None:
+    """
+    Reset user's onboarding progress to start from the beginning.
+    
+    Args:
+        user: Django User instance
+    """
+    try:
+        profile = user.profile
+        profile.onboarding_step = 'welcome'
+        profile.onboarding_completed = False
+        profile.save()
+        logger.info(f"Reset onboarding for user: {user.username}")
+    except UserProfile.DoesNotExist:
+        logger.warning(f"Profile not found for user: {user.username}")
+
+
+def complete_user_onboarding(user: User) -> None:
+    """
+    Mark user's onboarding as complete.
+    
+    Args:
+        user: Django User instance
+    """
+    try:
+        profile = user.profile
+        profile.onboarding_step = 'complete'
+        profile.onboarding_completed = True
+        profile.save()
+        logger.info(f"Completed onboarding for user: {user.username}")
+    except UserProfile.DoesNotExist:
+        logger.warning(f"Profile not found for user: {user.username}")
+
+
+def get_onboarding_step_display(step: str) -> str:
+    """
+    Get human-readable display name for onboarding step.
+    
+    Args:
+        step: Onboarding step code
+        
+    Returns:
+        Human-readable step name
+    """
+    step_names = {
+        'welcome': 'Welcome',
+        'profile': 'Personal Profile',
+        'business': 'Business Profile',
+        'verify': 'WhatsApp Verification',
+        'complete': 'Completed'
+    }
+    return step_names.get(step, 'Unknown')

@@ -18,7 +18,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.utils import timezone
 from .models import UserProfile
-from .forms import CustomUserCreationForm, BusinessProfileForm, OTPVerificationForm
+from .forms import CustomUserCreationForm, BusinessProfileForm, OTPVerificationForm, PersonalProfileForm
 from business.models import BusinessProfile
 from .decorators import verified_email_required, onboarding_required, business_profile_required
 from .whatsapp_service import whatsapp_service
@@ -41,7 +41,7 @@ def signup(request):
                     request, 
                     'Account created successfully! Please complete your profile setup.'
                 )
-                return redirect('onboarding')
+                return redirect('onboarding_welcome')
                 
             except Exception as e:
                 messages.error(request, f'An error occurred: {str(e)}')
@@ -115,21 +115,12 @@ class HomePageView(TemplateView):
         # Check if user needs onboarding
         if request.user.is_authenticated:
             try:
-                if not request.user.profile.onboarding_completed:
-                    messages.info(request, 'Please complete your profile setup to continue.')
-                    return redirect('welcome_onboarding')
+                profile = request.user.profile
+                if not profile.is_onboarding_complete():
+                    return redirect(profile.get_onboarding_redirect_url())
             except AttributeError:
                 # Profile doesn't exist, redirect to onboarding
-                messages.info(request, 'Please complete your profile setup to continue.')
-                return redirect('welcome_onboarding')
-            
-            # Check if business profile exists
-            try:
-                business_profile = request.user.business_profile
-            except AttributeError:
-                # Business profile doesn't exist
-                messages.info(request, 'Please create your business profile to continue.')
-                return redirect('create_business_profile')
+                return redirect('onboarding_welcome')
         
         return super().dispatch(request, *args, **kwargs)
     

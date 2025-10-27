@@ -269,3 +269,45 @@ class OTPVerificationForm(forms.Form):
             if not re.match(r'^\d{6}$', otp_code):
                 raise ValidationError('Please enter a valid 6-digit code.')
         return otp_code
+
+
+class PersonalProfileForm(forms.ModelForm):
+    """Form for personal profile completion during onboarding"""
+    
+    class Meta:
+        model = UserProfile
+        fields = ['avatar', 'newsletter_subscribed']
+        widgets = {
+            'avatar': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'newsletter_subscribed': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add help text
+        self.fields['avatar'].help_text = 'Upload a profile picture (optional)'
+        self.fields['newsletter_subscribed'].help_text = 'Subscribe to our newsletter for updates and tips'
+        
+        # Make newsletter field more prominent
+        self.fields['newsletter_subscribed'].label = 'Subscribe to Newsletter'
+    
+    def clean_avatar(self):
+        """Validate avatar file"""
+        avatar = self.cleaned_data.get('avatar')
+        if avatar:
+            # Check file size (max 5MB)
+            if avatar.size > 5 * 1024 * 1024:
+                raise ValidationError('Avatar file size must be less than 5MB.')
+            
+            # Check file type
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if avatar.content_type not in allowed_types:
+                raise ValidationError('Please upload a valid image file (JPEG, PNG, GIF, or WebP).')
+        
+        return avatar

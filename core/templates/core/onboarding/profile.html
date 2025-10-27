@@ -1,0 +1,214 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Personal Profile - Onboarding{% endblock %}
+
+{% block extra_css %}
+<style>
+    .onboarding-container {
+        min-height: 80vh;
+        padding: 2rem 0;
+    }
+    
+    .onboarding-card {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .onboarding-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .onboarding-body {
+        padding: 2rem;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    
+    .step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 0.5rem;
+        font-weight: 600;
+        position: relative;
+    }
+    
+    .step.active {
+        background: #667eea;
+        color: white;
+    }
+    
+    .step.completed {
+        background: #28a745;
+        color: white;
+    }
+    
+    .step.inactive {
+        background: #e9ecef;
+        color: #6c757d;
+    }
+    
+    .step::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 100%;
+        width: 20px;
+        height: 2px;
+        background: #e9ecef;
+        transform: translateY(-50%);
+    }
+    
+    .step:last-child::after {
+        display: none;
+    }
+    
+    .step.completed::after {
+        background: #28a745;
+    }
+    
+    .avatar-preview {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #e9ecef;
+        margin: 0 auto 1rem;
+        display: block;
+    }
+    
+    .avatar-upload {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-continue {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-continue:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="onboarding-container">
+        <div class="onboarding-card">
+            <div class="onboarding-header">
+                <h2 class="mb-0">
+                    <i class="fas fa-user me-2"></i>
+                    Personal Profile
+                </h2>
+                <p class="mb-0 mt-2 opacity-75">Step 1 of 3 - Complete your personal information</p>
+            </div>
+            
+            <div class="onboarding-body">
+                <div class="step-indicator">
+                    <div class="step active">1</div>
+                    <div class="step inactive">2</div>
+                    <div class="step inactive">3</div>
+                </div>
+                
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="avatar-upload">
+                        {% if user.profile.avatar %}
+                            <img src="{{ user.profile.avatar.url }}" alt="Current Avatar" class="avatar-preview" id="avatar-preview">
+                        {% else %}
+                            <div class="avatar-preview bg-light d-flex align-items-center justify-content-center" id="avatar-preview">
+                                <i class="fas fa-user fa-3x text-muted"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.avatar.id_for_label }}" class="form-label">Profile Picture</label>
+                            {{ form.avatar }}
+                            {% if form.avatar.help_text %}
+                                <div class="form-text">{{ form.avatar.help_text }}</div>
+                            {% endif %}
+                            {% if form.avatar.errors %}
+                                <div class="text-danger small">{{ form.avatar.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.newsletter_subscribed }}
+                            <label class="form-check-label" for="{{ form.newsletter_subscribed.id_for_label }}">
+                                {{ form.newsletter_subscribed.label }}
+                            </label>
+                        </div>
+                        {% if form.newsletter_subscribed.help_text %}
+                            <div class="form-text">{{ form.newsletter_subscribed.help_text }}</div>
+                        {% endif %}
+                        {% if form.newsletter_subscribed.errors %}
+                            <div class="text-danger small">{{ form.newsletter_subscribed.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-continue">
+                            <i class="fas fa-arrow-right me-2"></i>
+                            Continue to Business Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarInput = document.getElementById('{{ form.avatar.id_for_label }}');
+    const avatarPreview = document.getElementById('avatar-preview');
+    
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Avatar Preview" class="avatar-preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
