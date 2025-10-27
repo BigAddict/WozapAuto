@@ -110,8 +110,30 @@ def signout(request):
 class HomePageView(TemplateView):
     template_name = 'core/home.html'
     
-    @method_decorator(business_profile_required)
+    @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
+        # Check if user needs onboarding
+        if request.user.is_authenticated:
+            try:
+                if not request.user.profile.onboarding_completed:
+                    messages.info(request, 'Please complete your profile setup to continue.')
+                    return redirect('welcome_onboarding')
+            except AttributeError:
+                # Profile doesn't exist, redirect to onboarding
+                messages.info(request, 'Please complete your profile setup to continue.')
+                return redirect('welcome_onboarding')
+            
+            # Check if business profile exists
+            try:
+                business_profile = request.user.business_profile
+                if not business_profile:
+                    messages.info(request, 'Please create your business profile to continue.')
+                    return redirect('create_business_profile')
+            except AttributeError:
+                # Business profile doesn't exist
+                messages.info(request, 'Please create your business profile to continue.')
+                return redirect('create_business_profile')
+        
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -459,9 +481,10 @@ def create_business_profile(request):
             if business_profile.is_verified:
                 messages.info(request, 'Your business profile is already verified.')
                 return redirect('home')
-            # If exists but not verified, continue to OTP verification
+            # If exists but not verified, redirect to OTP verification
             return redirect('verify_whatsapp_otp')
-        except BusinessProfile.DoesNotExist:
+        except AttributeError:
+            # Business profile doesn't exist
             pass
         
         if request.method == 'POST':
