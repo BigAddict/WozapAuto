@@ -422,13 +422,13 @@ def resend_verification(request):
             messages.info(request, 'Your WhatsApp number is already verified.')
             return redirect('home')
         
-        # Rate limiting: max 1 request per hour (more lenient)
+        # Rate limiting: max 1 request per 5 minutes (more reasonable)
         if business_profile.otp_created_at:
             time_diff = timezone.now() - business_profile.otp_created_at
-            if time_diff.total_seconds() < 60 * 60:  # 1 hour
-                wait_seconds = int(60 * 60 - time_diff.total_seconds())
+            if time_diff.total_seconds() < 5 * 60:  # 5 minutes
+                wait_seconds = int(5 * 60 - time_diff.total_seconds())
                 logger.info("resend_verification:rate_limited", extra={'wait_seconds': wait_seconds})
-                messages.warning(request, 'Please wait before requesting another verification message.')
+                messages.warning(request, f'Please wait {wait_seconds} seconds before requesting another verification message.')
                 return redirect('verification_required')
         
         # Send verification WhatsApp message
@@ -564,6 +564,14 @@ def resend_otp(request):
         if business_profile.is_verified:
             messages.info(request, 'Your WhatsApp number is already verified.')
             return redirect('home')
+        
+        # Rate limiting: max 1 request per 2 minutes
+        if business_profile.otp_created_at:
+            time_diff = timezone.now() - business_profile.otp_created_at
+            if time_diff.total_seconds() < 2 * 60:  # 2 minutes
+                wait_seconds = int(2 * 60 - time_diff.total_seconds())
+                messages.warning(request, f'Please wait {wait_seconds} seconds before requesting another code.')
+                return redirect('verify_whatsapp_otp')
         
         # Generate and send new OTP
         otp_code = business_profile.generate_otp()

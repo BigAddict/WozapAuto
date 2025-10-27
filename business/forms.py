@@ -20,7 +20,7 @@ class BusinessProfileForm(forms.ModelForm):
     class Meta:
         model = BusinessProfile
         fields = [
-            'name', 'description', 'business_type', 'phone', 'email', 
+            'name', 'description', 'business_type', 'phone_number', 'email', 
             'website', 'address', 'currency', 'timezone', 'language',
             'bot_active', 'auto_reply_enabled'
         ]
@@ -35,7 +35,7 @@ class BusinessProfileForm(forms.ModelForm):
                 'placeholder': 'Describe your business'
             }),
             'business_type': forms.Select(attrs={'class': 'form-control'}),
-            'phone': forms.TextInput(attrs={
+            'phone_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': '+1234567890'
             }),
@@ -68,12 +68,12 @@ class BusinessProfileForm(forms.ModelForm):
         """Normalize business name."""
         return normalize_string_field(self.cleaned_data.get('name'))
     
-    def clean_phone(self):
+    def clean_phone_number(self):
         """Validate phone number format."""
-        phone = normalize_string_field(self.cleaned_data.get('phone'))
-        if phone and not re.match(r'^\+[1-9]\d{1,14}$', phone):
+        phone_number = normalize_string_field(self.cleaned_data.get('phone_number'))
+        if phone_number and not re.match(r'^\+[1-9]\d{1,14}$', phone_number):
             raise ValidationError('Please enter a valid phone number with country code.')
-        return phone
+        return phone_number
     
 
 

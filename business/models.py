@@ -57,7 +57,6 @@ class BusinessProfile(models.Model):
     business_type = models.ForeignKey(BusinessType, on_delete=models.CASCADE)
     
     # Contact Information
-    phone = models.CharField(max_length=20, blank=True, null=True)
     phone_number = models.CharField(max_length=20, unique=True, help_text="Business WhatsApp number for OTP verification")
     email = models.EmailField(blank=True, null=True)
     website = models.URLField(blank=True, null=True)

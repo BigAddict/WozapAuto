@@ -15,7 +15,9 @@
                         </div>
                         <h2 class="card-title">Verify Your WhatsApp</h2>
                         <p class="text-muted">We've sent a 6-digit code to your WhatsApp number</p>
-                        <p class="text-muted small">{{ user.profile.phone_number }}</p>
+                        <p class="text-muted small">
+                            <i class="bi bi-telephone me-1"></i>{{ user.business_profile.phone_number }}
+                        </p>
                     </div>
 
                     {% if messages %}

@@ -102,10 +102,10 @@ class BusinessService:
             'description': self.business.description,
             'business_type': self.business.business_type.display_name,
             'contact': {
-                'phone': self.business.phone,
+                'phone': self.business.phone_number,
                 'email': self.business.email,
                 'website': self.business.website,
-                'whatsapp': self.business.phone  # Use phone field for WhatsApp
+                'whatsapp': self.business.phone_number  # Use phone_number field for WhatsApp
             },
             'address': self.business.address,
             'business_hours': hours_dict,
@@ -513,7 +513,7 @@ class BusinessService:
             },
             'featured': featured,
             'contact': {
-                'phone': self.business.phone,
-                'whatsapp': self.business.phone  # Use phone field for WhatsApp
+                'phone': self.business.phone_number,
+                'whatsapp': self.business.phone_number  # Use phone_number field for WhatsApp
             }
         }

@@ -32,9 +32,9 @@ class BusinessLocationInline(admin.TabularInline):
 
 @admin.register(BusinessProfile)
 class BusinessProfileAdmin(admin.ModelAdmin):
-    list_display = ['name', 'business_type', 'phone', 'bot_active', 'created_at']
+    list_display = ['name', 'business_type', 'phone_number', 'bot_active', 'created_at']
     list_filter = ['business_type', 'bot_active', 'created_at']
-    search_fields = ['name', 'phone', 'email']
+    search_fields = ['name', 'phone_number', 'email']
     inlines = [BusinessSettingsInline, BusinessHoursInline, BusinessLocationInline]
     
     fieldsets = (
@@ -42,7 +42,7 @@ class BusinessProfileAdmin(admin.ModelAdmin):
             'fields': ('name', 'description', 'business_type')
         }),
         ('Contact Information', {
-            'fields': ('phone', 'email', 'website', 'address')
+            'fields': ('phone_number', 'email', 'website', 'address')
         }),
         ('Business Settings', {
             'fields': ('currency', 'timezone', 'language')

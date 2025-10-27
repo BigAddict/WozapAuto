@@ -9,10 +9,23 @@
             <div class="alert alert-warning" role="alert">
                 <h4 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>WhatsApp verification required</h4>
                 <p>To access this feature, please verify your WhatsApp number.</p>
+                {% if user.business_profile %}
+                    <p class="mb-2"><strong>Phone Number:</strong> {{ user.business_profile.phone_number }}</p>
+                {% endif %}
                 <hr>
-                <div class="d-flex gap-2">
-                    <a href="{% url 'resend_verification' %}" class="btn btn-outline-primary">Resend verification message</a>
-                    <a href="{% url 'verify_whatsapp_otp' %}" class="btn btn-primary">I already have my code</a>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{% url 'resend_verification' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-send me-1"></i>Send verification code
+                    </a>
+                    <a href="{% url 'verify_whatsapp_otp' %}" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>I already have my code
+                    </a>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        You can request a new code every 5 minutes. Codes expire after 10 minutes.
+                    </small>
                 </div>
             </div>
         </div>

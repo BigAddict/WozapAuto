@@ -813,6 +813,9 @@
                         <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_detail' %}active{% endif %}" href="{% url 'aiengine:agent_detail' %}">
                             <i class="bi bi-robot me-2"></i>AI Agent
                         </a>
+                        <a class="nav-link {% if 'business' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'business:business_detail' %}">
+                            <i class="bi bi-shop me-2"></i>Business
+                        </a>
                         <a class="nav-link {% if 'knowledgebase' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'knowledgebase:knowledge_base_list' %}">
                             <i class="bi bi-book me-2"></i>Knowledge Base
                         </a>

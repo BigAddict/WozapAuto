@@ -87,7 +87,7 @@ class WhatsAppService:
             user: User instance
             request: HttpRequest instance (optional, for logging)
         """
-        if not user.profile.phone_number:
+        if not user.business_profile.phone_number:
             logger.error(f"No phone number found for user {user.id}")
             return False
         
@@ -100,14 +100,14 @@ class WhatsAppService:
             'username': user.username,
             'first_name': user.first_name,
             'last_name': user.last_name,
-            'phone_number': user.profile.phone_number,
+            'phone_number': user.business_profile.phone_number,
             'site_name': 'WozapAuto',
         }
         
         # Log message attempt
         message_log = WhatsAppService._log_whatsapp_message(
             message_type='welcome',
-            recipient_phone=user.profile.phone_number,
+            recipient_phone=user.business_profile.phone_number,
             subject=subject,
             template_used=template_used,
             context_data=context_data,
@@ -137,7 +137,7 @@ Need help? Reply to this message."""
             # Send WhatsApp message
             success, response = evolution_api_service.send_text_message(
                 instance_name=admin_connection.instance_name,
-                number=WhatsAppService._format_phone_number(user.profile.phone_number),
+                number=WhatsAppService._format_phone_number(user.business_profile.phone_number),
                 message=message_content
             )
             
@@ -146,14 +146,14 @@ Need help? Reply to this message."""
                 if message_log:
                     message_log.mark_sent()
                 
-                logger.info(f"Welcome WhatsApp message sent successfully to {user.profile.phone_number}")
+                logger.info(f"Welcome WhatsApp message sent successfully to {user.business_profile.phone_number}")
                 return True
             else:
                 # Mark as failed in audit log
                 if message_log:
                     message_log.mark_failed(response)
                 
-                logger.error(f"Failed to send welcome WhatsApp message to {user.profile.phone_number}: {response}")
+                logger.error(f"Failed to send welcome WhatsApp message to {user.business_profile.phone_number}: {response}")
                 return False
                 
         except Exception as e:
@@ -161,7 +161,7 @@ Need help? Reply to this message."""
             if message_log:
                 message_log.mark_failed(str(e))
             
-            logger.error(f"Failed to send welcome WhatsApp message to {user.profile.phone_number}: {str(e)}")
+            logger.error(f"Failed to send welcome WhatsApp message to {user.business_profile.phone_number}: {str(e)}")
             return False
     
     @staticmethod
@@ -268,7 +268,7 @@ Need help? Reply to this message."""
             reset_url: Password reset URL
             request: HttpRequest instance (optional, for logging)
         """
-        if not user.profile.phone_number:
+        if not user.business_profile.phone_number:
             logger.error(f"No phone number found for user {user.id}")
             return False
         
@@ -279,7 +279,7 @@ Need help? Reply to this message."""
         context_data = {
             'user_id': user.id,
             'username': user.username,
-            'phone_number': user.profile.phone_number,
+            'phone_number': user.business_profile.phone_number,
             'reset_url': reset_url,
             'site_name': 'WozapAuto',
         }
@@ -287,7 +287,7 @@ Need help? Reply to this message."""
         # Log message attempt
         message_log = WhatsAppService._log_whatsapp_message(
             message_type='password_reset',
-            recipient_phone=user.profile.phone_number,
+            recipient_phone=user.business_profile.phone_number,
             subject=subject,
             template_used=template_used,
             context_data=context_data,
@@ -319,7 +319,7 @@ If you didn't request this, please ignore this message."""
             # Send WhatsApp message
             success, response = evolution_api_service.send_text_message(
                 instance_name=admin_connection.instance_name,
-                number=WhatsAppService._format_phone_number(user.profile.phone_number),
+                number=WhatsAppService._format_phone_number(user.business_profile.phone_number),
                 message=message_content
             )
             
@@ -328,14 +328,14 @@ If you didn't request this, please ignore this message."""
                 if message_log:
                     message_log.mark_sent()
                 
-                logger.info(f"Password reset WhatsApp message sent successfully to {user.profile.phone_number}")
+                logger.info(f"Password reset WhatsApp message sent successfully to {user.business_profile.phone_number}")
                 return True
             else:
                 # Mark as failed in audit log
                 if message_log:
                     message_log.mark_failed(response)
                 
-                logger.error(f"Failed to send password reset WhatsApp message to {user.profile.phone_number}: {response}")
+                logger.error(f"Failed to send password reset WhatsApp message to {user.business_profile.phone_number}: {response}")
                 return False
                 
         except Exception as e:
@@ -343,7 +343,7 @@ If you didn't request this, please ignore this message."""
             if message_log:
                 message_log.mark_failed(str(e))
             
-            logger.error(f"Failed to send password reset WhatsApp message to {user.profile.phone_number}: {str(e)}")
+            logger.error(f"Failed to send password reset WhatsApp message to {user.business_profile.phone_number}: {str(e)}")
             return False
     
     @staticmethod
@@ -356,7 +356,7 @@ If you didn't request this, please ignore this message."""
             connection: Connection instance
             request: HttpRequest instance (optional, for logging)
         """
-        if not user.profile.phone_number:
+        if not user.business_profile.phone_number:
             logger.error(f"No phone number found for user {user.id}")
             return False
         
@@ -367,7 +367,7 @@ If you didn't request this, please ignore this message."""
         context_data = {
             'user_id': user.id,
             'username': user.username,
-            'phone_number': user.profile.phone_number,
+            'phone_number': user.business_profile.phone_number,
             'connection_id': connection.id,
             'instance_name': connection.instance_name,
             'instance_id': connection.instance_id,
@@ -379,7 +379,7 @@ If you didn't request this, please ignore this message."""
         # Log message attempt
         message_log = WhatsAppService._log_whatsapp_message(
             message_type='connection_success',
-            recipient_phone=user.profile.phone_number,
+            recipient_phone=user.business_profile.phone_number,
             subject=subject,
             template_used=template_used,
             context_data=context_data,
@@ -411,7 +411,7 @@ Need help? Reply to this message."""
             # Send WhatsApp message
             success, response = evolution_api_service.send_text_message(
                 instance_name=admin_connection.instance_name,
-                number=WhatsAppService._format_phone_number(user.profile.phone_number),
+                number=WhatsAppService._format_phone_number(user.business_profile.phone_number),
                 message=message_content
             )
             
@@ -420,14 +420,14 @@ Need help? Reply to this message."""
                 if message_log:
                     message_log.mark_sent()
                 
-                logger.info(f"Connection success WhatsApp message sent successfully to {user.profile.phone_number}")
+                logger.info(f"Connection success WhatsApp message sent successfully to {user.business_profile.phone_number}")
                 return True
             else:
                 # Mark as failed in audit log
                 if message_log:
                     message_log.mark_failed(response)
                 
-                logger.error(f"Failed to send connection success WhatsApp message to {user.profile.phone_number}: {response}")
+                logger.error(f"Failed to send connection success WhatsApp message to {user.business_profile.phone_number}: {response}")
                 return False
                 
         except Exception as e:
@@ -435,7 +435,7 @@ Need help? Reply to this message."""
             if message_log:
                 message_log.mark_failed(str(e))
             
-            logger.error(f"Failed to send connection success WhatsApp message to {user.profile.phone_number}: {str(e)}")
+            logger.error(f"Failed to send connection success WhatsApp message to {user.business_profile.phone_number}: {str(e)}")
             return False
     
     @staticmethod
@@ -447,7 +447,7 @@ Need help? Reply to this message."""
             user: User instance
             request: HttpRequest instance (optional, for logging)
         """
-        if not user.profile.phone_number:
+        if not user.business_profile.phone_number:
             logger.error(f"No phone number found for user {user.id}")
             return False
         
@@ -458,7 +458,7 @@ Need help? Reply to this message."""
         context_data = {
             'user_id': user.id,
             'username': user.username,
-            'phone_number': user.profile.phone_number,
+            'phone_number': user.business_profile.phone_number,
             'first_name': user.first_name,
             'last_name': user.last_name,
             'site_name': 'WozapAuto',
@@ -468,7 +468,7 @@ Need help? Reply to this message."""
         # Log message attempt
         message_log = WhatsAppService._log_whatsapp_message(
             message_type='password_change',
-            recipient_phone=user.profile.phone_number,
+            recipient_phone=user.business_profile.phone_number,
             subject=subject,
             template_used=template_used,
             context_data=context_data,
@@ -500,7 +500,7 @@ Need help? Reply to this message."""
             # Send WhatsApp message
             success, response = evolution_api_service.send_text_message(
                 instance_name=admin_connection.instance_name,
-                number=WhatsAppService._format_phone_number(user.profile.phone_number),
+                number=WhatsAppService._format_phone_number(user.business_profile.phone_number),
                 message=message_content
             )
             
@@ -509,14 +509,14 @@ Need help? Reply to this message."""
                 if message_log:
                     message_log.mark_sent()
                 
-                logger.info(f"Password change confirmation WhatsApp message sent successfully to {user.profile.phone_number}")
+                logger.info(f"Password change confirmation WhatsApp message sent successfully to {user.business_profile.phone_number}")
                 return True
             else:
                 # Mark as failed in audit log
                 if message_log:
                     message_log.mark_failed(response)
                 
-                logger.error(f"Failed to send password change confirmation WhatsApp message to {user.profile.phone_number}: {response}")
+                logger.error(f"Failed to send password change confirmation WhatsApp message to {user.business_profile.phone_number}: {response}")
                 return False
                 
         except Exception as e:
@@ -524,7 +524,7 @@ Need help? Reply to this message."""
             if message_log:
                 message_log.mark_failed(str(e))
             
-            logger.error(f"Failed to send password change confirmation WhatsApp message to {user.profile.phone_number}: {str(e)}")
+            logger.error(f"Failed to send password change confirmation WhatsApp message to {user.business_profile.phone_number}: {str(e)}")
             return False
 
 
