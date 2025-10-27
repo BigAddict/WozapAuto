@@ -20,7 +20,7 @@ from django.utils import timezone
 from .models import UserProfile
 from .forms import CustomUserCreationForm, BusinessProfileForm, OTPVerificationForm
 from business.models import BusinessProfile
-from .decorators import verified_email_required, onboarding_required
+from .decorators import verified_email_required, onboarding_required, business_profile_required
 from .whatsapp_service import whatsapp_service
 from .utils import get_or_create_profile, log_user_activity
 from audit.services import AuditService
@@ -110,19 +110,9 @@ def signout(request):
 class HomePageView(TemplateView):
     template_name = 'core/home.html'
     
-    def get(self, request, *args, **kwargs):
-        # Check if user needs onboarding
-        if request.user.is_authenticated:
-            try:
-                if not request.user.profile.onboarding_completed:
-                    messages.info(request, 'Please complete your profile setup to continue.')
-                    return redirect('welcome_onboarding')
-            except AttributeError:
-                # Profile doesn't exist, redirect to onboarding
-                messages.info(request, 'Please complete your profile setup to continue.')
-                return redirect('welcome_onboarding')
-        
-        return super().get(request, *args, **kwargs)
+    @method_decorator(business_profile_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

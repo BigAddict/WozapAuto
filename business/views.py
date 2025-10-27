@@ -13,7 +13,7 @@ from django.http import JsonResponse
 from django.db.models import Q, Count
 from django.utils import timezone
 
-from core.mixins import ProfileRequiredMixin, AuditLogMixin
+from core.mixins import ProfileRequiredMixin, AuditLogMixin, BusinessProfileRequiredMixin
 from .models import (
     BusinessProfile, Product, Service, Category, AppointmentSlot,
     BusinessHours, BusinessLocation, BusinessSettings, Cart, CartItem, AppointmentBooking
@@ -68,21 +68,11 @@ class BusinessCreateView(ProfileRequiredMixin, AuditLogMixin, CreateView):
         return response
 
 
-class BusinessDetailView(ProfileRequiredMixin, AuditLogMixin, DetailView):
+class BusinessDetailView(BusinessProfileRequiredMixin, AuditLogMixin, DetailView):
     """View business details with stats."""
     model = BusinessProfile
     template_name = 'business/business_detail.html'
     context_object_name = 'business'
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Check if user has business profile before proceeding."""
-        business = get_user_business(request.user)
-        if not business:
-            from django.shortcuts import redirect
-            from django.contrib import messages
-            messages.info(request, 'Please create your business profile first.')
-            return redirect('business:business_create')
-        return super().dispatch(request, *args, **kwargs)
     
     def get_object(self, queryset=None):
         """Get the user's business profile."""
@@ -107,7 +97,7 @@ class BusinessDetailView(ProfileRequiredMixin, AuditLogMixin, DetailView):
         return context
 
 
-class BusinessUpdateView(ProfileRequiredMixin, AuditLogMixin, UpdateView):
+class BusinessUpdateView(BusinessProfileRequiredMixin, AuditLogMixin, UpdateView):
     """Update business profile."""
     model = BusinessProfile
     form_class = BusinessProfileForm
@@ -149,7 +139,7 @@ class BusinessDeleteView(ProfileRequiredMixin, AuditLogMixin, DeleteView):
 
 
 # Product Views
-class ProductListView(ProfileRequiredMixin, AuditLogMixin, ListView):
+class ProductListView(BusinessProfileRequiredMixin, AuditLogMixin, ListView):
     """List products for a business."""
     model = Product
     template_name = 'business/product_list.html'
@@ -246,7 +236,7 @@ class ProductDeleteView(ProfileRequiredMixin, AuditLogMixin, DeleteView):
 
 
 # Service Views
-class ServiceListView(ProfileRequiredMixin, AuditLogMixin, ListView):
+class ServiceListView(BusinessProfileRequiredMixin, AuditLogMixin, ListView):
     """List services for a business."""
     model = Service
     template_name = 'business/service_list.html'
@@ -346,7 +336,7 @@ class ServiceDeleteView(ProfileRequiredMixin, AuditLogMixin, DeleteView):
 
 
 # Appointment Views
-class AppointmentListView(ProfileRequiredMixin, AuditLogMixin, ListView):
+class AppointmentListView(BusinessProfileRequiredMixin, AuditLogMixin, ListView):
     """List appointment bookings for a business."""
     model = AppointmentBooking
     template_name = 'business/appointment_list.html'

@@ -35,6 +35,33 @@ class ProfileRequiredMixin(LoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
+class BusinessProfileRequiredMixin(ProfileRequiredMixin):
+    """
+    Mixin that ensures user has a business profile.
+    Extends ProfileRequiredMixin to also check for business profile.
+    """
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Check if user has business profile before proceeding."""
+        # First check profile and onboarding (from ProfileRequiredMixin)
+        response = super().dispatch(request, *args, **kwargs)
+        if hasattr(response, 'status_code') and response.status_code in [301, 302]:
+            return response
+        
+        # Then check for business profile
+        try:
+            business_profile = request.user.business_profile
+            if not business_profile:
+                messages.info(request, 'Please create your business profile to continue.')
+                return redirect('create_business_profile')
+        except AttributeError:
+            # Business profile doesn't exist
+            messages.info(request, 'Please create your business profile to continue.')
+            return redirect('create_business_profile')
+        
+        return super().dispatch(request, *args, **kwargs)
+
+
 class AuditLogMixin:
     """
     Mixin that automatically logs user activities.

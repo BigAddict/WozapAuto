@@ -22,6 +22,7 @@ from django.core.paginator import Paginator
 from .forms import AgentEditForm
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_POST
+from core.decorators import business_profile_required
 
 logger = logging.getLogger("aiengine.views")
 
@@ -256,6 +257,10 @@ class EvolutionWebhookView(View):
 @method_decorator(login_required, name='dispatch')
 class AgentDetailView(TemplateView):
     template_name = 'aiengine/agent_detail.html'
+
+    @method_decorator(business_profile_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request: HttpRequest, *args, **kwargs):
         try:

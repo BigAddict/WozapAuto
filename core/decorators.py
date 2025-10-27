@@ -67,3 +67,36 @@ def onboarding_required(view_func):
         return view_func(request, *args, **kwargs)
     
     return _wrapped_view
+
+
+def business_profile_required(view_func):
+    """
+    Decorator that requires user to have a business profile.
+    Redirects to business profile creation if not exists.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return redirect('signin')
+        
+        # Check if business profile exists
+        try:
+            business_profile = request.user.business_profile
+            if not business_profile:
+                messages.info(
+                    request, 
+                    'Please create your business profile to continue.'
+                )
+                return redirect('create_business_profile')
+        except AttributeError:
+            # Business profile doesn't exist
+            messages.info(
+                request, 
+                'Please create your business profile to continue.'
+            )
+            return redirect('create_business_profile')
+        
+        return view_func(request, *args, **kwargs)
+    
+    return _wrapped_view
