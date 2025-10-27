@@ -198,6 +198,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'signin'
+LOGIN_REDIRECT_URL = 'home'
 
 # Site URL for WhatsApp links
 SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')

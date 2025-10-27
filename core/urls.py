@@ -26,6 +26,7 @@ urlpatterns = [
     # Business profile creation
     path('create-business-profile/', create_business_profile, name='create_business_profile'),
     path('onboarding/', create_business_profile, name='onboarding'),
+    path('welcome-onboarding/', create_business_profile, name='welcome_onboarding'),
     
     # WhatsApp OTP verification
     path('verify-whatsapp-otp/', verify_whatsapp_otp, name='verify_whatsapp_otp'),

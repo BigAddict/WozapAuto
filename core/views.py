@@ -126,9 +126,6 @@ class HomePageView(TemplateView):
             # Check if business profile exists
             try:
                 business_profile = request.user.business_profile
-                if not business_profile:
-                    messages.info(request, 'Please create your business profile to continue.')
-                    return redirect('create_business_profile')
             except AttributeError:
                 # Business profile doesn't exist
                 messages.info(request, 'Please create your business profile to continue.')
