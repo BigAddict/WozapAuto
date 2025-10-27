@@ -1,4 +1,5 @@
 {% load static %}
+{% load breadcrumb_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -666,6 +667,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if 'business' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'business:business_detail' %}">
+                            <i class="bi bi-shop me-2"></i>Business
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if 'knowledgebase' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'knowledgebase:knowledge_base_list' %}">
                             <i class="bi bi-book me-2"></i>Knowledge Base
                         </a>
@@ -746,10 +752,10 @@
                     </ul>
                 </div>
 
-                <!-- Shop Icon (Placeholder) -->
-                <button class="btn btn-link text-white me-2" type="button" disabled title="Coming soon" aria-label="Shop">
+                <!-- Shop Icon -->
+                <a class="btn btn-link text-white me-2" href="{% url 'business:business_detail' %}" title="Business Management" aria-label="Business">
                     <i class="bi bi-shop fs-5"></i>
-                </button>
+                </a>
 
                 <!-- Knowledge Base Icon -->
                 <a class="btn btn-link text-white me-2" href="{% url 'knowledgebase:knowledge_base_list' %}" aria-label="Knowledge Base">
@@ -836,12 +842,7 @@
             <div class="{% if user.is_authenticated %}col-lg-10 col-md-9{% else %}col-12{% endif %}">
                 <div class="main-content {% if user.is_authenticated %}with-sidebar{% endif %}">
                     <!-- Breadcrumb -->
-                    <nav aria-label="breadcrumb" class="mb-4">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-                            {% block breadcrumb %}{% endblock %}
-                        </ol>
-                    </nav>
+                    {% breadcrumb %}
 
                     <!-- Messages -->
                     {% if messages %}

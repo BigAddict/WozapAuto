@@ -3,7 +3,7 @@ from django.urls import path
 from .views import (
     HomePageView, signup, signin, signout, profile_view, profile_edit, profile_api,
     forgot_password, password_reset_confirm, change_password,
-    verification_required_notice, resend_verification, welcome_onboarding,
+    verification_required_notice, resend_verification, create_business_profile,
     verify_whatsapp_otp, resend_otp
 )
 
@@ -23,9 +23,9 @@ urlpatterns = [
     path('verification-required/', verification_required_notice, name='verification_required'),
     path('resend-verification/', resend_verification, name='resend_verification'),
     
-    # Welcome onboarding
-    path('welcome/', welcome_onboarding, name='welcome_onboarding'),
-    path('onboarding/', welcome_onboarding, name='onboarding'),
+    # Business profile creation
+    path('create-business-profile/', create_business_profile, name='create_business_profile'),
+    path('onboarding/', create_business_profile, name='onboarding'),
     
     # WhatsApp OTP verification
     path('verify-whatsapp-otp/', verify_whatsapp_otp, name='verify_whatsapp_otp'),

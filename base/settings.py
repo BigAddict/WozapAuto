@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'audit',
     'aiengine',
     'knowledgebase',
+    'business',
 ]
 
 MIDDLEWARE = [
@@ -279,6 +280,15 @@ LOGGING = {
             'formatter': 'json',
             'filters': ['add_user_info'],
         },
+        'file_business': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'business.log',
+            'maxBytes': 1024*1024*10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'json',
+            'filters': ['add_user_info'],
+        },
         'console': {
             'level': 'DEBUG' if DEBUG else 'INFO',
             'class': 'logging.StreamHandler',
@@ -318,6 +328,11 @@ LOGGING = {
         },
         'aiengine.services': {
             'handlers': ['file_aiengine', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'business': {
+            'handlers': ['file_business', 'console'],
             'level': 'DEBUG',
             'propagate': False,
         },

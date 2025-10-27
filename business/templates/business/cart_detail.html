@@ -1,0 +1,171 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Cart Details - {{ business.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{% url 'business:business_detail' %}">{{ business.name }}</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'business:cart_list' %}">Shopping Carts</a></li>
+                        <li class="breadcrumb-item active">Cart Details</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">Cart Details</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Cart Items</h5>
+                </div>
+                <div class="card-body">
+                    {% if cart.items.all %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Variant</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in cart.items.all %}
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>{{ item.product.name }}</strong>
+                                                    <br><small class="text-muted">{{ item.product.description|truncatechars:50 }}</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if item.variant %}
+                                                    <span class="badge bg-secondary">{{ item.variant.name }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ item.quantity }}</span>
+                                            </td>
+                                            <td>{{ business.get_currency_symbol }}{{ item.unit_price|floatformat:2 }}</td>
+                                            <td><strong>{{ business.get_currency_symbol }}{{ item.total_price|floatformat:2 }}</strong></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="mdi mdi-cart-outline" style="font-size: 32px; color: #6c757d;"></i>
+                            <p class="text-muted mt-2">This cart is empty</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Cart Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Customer Information</strong></label>
+                        <div class="text-muted">
+                            {{ cart.get_customer_info }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Thread Information</strong></label>
+                        <div class="text-muted">
+                            <div>Thread ID: <code>{{ cart.thread.thread_id }}</code></div>
+                            <div>Customer: <code>{{ cart.thread.remote_jid }}</code></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Status</strong></label>
+                        <div>
+                            {% if cart.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif cart.status == 'completed' %}
+                                <span class="badge bg-info">Completed</span>
+                            {% elif cart.status == 'abandoned' %}
+                                <span class="badge bg-warning">Abandoned</span>
+                            {% elif cart.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Created</strong></label>
+                        <div class="text-muted">
+                            {{ cart.created_at|date:"M d, Y H:i" }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Last Updated</strong></label>
+                        <div class="text-muted">
+                            {{ cart.updated_at|date:"M d, Y H:i" }}
+                        </div>
+                    </div>
+
+                    {% if cart.notes %}
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Notes</strong></label>
+                            <div class="text-muted">
+                                {{ cart.notes }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'business:cart_edit' cart.id %}" class="btn btn-primary">
+                            <i class="mdi mdi-pencil"></i> Edit Cart
+                        </a>
+                        <a href="{% url 'business:cart_list' %}" class="btn btn-outline-secondary">
+                            <i class="mdi mdi-arrow-left"></i> Back to Carts
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Cart Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Items:</span>
+                        <strong>{{ cart.total_items }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Amount:</span>
+                        <strong>{{ business.get_currency_symbol }}{{ cart.total_amount|floatformat:2 }}</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span><strong>Grand Total:</strong></span>
+                        <strong class="text-primary">{{ business.get_currency_symbol }}{{ cart.total_amount|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

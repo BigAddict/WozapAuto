@@ -1,0 +1,67 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Delete Category - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Delete Category
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+                    
+                    <p>Are you sure you want to delete the category <strong>"{{ object.name }}"</strong>?</p>
+                    
+                    {% if object.products.exists %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        This category has {{ object.products.count }} product{{ object.products.count|pluralize }}. 
+                        Deleting this category will remove the category association from these products.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Category Details</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li><strong>Name:</strong> {{ object.name }}</li>
+                                {% if object.description %}
+                                <li><strong>Description:</strong> {{ object.description }}</li>
+                                {% endif %}
+                                <li><strong>Status:</strong> 
+                                    <span class="badge bg-{{ object.is_active|yesno:'success,secondary' }}">
+                                        {{ object.is_active|yesno:'Active,Inactive' }}
+                                    </span>
+                                </li>
+                                <li><strong>Products:</strong> {{ object.products.count }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'business:category_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-2"></i>Delete Category
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

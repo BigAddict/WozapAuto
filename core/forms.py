@@ -4,6 +4,10 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import UserProfile
+from .utils import normalize_string_field
+from .timezone_utils import format_timezone_choices
+from core.currency_utils import format_currency_choices
+from business.models import BusinessProfile, BusinessType
 import re
 
 
@@ -92,24 +96,15 @@ class CustomUserCreationForm(UserCreationForm):
     
     def clean_username(self):
         """Normalize username"""
-        username = self.cleaned_data.get('username')
-        if username:
-            username = username.strip()
-        return username
+        return normalize_string_field(self.cleaned_data.get('username'))
     
     def clean_first_name(self):
         """Normalize first name"""
-        first_name = self.cleaned_data.get('first_name')
-        if first_name:
-            first_name = first_name.strip()
-        return first_name
+        return normalize_string_field(self.cleaned_data.get('first_name'))
     
     def clean_last_name(self):
         """Normalize last name"""
-        last_name = self.cleaned_data.get('last_name')
-        if last_name:
-            last_name = last_name.strip()
-        return last_name
+        return normalize_string_field(self.cleaned_data.get('last_name'))
     
     def clean_password1(self):
         """Enhanced password validation"""
@@ -154,42 +149,16 @@ class CustomUserCreationForm(UserCreationForm):
         return user
 
 
-class OnboardingForm(forms.ModelForm):
-    """Form for welcome onboarding flow"""
+class BusinessProfileForm(forms.ModelForm):
+    """Form for business profile creation during onboarding"""
     
-    TIMEZONE_CHOICES = [
-        ('UTC', 'UTC (Coordinated Universal Time)'),
-        ('America/New_York', 'Eastern Time (ET)'),
-        ('America/Chicago', 'Central Time (CT)'),
-        ('America/Denver', 'Mountain Time (MT)'),
-        ('America/Los_Angeles', 'Pacific Time (PT)'),
-        ('Europe/London', 'London (GMT)'),
-        ('Europe/Paris', 'Paris (CET)'),
-        ('Asia/Tokyo', 'Tokyo (JST)'),
-        ('Asia/Shanghai', 'Shanghai (CST)'),
-        ('Australia/Sydney', 'Sydney (AEST)'),
-    ]
+    TIMEZONE_CHOICES = format_timezone_choices()
+    CURRENCY_CHOICES = format_currency_choices()
     
     LANGUAGE_CHOICES = [
         ('en', 'English'),
-        ('es', 'Español'),
-        ('fr', 'Français'),
-        ('de', 'Deutsch'),
-        ('it', 'Italiano'),
-        ('pt', 'Português'),
-        ('ja', '日本語'),
-        ('ko', '한국어'),
-        ('zh', '中文'),
+        ('sw', 'Swahili'),
     ]
-    
-    company_name = forms.CharField(
-        max_length=100,
-        required=True,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Enter your company or organization name'
-        })
-    )
     
     phone_number = forms.CharField(
         max_length=20,
@@ -199,7 +168,7 @@ class OnboardingForm(forms.ModelForm):
             'placeholder': '+1234567890',
             'pattern': r'\+[1-9]\d{1,14}'
         }),
-        help_text='WhatsApp number with country code (e.g., +1234567890) - Required for account verification'
+        help_text='WhatsApp number with country code (e.g., +1234567890) - Required for verification'
     )
     
     timezone = forms.ChoiceField(
@@ -218,26 +187,55 @@ class OnboardingForm(forms.ModelForm):
         })
     )
     
-    avatar = forms.ImageField(
-        required=False,
-        widget=forms.FileInput(attrs={
-            'class': 'form-control',
-            'accept': 'image/*'
-        }),
-        help_text='Optional: Upload a profile picture'
+    currency = forms.ChoiceField(
+        choices=CURRENCY_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        })
+    )
+    
+    business_type = forms.ModelChoiceField(
+        queryset=BusinessType.objects.filter(is_active=True),
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        })
     )
     
     class Meta:
-        model = UserProfile
-        fields = ['company_name', 'phone_number', 'timezone', 'language', 'avatar']
+        model = BusinessProfile
+        fields = ['name', 'business_type', 'phone_number', 'timezone', 'language', 'currency', 
+                 'description', 'email', 'website', 'address']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your business name'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Brief description of your business'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'business@example.com'
+            }),
+            'website': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://yourwebsite.com'
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Business address'
+            }),
+        }
     
     def clean_phone_number(self):
         """Validate phone number format"""
-        phone_number = self.cleaned_data.get('phone_number')
+        phone_number = normalize_string_field(self.cleaned_data.get('phone_number'))
         if phone_number:
-            # Remove any whitespace
-            phone_number = phone_number.strip()
-            
             # Check if it starts with + and has valid format
             if not re.match(r'^\+[1-9]\d{1,14}$', phone_number):
                 raise ValidationError(
@@ -245,12 +243,6 @@ class OnboardingForm(forms.ModelForm):
                 )
         return phone_number
     
-    def clean_company_name(self):
-        """Normalize company name"""
-        company_name = self.cleaned_data.get('company_name')
-        if company_name:
-            company_name = company_name.strip()
-        return company_name
 
 
 class OTPVerificationForm(forms.Form):
@@ -271,9 +263,8 @@ class OTPVerificationForm(forms.Form):
     
     def clean_otp_code(self):
         """Validate OTP code format"""
-        otp_code = self.cleaned_data.get('otp_code')
+        otp_code = normalize_string_field(self.cleaned_data.get('otp_code'))
         if otp_code:
-            otp_code = otp_code.strip()
             # Check if it's exactly 6 digits
             if not re.match(r'^\d{6}$', otp_code):
                 raise ValidationError('Please enter a valid 6-digit code.')

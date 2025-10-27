@@ -1,0 +1,227 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ object|yesno:'Edit,Create' }} Product - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-box me-2"></i>
+                        {{ object|yesno:'Edit,Create' }} Product
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">Basic Information</h5>
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Product Name *</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">Category *</label>
+                                {{ form.category }}
+                                {% if form.category.errors %}
+                                    <div class="text-danger small">{{ form.category.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.short_description.id_for_label }}" class="form-label">Short Description</label>
+                                {{ form.short_description }}
+                                {% if form.short_description.errors %}
+                                    <div class="text-danger small">{{ form.short_description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Pricing -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">Pricing</h5>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.price.id_for_label }}" class="form-label">Price *</label>
+                                {{ form.price }}
+                                {% if form.price.errors %}
+                                    <div class="text-danger small">{{ form.price.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.compare_price.id_for_label }}" class="form-label">Compare Price</label>
+                                {{ form.compare_price }}
+                                {% if form.compare_price.errors %}
+                                    <div class="text-danger small">{{ form.compare_price.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.cost_price.id_for_label }}" class="form-label">Cost Price</label>
+                                {{ form.cost_price }}
+                                {% if form.cost_price.errors %}
+                                    <div class="text-danger small">{{ form.cost_price.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Inventory -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">Inventory</h5>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.sku.id_for_label }}" class="form-label">SKU *</label>
+                                {{ form.sku }}
+                                {% if form.sku.errors %}
+                                    <div class="text-danger small">{{ form.sku.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.barcode.id_for_label }}" class="form-label">Barcode</label>
+                                {{ form.barcode }}
+                                {% if form.barcode.errors %}
+                                    <div class="text-danger small">{{ form.barcode.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="form-check">
+                                    {{ form.track_inventory }}
+                                    <label class="form-check-label" for="{{ form.track_inventory.id_for_label }}">
+                                        Track Inventory
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.quantity.id_for_label }}" class="form-label">Quantity</label>
+                                {{ form.quantity }}
+                                {% if form.quantity.errors %}
+                                    <div class="text-danger small">{{ form.quantity.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.low_stock_threshold.id_for_label }}" class="form-label">Low Stock Threshold</label>
+                                {{ form.low_stock_threshold }}
+                                {% if form.low_stock_threshold.errors %}
+                                    <div class="text-danger small">{{ form.low_stock_threshold.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Status & Media -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">Status & Media</h5>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.primary_image.id_for_label }}" class="form-label">Primary Image</label>
+                                {{ form.primary_image }}
+                                {% if form.primary_image.errors %}
+                                    <div class="text-danger small">{{ form.primary_image.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check">
+                                            {{ form.is_active }}
+                                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                                Active
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check">
+                                            {{ form.is_featured }}
+                                            <label class="form-check-label" for="{{ form.is_featured.id_for_label }}">
+                                                Featured
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check">
+                                            {{ form.is_digital }}
+                                            <label class="form-check-label" for="{{ form.is_digital.id_for_label }}">
+                                                Digital Product
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SEO (Collapsible) -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="accordion" id="seoAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="seoHeading">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#seoCollapse">
+                                                <i class="bi bi-search me-2"></i>SEO Settings (Optional)
+                                            </button>
+                                        </h2>
+                                        <div id="seoCollapse" class="accordion-collapse collapse" data-bs-parent="#seoAccordion">
+                                            <div class="accordion-body">
+                                                <div class="row">
+                                                    <div class="col-12 mb-3">
+                                                        <label for="{{ form.meta_title.id_for_label }}" class="form-label">Meta Title</label>
+                                                        {{ form.meta_title }}
+                                                        {% if form.meta_title.errors %}
+                                                            <div class="text-danger small">{{ form.meta_title.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-12 mb-3">
+                                                        <label for="{{ form.meta_description.id_for_label }}" class="form-label">Meta Description</label>
+                                                        {{ form.meta_description }}
+                                                        {% if form.meta_description.errors %}
+                                                            <div class="text-danger small">{{ form.meta_description.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-12 mb-3">
+                                                        <label for="{{ form.slug.id_for_label }}" class="form-label">URL Slug</label>
+                                                        {{ form.slug }}
+                                                        {% if form.slug.errors %}
+                                                            <div class="text-danger small">{{ form.slug.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'business:product_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>
+                                {{ object|yesno:'Update,Create' }} Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

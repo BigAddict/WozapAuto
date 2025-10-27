@@ -1,0 +1,230 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ business.name }} - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Business Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h1 class="h3 mb-2">{{ business.name }}</h1>
+                            <p class="text-muted mb-3">{{ business.business_type.display_name }}</p>
+                            {% if business.description %}
+                            <p class="mb-3">{{ business.description }}</p>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-muted">Contact Information</h6>
+                                    <ul class="list-unstyled">
+                                        {% if business.phone %}
+                                        <li><i class="bi bi-telephone me-2"></i>{{ business.phone }}</li>
+                                        {% endif %}
+                                        {% if business.email %}
+                                        <li><i class="bi bi-envelope me-2"></i>{{ business.email }}</li>
+                                        {% endif %}
+                                        {% if business.website %}
+                                        <li><i class="bi bi-globe me-2"></i><a href="{{ business.website }}" target="_blank">{{ business.website }}</a></li>
+                                        {% endif %}
+                                        {% if business.whatsapp_number %}
+                                        <li><i class="bi bi-whatsapp me-2 text-success"></i>{{ business.whatsapp_number }}</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-muted">Settings</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-currency-exchange me-2"></i>{{ business.get_currency_name }} ({{ business.get_currency_symbol }})</li>
+                                        <li><i class="bi bi-clock me-2"></i>{{ business.timezone }}</li>
+                                        <li><i class="bi bi-translate me-2"></i>{{ business.language|upper }}</li>
+                                        <li>
+                                            <i class="bi bi-robot me-2"></i>
+                                            Bot: <span class="badge bg-{{ business.bot_active|yesno:'success,secondary' }}">
+                                                {{ business.bot_active|yesno:'Active,Inactive' }}
+                                            </span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <a href="{% url 'business:business_edit' %}" class="btn btn-outline-primary me-2">
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </a>
+                            <a href="{% url 'business:business_delete' %}" class="btn btn-outline-danger">
+                                <i class="bi bi-trash me-1"></i>Delete
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ products_count }}</h4>
+                                    <p class="mb-0">Products</p>
+                                </div>
+                                <i class="bi bi-box display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ services_count }}</h4>
+                                    <p class="mb-0">Services</p>
+                                </div>
+                                <i class="bi bi-gear display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ categories_count }}</h4>
+                                    <p class="mb-0">Categories</p>
+                                </div>
+                                <i class="bi bi-tags display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ appointments_count }}</h4>
+                                    <p class="mb-0">Appointments</p>
+                                </div>
+                                <i class="bi bi-calendar display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Quick Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'business:product_list' %}" class="btn btn-outline-primary w-100">
+                                        <i class="bi bi-box me-2"></i>Manage Products
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'business:service_list' %}" class="btn btn-outline-success w-100">
+                                        <i class="bi bi-gear me-2"></i>Manage Services
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'business:appointment_list' %}" class="btn btn-outline-info w-100">
+                                        <i class="bi bi-calendar me-2"></i>Manage Appointments
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'business:category_list' %}" class="btn btn-outline-warning w-100">
+                                        <i class="bi bi-tags me-2"></i>Manage Categories
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'business:business_hours_list' %}" class="btn btn-outline-secondary w-100">
+                                        <i class="bi bi-clock me-2"></i>Manage Hours
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Items -->
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Recent Products</h5>
+                            <a href="{% url 'business:product_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_products %}
+                                {% for product in recent_products %}
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div>
+                                        <h6 class="mb-1">{{ product.name }}</h6>
+                                        <small class="text-muted">{{ product.category.name }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fw-bold">{{ business.get_currency_symbol }}{{ product.price }}</span>
+                                        <br>
+                                        <small class="badge bg-{{ product.is_active|yesno:'success,secondary' }}">
+                                            {{ product.is_active|yesno:'Active,Inactive' }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted text-center py-3">No products yet</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Recent Services</h5>
+                            <a href="{% url 'business:service_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_services %}
+                                {% for service in recent_services %}
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div>
+                                        <h6 class="mb-1">{{ service.name }}</h6>
+                                        <small class="text-muted">{{ service.category.name }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fw-bold">{{ business.get_currency_symbol }}{{ service.price }}</span>
+                                        <br>
+                                        <small class="badge bg-{{ service.is_active|yesno:'success,secondary' }}">
+                                            {{ service.is_active|yesno:'Active,Inactive' }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted text-center py-3">No services yet</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

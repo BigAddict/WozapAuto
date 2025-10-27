@@ -1,0 +1,179 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ object|yesno:'Edit,Create' }} Business Hours - {{ business.name }} - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">{{ object|yesno:'Edit,Create' }} Business Hours</h1>
+                    <p class="text-muted">{{ business.name }}</p>
+                </div>
+                <a href="{% url 'business:business_hours_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Hours
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-clock me-2"></i>
+                                Hours Details
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                
+                                <!-- Day Selection -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h5 class="text-primary mb-3">Day Selection</h5>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.day_of_week.id_for_label }}" class="form-label">Day of Week *</label>
+                                        {{ form.day_of_week }}
+                                        {% if form.day_of_week.errors %}
+                                            <div class="text-danger small">{{ form.day_of_week.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Operating Status -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h5 class="text-primary mb-3">Operating Status</h5>
+                                    </div>
+                                    <div class="col-12 mb-3">
+                                        <div class="form-check">
+                                            {{ form.is_open }}
+                                            <label class="form-check-label" for="{{ form.is_open.id_for_label }}">
+                                                Open on this day
+                                            </label>
+                                        </div>
+                                        {% if form.is_open.errors %}
+                                            <div class="text-danger small">{{ form.is_open.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="form-text">Uncheck if your business is closed on this day</div>
+                                    </div>
+                                </div>
+
+                                <!-- Hours Settings -->
+                                <div class="row mb-4" id="hours-settings">
+                                    <div class="col-12">
+                                        <h5 class="text-primary mb-3">Hours Settings</h5>
+                                    </div>
+                                    <div class="col-12 mb-3">
+                                        <div class="form-check">
+                                            {{ form.is_24_hours }}
+                                            <label class="form-check-label" for="{{ form.is_24_hours.id_for_label }}">
+                                                24 Hours (Open all day)
+                                            </label>
+                                        </div>
+                                        {% if form.is_24_hours.errors %}
+                                            <div class="text-danger small">{{ form.is_24_hours.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="form-text">Check if your business operates 24 hours on this day</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3" id="open-time-field">
+                                        <label for="{{ form.open_time.id_for_label }}" class="form-label">Opening Time</label>
+                                        {{ form.open_time }}
+                                        {% if form.open_time.errors %}
+                                            <div class="text-danger small">{{ form.open_time.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3" id="close-time-field">
+                                        <label for="{{ form.close_time.id_for_label }}" class="form-label">Closing Time</label>
+                                        {{ form.close_time }}
+                                        {% if form.close_time.errors %}
+                                            <div class="text-danger small">{{ form.close_time.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'business:business_hours_list' %}" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-left me-2"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        {{ object|yesno:'Update,Create' }} Hours
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help Panel -->
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-info-circle me-2"></i>Help
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Setting Business Hours</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Choose the day of the week</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Mark as open or closed</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Set specific hours or 24-hour operation</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Use for appointment availability</li>
+                            </ul>
+                            
+                            <h6 class="mt-3">Best Practices</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="bi bi-lightbulb text-warning me-2"></i>Set different hours for weekends</li>
+                                <li><i class="bi bi-lightbulb text-warning me-2"></i>Consider time zones if serving multiple regions</li>
+                                <li><i class="bi bi-lightbulb text-warning me-2"></i>Update hours for holidays and special events</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isOpenCheckbox = document.getElementById('{{ form.is_open.id_for_label }}');
+    const is24HoursCheckbox = document.getElementById('{{ form.is_24_hours.id_for_label }}');
+    const hoursSettings = document.getElementById('hours-settings');
+    const openTimeField = document.getElementById('open-time-field');
+    const closeTimeField = document.getElementById('close-time-field');
+    
+    function toggleHoursSettings() {
+        if (isOpenCheckbox.checked) {
+            hoursSettings.style.display = 'block';
+        } else {
+            hoursSettings.style.display = 'none';
+        }
+    }
+    
+    function toggleTimeFields() {
+        if (is24HoursCheckbox.checked) {
+            openTimeField.style.display = 'none';
+            closeTimeField.style.display = 'none';
+        } else {
+            openTimeField.style.display = 'block';
+            closeTimeField.style.display = 'block';
+        }
+    }
+    
+    isOpenCheckbox.addEventListener('change', toggleHoursSettings);
+    is24HoursCheckbox.addEventListener('change', toggleTimeFields);
+    
+    // Initialize on page load
+    toggleHoursSettings();
+    toggleTimeFields();
+});
+</script>
+{% endblock %}

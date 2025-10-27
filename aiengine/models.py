@@ -8,6 +8,7 @@ import json
 
 class Agent(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='owned_agents')
+    business = models.OneToOneField('business.BusinessProfile', on_delete=models.CASCADE, null=True, blank=True, related_name='agent')
     name = models.CharField(max_length=255, default="WozapAutoAgent", null=False, blank=False)
     description = models.TextField(default="WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.", null=False, blank=False)
     system_prompt = models.TextField(null=False, blank=False)

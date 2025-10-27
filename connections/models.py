@@ -55,6 +55,12 @@ class Connection(models.Model):
     class Meta:
         verbose_name = _("Connection")
         verbose_name_plural = _("Connections")
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user'],
+                name='unique_connection_per_user'
+            )
+        ]
 
     def __str__(self):
         return f"{self.instance_name} for {self.user.username}"
@@ -134,13 +140,28 @@ class Connection(models.Model):
 def create_agent_for_connection(sender, instance, created, **kwargs):
     """
     Automatically create an Agent for the same user when a Connection is created.
-    The agent is inactive by default.
+    The agent is inactive by default and linked to the user's business profile.
+    Also sync BusinessProfile.phone_number with Connection.ownerPhone.
     """
     if created:
+        # Get user's business profile
+        try:
+            business_profile = instance.user.business_profile
+        except:
+            business_profile = None
+        
+        # Sync phone numbers if business profile exists
+        if business_profile and instance.ownerPhone:
+            # Update business profile phone number to match connection
+            if business_profile.phone_number != instance.ownerPhone:
+                business_profile.phone_number = instance.ownerPhone
+                business_profile.save(update_fields=['phone_number'])
+        
         # The agent name is unique, so use Connection instance_name plus user to avoid collision if needed
         agent_name = f"{instance.instance_name} Agent"
         Agent.objects.create(
             user=instance.user,
+            business=business_profile,
             name=agent_name,
             description="WozapAutoAgent is a smart AI agent that will help you answer your WhatsApp queries.",
             system_prompt="You are a smart AI agent that helps answer WhatsApp queries with accuracy and helpfulness.",

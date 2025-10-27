@@ -1,0 +1,136 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{% if cart %}Edit Cart{% else %}Create Cart{% endif %} - {{ business.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{% url 'business:business_detail' %}">{{ business.name }}</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'business:cart_list' %}">Shopping Carts</a></li>
+                        <li class="breadcrumb-item active">{% if cart %}Edit Cart{% else %}Create Cart{% endif %}</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">{% if cart %}Edit Cart{% else %}Create Cart{% endif %}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Cart Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">Customer Name</label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <div class="text-danger">{{ form.name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                                    {{ form.phone_number }}
+                                    {% if form.phone_number.errors %}
+                                        <div class="text-danger">{{ form.phone_number.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Special Instructions</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="text-danger">{{ form.notes.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="mdi mdi-content-save"></i> Save Cart
+                            </button>
+                            <a href="{% url 'business:cart_list' %}" class="btn btn-outline-secondary">
+                                <i class="mdi mdi-arrow-left"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Cart Details</h5>
+                </div>
+                <div class="card-body">
+                    {% if cart %}
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Thread ID</strong></label>
+                            <div class="text-muted">
+                                <code>{{ cart.thread_id }}</code>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Status</strong></label>
+                            <div>
+                                {% if cart.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                {% elif cart.status == 'completed' %}
+                                    <span class="badge bg-info">Completed</span>
+                                {% elif cart.status == 'abandoned' %}
+                                    <span class="badge bg-warning">Abandoned</span>
+                                {% elif cart.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Total Items</strong></label>
+                            <div class="text-muted">
+                                {{ cart.total_items }} items
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Total Amount</strong></label>
+                            <div class="text-muted">
+                                {{ business.get_currency_symbol }}{{ cart.total_amount|floatformat:2 }}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="mdi mdi-cart-outline" style="font-size: 32px; color: #6c757d;"></i>
+                            <p class="text-muted mt-2">New Cart</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

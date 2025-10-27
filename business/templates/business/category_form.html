@@ -1,0 +1,187 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ object|yesno:'Edit,Create' }} Category - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-tag me-2"></i>
+                        {{ object|yesno:'Edit,Create' }} Category
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">Basic Information</h5>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Category Name *</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Icon</label>
+                                <div class="icon-selector">
+                                    <div class="row g-2" id="icon-grid">
+                                        <!-- Icons will be populated by JavaScript -->
+                                    </div>
+                                    <input type="hidden" name="icon" id="selected-icon" value="{{ form.icon.value|default:'' }}">
+                                </div>
+                                <div class="form-text">Choose an icon for your category</div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Active
+                                    </label>
+                                </div>
+                                {% if form.is_active.errors %}
+                                    <div class="text-danger small">{{ form.is_active.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'business:category_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Back to Categories
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>
+                                {{ object|yesno:'Update,Create' }} Category
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+.icon-selector {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8f9fa;
+}
+
+.icon-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 2px;
+}
+
+.icon-option:hover {
+    border-color: #0d6efd;
+    background-color: #f0f8ff;
+    transform: scale(1.05);
+}
+
+.icon-option.selected {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+}
+
+.icon-option i {
+    font-size: 1.2rem;
+}
+
+.icon-grid {
+    max-height: 200px;
+    overflow-y: auto;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const iconGrid = document.getElementById('icon-grid');
+    const selectedIconInput = document.getElementById('selected-icon');
+    const currentValue = selectedIconInput.value;
+    
+    // Common Bootstrap icons for categories
+    const icons = [
+        'bi-tag', 'bi-tags', 'bi-box', 'bi-boxes', 'bi-star', 'bi-star-fill',
+        'bi-heart', 'bi-heart-fill', 'bi-bookmark', 'bi-bookmark-fill',
+        'bi-shop', 'bi-cart', 'bi-basket', 'bi-bag', 'bi-gift', 'bi-gift-fill',
+        'bi-trophy', 'bi-award', 'bi-medal', 'bi-patch-check', 'bi-check-circle',
+        'bi-gear', 'bi-tools', 'bi-hammer', 'bi-wrench', 'bi-screwdriver',
+        'bi-palette', 'bi-brush', 'bi-paint-bucket', 'bi-image', 'bi-camera',
+        'bi-music-note', 'bi-headphones', 'bi-mic', 'bi-play-circle',
+        'bi-laptop', 'bi-phone', 'bi-tablet', 'bi-tv', 'bi-monitor',
+        'bi-car-front', 'bi-bicycle', 'bi-airplane', 'bi-train-front',
+        'bi-house', 'bi-building', 'bi-hospital', 'bi-bank', 'bi-school',
+        'bi-utensils', 'bi-cup-hot', 'bi-cake', 'bi-apple', 'bi-basket3',
+        'bi-clothes', 'bi-bag-check', 'bi-watch', 'bi-glasses', 'bi-jewelry',
+        'bi-book', 'bi-journal', 'bi-newspaper', 'bi-file-text', 'bi-pen',
+        'bi-pencil', 'bi-eraser', 'bi-scissors', 'bi-ruler', 'bi-calculator',
+        'bi-graph-up', 'bi-bar-chart', 'bi-pie-chart', 'bi-diagram-3',
+        'bi-lightning', 'bi-fire', 'bi-sun', 'bi-moon', 'bi-cloud', 'bi-rainbow'
+    ];
+    
+    // Create icon options
+    icons.forEach(iconClass => {
+        const iconOption = document.createElement('div');
+        iconOption.className = 'icon-option col-2 col-md-1';
+        iconOption.setAttribute('data-icon', iconClass);
+        
+        const icon = document.createElement('i');
+        icon.className = iconClass;
+        iconOption.appendChild(icon);
+        
+        // Check if this is the currently selected icon
+        if (iconClass === currentValue) {
+            iconOption.classList.add('selected');
+        }
+        
+        // Add click handler
+        iconOption.addEventListener('click', function() {
+            // Remove selected class from all options
+            document.querySelectorAll('.icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            this.classList.add('selected');
+            
+            // Update hidden input
+            selectedIconInput.value = iconClass;
+        });
+        
+        iconGrid.appendChild(iconOption);
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

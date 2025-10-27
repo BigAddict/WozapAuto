@@ -325,6 +325,132 @@
             </div>
         </div>
     </div>
+    
+    <!-- Business Statistics -->
+    {% if business_profile %}
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">Business Overview - {{ business_profile.name }}</h4>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-cart text-primary fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-primary">{{ total_carts|default:'0' }}</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">Total Orders</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-cart-check text-success fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-success">{{ completed_carts|default:'0' }}</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">Completed Orders</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-calendar-check text-info fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-info">{{ total_appointments|default:'0' }}</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">Appointments</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-box text-warning fs-1"></i>
+                    </div>
+                    <div class="stat-value mb-2">
+                        <h3 class="mb-0 text-warning">{{ total_products|default:'0' }}</h3>
+                    </div>
+                    <div class="stat-title mb-2">
+                        <h6 class="text-muted mb-0">Products</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Orders -->
+    {% if recent_carts or recent_appointments %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_carts %}
+                        {% for cart in recent_carts %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ cart.name|default:"Anonymous" }}</strong>
+                                <br><small class="text-muted">{{ cart.total_items }} items</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{{ cart.status|yesno:'success,warning,danger,primary' }}">{{ cart.status|title }}</span>
+                                <br><small>{{ cart.created_at|date:"M d" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No recent orders</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Appointments</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_appointments %}
+                        {% for appointment in recent_appointments %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ appointment.customer_name }}</strong>
+                                <br><small class="text-muted">{{ appointment.service.name }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{% if appointment.status == 'confirmed' %}success{% elif appointment.status == 'pending' %}warning{% elif appointment.status == 'cancelled' %}danger{% else %}primary{% endif %}">{{ appointment.get_status_display }}</span>
+                                <br><small>{{ appointment.booking_date|date:"M d" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No recent appointments</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    
     {% else %}
     <div class="row g-3 mb-4">
         <div class="col-md-4">

@@ -13,6 +13,7 @@ from aiengine.models import ConversationThread, Agent
 from aiengine.structured_output import AIResponse
 from knowledgebase.service import KnowledgeBaseService
 from knowledgebase.tools import KnowledgeBaseTool
+from business.tools import BusinessTool
 from audit.services import AuditService
 from typing_extensions import Annotated, TypedDict
 from typing import Sequence, Optional, Dict, Any
@@ -44,6 +45,15 @@ class ChatAssistant:
         self._knowledge_base_used = False
         self._search_performed = False
         
+        # Get business from agent or user
+        self.business = None
+        if agent and hasattr(agent, 'business') and agent.business:
+            self.business = agent.business
+        elif user and hasattr(user, 'business_profile'):
+            self.business = user.business_profile
+        
+        self.business_id = str(self.business.id) if self.business else None
+        
         # Initialize services
         self._init_services(user, agent, remote_jid)
         
@@ -62,6 +72,14 @@ class ChatAssistant:
                 self.memory_tools = MemorySearchTool(self.memory_service)
                 self.knowledge_base_service = KnowledgeBaseService(user=user)
                 self.knowledge_base_tool = KnowledgeBaseTool(user=user, callback=self._tool_callback)
+                # Get the conversation thread for this user and remote_jid
+                from aiengine.models import ConversationThread
+                try:
+                    thread = ConversationThread.objects.get(user=user, remote_jid=remote_jid)
+                except ConversationThread.DoesNotExist:
+                    thread = None
+                
+                self.business_tool = BusinessTool(user=user, thread=thread, callback=self._tool_callback)
                 self.user = user
                 self.agent = agent
                 logger.info(f"Initialized services for user: {user.username}")
@@ -79,6 +97,7 @@ class ChatAssistant:
         self.memory_tools = None
         self.knowledge_base_service = None
         self.knowledge_base_tool = None
+        self.business_tool = None
         self.user = None
         self.agent = None
         logger.info("Initialized fallback services")
@@ -106,6 +125,10 @@ class ChatAssistant:
         # Add knowledge base tool if available
         if hasattr(self, 'knowledge_base_tool') and self.knowledge_base_tool:
             tools.append(self.knowledge_base_tool.get_tool())
+        
+        # Add business tools if available
+        if hasattr(self, 'business_tool') and self.business_tool:
+            tools.extend(self.business_tool.get_tools())
         
         logger.info(f"Creating agent with {len(tools)} tools")
         

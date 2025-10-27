@@ -26,6 +26,7 @@ urlpatterns = [
     path('aiengine/', include('aiengine.urls', namespace='aiengine')),
     path('audit/', include('audit.urls', namespace='audit')),
     path('knowledge/', include('knowledgebase.urls', namespace='knowledgebase')),
+    path('business/', include('business.urls', namespace='business')),
 ]
 
 # Serve media files in development

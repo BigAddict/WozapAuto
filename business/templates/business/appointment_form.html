@@ -1,0 +1,147 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ object|yesno:'Edit,Create' }} Appointment Slot - {{ business.name }} - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">{{ object|yesno:'Edit,Create' }} Appointment Slot</h1>
+                    <p class="text-muted">{{ business.name }}</p>
+                </div>
+                <a href="{% url 'business:appointment_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Appointments
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-calendar-plus me-2"></i>
+                                Appointment Slot Details
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                
+                                <!-- Service Selection -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h5 class="text-primary mb-3">Service Selection</h5>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.service.id_for_label }}" class="form-label">Service *</label>
+                                        {{ form.service }}
+                                        {% if form.service.errors %}
+                                            <div class="text-danger small">{{ form.service.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Date & Time -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h5 class="text-primary mb-3">Date & Time</h5>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ form.date.id_for_label }}" class="form-label">Date *</label>
+                                        {{ form.date }}
+                                        {% if form.date.errors %}
+                                            <div class="text-danger small">{{ form.date.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ form.start_time.id_for_label }}" class="form-label">Start Time *</label>
+                                        {{ form.start_time }}
+                                        {% if form.start_time.errors %}
+                                            <div class="text-danger small">{{ form.start_time.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ form.end_time.id_for_label }}" class="form-label">End Time *</label>
+                                        {{ form.end_time }}
+                                        {% if form.end_time.errors %}
+                                            <div class="text-danger small">{{ form.end_time.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Availability Settings -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h5 class="text-primary mb-3">Availability Settings</h5>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.max_bookings.id_for_label }}" class="form-label">Maximum Bookings *</label>
+                                        {{ form.max_bookings }}
+                                        {% if form.max_bookings.errors %}
+                                            <div class="text-danger small">{{ form.max_bookings.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="form-text">Number of appointments that can be booked for this slot</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check mt-4">
+                                            {{ form.is_available }}
+                                            <label class="form-check-label" for="{{ form.is_available.id_for_label }}">
+                                                Available for Booking
+                                            </label>
+                                        </div>
+                                        {% if form.is_available.errors %}
+                                            <div class="text-danger small">{{ form.is_available.errors.0 }}</div>
+                                        {% endif %}
+                                        <div class="form-text">Uncheck to temporarily disable this slot</div>
+                                    </div>
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'business:appointment_list' %}" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-left me-2"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        {{ object|yesno:'Update,Create' }} Appointment Slot
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help Panel -->
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-info-circle me-2"></i>Help
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Creating Appointment Slots</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Select the service this slot is for</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Choose a specific date and time range</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Set how many bookings are allowed</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Mark as available to enable booking</li>
+                            </ul>
+                            
+                            <h6 class="mt-3">Best Practices</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="bi bi-lightbulb text-warning me-2"></i>Create slots in advance for better planning</li>
+                                <li><i class="bi bi-lightbulb text-warning me-2"></i>Consider service duration when setting time ranges</li>
+                                <li><i class="bi bi-lightbulb text-warning me-2"></i>Use maximum bookings to control capacity</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

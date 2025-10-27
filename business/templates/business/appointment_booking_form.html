@@ -1,0 +1,174 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{% if booking %}Edit Booking{% else %}Create Booking{% endif %} - {{ business.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{% url 'business:business_detail' %}">{{ business.name }}</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'business:appointment_booking_list' %}">Appointment Bookings</a></li>
+                        <li class="breadcrumb-item active">{% if booking %}Edit Booking{% else %}Create Booking{% endif %}</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">{% if booking %}Edit Booking{% else %}Create Booking{% endif %}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Booking Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.customer_name.id_for_label }}" class="form-label">Customer Name *</label>
+                                    {{ form.customer_name }}
+                                    {% if form.customer_name.errors %}
+                                        <div class="text-danger">{{ form.customer_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.customer_phone.id_for_label }}" class="form-label">Phone Number *</label>
+                                    {{ form.customer_phone }}
+                                    {% if form.customer_phone.errors %}
+                                        <div class="text-danger">{{ form.customer_phone.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.customer_email.id_for_label }}" class="form-label">Email Address</label>
+                            {{ form.customer_email }}
+                            {% if form.customer_email.errors %}
+                                <div class="text-danger">{{ form.customer_email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.booking_date.id_for_label }}" class="form-label">Booking Date *</label>
+                                    {{ form.booking_date }}
+                                    {% if form.booking_date.errors %}
+                                        <div class="text-danger">{{ form.booking_date.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.booking_time.id_for_label }}" class="form-label">Booking Time *</label>
+                                    {{ form.booking_time }}
+                                    {% if form.booking_time.errors %}
+                                        <div class="text-danger">{{ form.booking_time.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="text-danger">{{ form.status.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Special Requests</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="text-danger">{{ form.notes.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="mdi mdi-content-save"></i> Save Booking
+                            </button>
+                            <a href="{% url 'business:appointment_booking_list' %}" class="btn btn-outline-secondary">
+                                <i class="mdi mdi-arrow-left"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Booking Details</h5>
+                </div>
+                <div class="card-body">
+                    {% if booking %}
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Service</strong></label>
+                            <div class="text-muted">
+                                {{ booking.service.name }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Status</strong></label>
+                            <div>
+                                {% if booking.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif booking.status == 'confirmed' %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                {% elif booking.status == 'completed' %}
+                                    <span class="badge bg-info">Completed</span>
+                                {% elif booking.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% elif booking.status == 'no_show' %}
+                                    <span class="badge bg-secondary">No Show</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Duration</strong></label>
+                            <div class="text-muted">
+                                {{ booking.duration_minutes }} minutes
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Total Price</strong></label>
+                            <div class="text-muted">
+                                <strong>{{ business.get_currency_symbol }}{{ booking.total_price|floatformat:2 }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Thread ID</strong></label>
+                            <div class="text-muted">
+                                <code>{{ booking.thread_id }}</code>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="mdi mdi-calendar-clock" style="font-size: 32px; color: #6c757d;"></i>
+                            <p class="text-muted mt-2">New Booking</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

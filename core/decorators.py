@@ -6,8 +6,8 @@ from django.urls import reverse
 
 def verified_email_required(view_func):
     """
-    Decorator that requires user to be authenticated and have verified email.
-    Redirects to verification notice page if email is not verified.
+    Decorator that requires user to be authenticated and have verified WhatsApp.
+    Redirects to verification notice page if WhatsApp is not verified.
     """
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
@@ -15,19 +15,20 @@ def verified_email_required(view_func):
         if not request.user.is_authenticated:
             return redirect('signin')
         
-        # Check if email is verified
+        # Check if WhatsApp is verified via business profile
         try:
-            if not request.user.profile.is_verified:
+            business_profile = request.user.business_profile
+            if not business_profile.is_verified:
                 messages.warning(
                     request, 
-                    'Please verify your email address to access this feature.'
+                    'Please verify your WhatsApp number to access this feature.'
                 )
                 return redirect('verification_required')
         except AttributeError:
-            # Profile doesn't exist, redirect to verification
+            # Business profile doesn't exist, redirect to verification
             messages.warning(
                 request, 
-                'Please verify your email address to access this feature.'
+                'Please verify your WhatsApp number to access this feature.'
             )
             return redirect('verification_required')
         

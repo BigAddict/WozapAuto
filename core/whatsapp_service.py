@@ -174,7 +174,14 @@ Need help? Reply to this message."""
             otp_code: OTP code to send
             request: HttpRequest instance (optional, for logging)
         """
-        if not user.profile.phone_number:
+        try:
+            business_profile = user.business_profile
+            phone_number = business_profile.phone_number
+        except:
+            logger.error(f"No business profile found for user {user.id}")
+            return False
+            
+        if not phone_number:
             logger.error(f"No phone number found for user {user.id}")
             return False
         
@@ -185,7 +192,7 @@ Need help? Reply to this message."""
         context_data = {
             'user_id': user.id,
             'username': user.username,
-            'phone_number': user.profile.phone_number,
+            'phone_number': phone_number,
             'otp_code': otp_code,
             'site_name': 'WozapAuto',
         }
@@ -193,7 +200,7 @@ Need help? Reply to this message."""
         # Log message attempt
         message_log = WhatsAppService._log_whatsapp_message(
             message_type='otp_verification',
-            recipient_phone=user.profile.phone_number,
+            recipient_phone=phone_number,
             subject=subject,
             template_used=template_used,
             context_data=context_data,
@@ -224,7 +231,7 @@ Need help? Reply to this message."""
             # Send WhatsApp message
             success, response = evolution_api_service.send_text_message(
                 instance_name=admin_connection.instance_name,
-                number=WhatsAppService._format_phone_number(user.profile.phone_number),
+                number=WhatsAppService._format_phone_number(phone_number),
                 message=message_content
             )
             
@@ -233,14 +240,14 @@ Need help? Reply to this message."""
                 if message_log:
                     message_log.mark_sent()
                 
-                logger.info(f"OTP WhatsApp message sent successfully to {user.profile.phone_number}")
+                logger.info(f"OTP WhatsApp message sent successfully to {phone_number}")
                 return True
             else:
                 # Mark as failed in audit log
                 if message_log:
                     message_log.mark_failed(response)
                 
-                logger.error(f"Failed to send OTP WhatsApp message to {user.profile.phone_number}: {response}")
+                logger.error(f"Failed to send OTP WhatsApp message to {phone_number}: {response}")
                 return False
                 
         except Exception as e:
@@ -248,7 +255,7 @@ Need help? Reply to this message."""
             if message_log:
                 message_log.mark_failed(str(e))
             
-            logger.error(f"Failed to send OTP WhatsApp message to {user.profile.phone_number}: {str(e)}")
+            logger.error(f"Failed to send OTP WhatsApp message to {phone_number}: {str(e)}")
             return False
     
     @staticmethod

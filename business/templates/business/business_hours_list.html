@@ -1,0 +1,124 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Business Hours - {{ business.name }} - WozapAuto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Business Hours</h1>
+                    <p class="text-muted">{{ business.name }}</p>
+                </div>
+                <a href="{% url 'business:business_hours_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Add Hours
+                </a>
+            </div>
+
+            {% if business_hours %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>Status</th>
+                                        <th>Hours</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for hours in business_hours %}
+                                    <tr>
+                                        <td>
+                                            <div>
+                                                <h6 class="mb-0">{{ hours.get_day_of_week_display }}</h6>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if hours.is_open %}
+                                                <span class="badge bg-success">Open</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Closed</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if hours.is_open %}
+                                                {% if hours.is_24_hours %}
+                                                    <span class="fw-bold text-success">24 Hours</span>
+                                                {% elif hours.open_time and hours.close_time %}
+                                                    <span class="fw-bold">{{ hours.open_time|time:"g:i A" }} - {{ hours.close_time|time:"g:i A" }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">Hours not set</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Closed</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'business:business_hours_edit' pk=hours.pk %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a href="{% url 'business:business_hours_delete' pk=hours.pk %}" class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-clock-history text-muted" style="font-size: 3rem;"></i>
+                        <h4 class="mt-3 text-muted">No Business Hours Set</h4>
+                        <p class="text-muted">Add your business hours to let customers know when you're available.</p>
+                        <a href="{% url 'business:business_hours_create' %}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Add First Hours
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-lightbulb text-warning me-2"></i>Quick Setup
+                            </h5>
+                            <p class="card-text">Set up standard business hours for all weekdays.</p>
+                            <a href="{% url 'business:business_hours_create' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-clock me-2"></i>Add Hours
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-info-circle text-info me-2"></i>Tips
+                            </h5>
+                            <ul class="list-unstyled small mb-0">
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Set different hours for weekends</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Use 24 Hours for always-open days</li>
+                                <li><i class="bi bi-check-circle text-success me-2"></i>Mark days as closed when not operating</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

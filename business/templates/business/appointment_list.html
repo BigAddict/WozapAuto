@@ -1,0 +1,278 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Appointment Bookings - {{ business.name }} - WozapAuto{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Appointment Bookings</h1>
+                    <p class="text-muted">{{ business.name }}</p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-success me-2" id="bulkConfirmBtn" disabled>
+                        <i class="bi bi-check-circle me-1"></i>Confirm Selected
+                    </button>
+                    <button type="button" class="btn btn-danger me-2" id="bulkCancelBtn" disabled>
+                        <i class="bi bi-x-circle me-1"></i>Cancel Selected
+                    </button>
+                    <a href="{% url 'business:appointment_booking_list' %}" class="btn btn-primary">
+                        <i class="bi bi-calendar-check me-2"></i>View All Bookings
+                    </a>
+                </div>
+            </div>
+
+            {% if appointments %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <input type="checkbox" id="selectAll" class="form-check-input">
+                                        </th>
+                                        <th>Customer</th>
+                                        <th>Service</th>
+                                        <th>Date & Time</th>
+                                        <th>Duration</th>
+                                        <th>Price</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for appointment in appointments %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input appointment-checkbox" value="{{ appointment.pk }}" data-status="{{ appointment.status }}">
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <h6 class="mb-0">{{ appointment.customer_name }}</h6>
+                                                {% if appointment.customer_phone %}
+                                                    <small class="text-muted">{{ appointment.customer_phone }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <h6 class="mb-0">{{ appointment.service.name }}</h6>
+                                                <small class="text-muted">{{ appointment.service.category.name }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold">{{ appointment.booking_date|date:"M d, Y" }}</span>
+                                            <br><small class="text-muted">{{ appointment.booking_time|time:"g:i A" }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ appointment.duration_minutes }} min</span>
+                                        </td>
+                                        <td>
+                                            <strong>{{ business.get_currency_symbol }}{{ appointment.total_price|floatformat:2 }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if appointment.status == 'confirmed' %}success{% elif appointment.status == 'pending' %}warning{% elif appointment.status == 'cancelled' %}danger{% elif appointment.status == 'completed' %}primary{% else %}secondary{% endif %}">
+                                                {{ appointment.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'business:appointment_booking_detail' appointment.pk %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                {% if appointment.status == 'pending' %}
+                                                <form method="post" action="{% url 'business:appointment_booking_status' appointment.pk %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="status" value="confirmed">
+                                                    <button type="submit" class="btn btn-sm btn-success" title="Quick Confirm" onclick="return confirm('Confirm this appointment?')">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                {% if appointment.status in 'pending,confirmed' %}
+                                                <form method="post" action="{% url 'business:appointment_booking_status' appointment.pk %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="status" value="cancelled">
+                                                    <button type="submit" class="btn btn-sm btn-danger" title="Cancel Appointment" onclick="return confirm('Cancel this appointment?')">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                {% if appointment.status == 'confirmed' %}
+                                                <form method="post" action="{% url 'business:appointment_booking_status' appointment.pk %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="status" value="completed">
+                                                    <button type="submit" class="btn btn-sm btn-primary" title="Mark Complete" onclick="return confirm('Mark this appointment as completed?')">
+                                                        <i class="bi bi-check2-all"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                <a href="{% url 'business:appointment_booking_edit' appointment.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {% if is_paginated %}
+                <nav aria-label="Appointment pagination" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">&laquo; First</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-check display-1 text-muted"></i>
+                    <h3 class="mt-3">No Appointment Bookings Yet</h3>
+                    <p class="text-muted">Appointment bookings will appear here when customers book your services.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const appointmentCheckboxes = document.querySelectorAll('.appointment-checkbox');
+    const bulkConfirmBtn = document.getElementById('bulkConfirmBtn');
+    const bulkCancelBtn = document.getElementById('bulkCancelBtn');
+
+    // Select all functionality
+    selectAllCheckbox.addEventListener('change', function() {
+        appointmentCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateBulkButtons();
+    });
+
+    // Individual checkbox change
+    appointmentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateBulkButtons();
+            updateSelectAllState();
+        });
+    });
+
+    function updateSelectAllState() {
+        const checkedBoxes = document.querySelectorAll('.appointment-checkbox:checked');
+        selectAllCheckbox.checked = checkedBoxes.length === appointmentCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < appointmentCheckboxes.length;
+    }
+
+    function updateBulkButtons() {
+        const checkedBoxes = document.querySelectorAll('.appointment-checkbox:checked');
+        const hasChecked = checkedBoxes.length > 0;
+        
+        bulkConfirmBtn.disabled = !hasChecked;
+        bulkCancelBtn.disabled = !hasChecked;
+    }
+
+    // Bulk confirm action
+    bulkConfirmBtn.addEventListener('click', function() {
+        const checkedBoxes = document.querySelectorAll('.appointment-checkbox:checked');
+        const pendingAppointments = Array.from(checkedBoxes).filter(cb => cb.dataset.status === 'pending');
+        
+        if (pendingAppointments.length === 0) {
+            alert('Please select pending appointments to confirm.');
+            return;
+        }
+        
+        if (confirm(`Confirm ${pendingAppointments.length} appointment(s)?`)) {
+            pendingAppointments.forEach(checkbox => {
+                const form = document.createElement('form');
+                form.method = 'post';
+                form.action = `/business/bookings/${checkbox.value}/status/`;
+                form.style.display = 'none';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = 'csrfmiddlewaretoken';
+                csrfToken.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                const statusInput = document.createElement('input');
+                statusInput.type = 'hidden';
+                statusInput.name = 'status';
+                statusInput.value = 'confirmed';
+                
+                form.appendChild(csrfToken);
+                form.appendChild(statusInput);
+                document.body.appendChild(form);
+                form.submit();
+            });
+        }
+    });
+
+    // Bulk cancel action
+    bulkCancelBtn.addEventListener('click', function() {
+        const checkedBoxes = document.querySelectorAll('.appointment-checkbox:checked');
+        const cancellableAppointments = Array.from(checkedBoxes).filter(cb => 
+            cb.dataset.status === 'pending' || cb.dataset.status === 'confirmed'
+        );
+        
+        if (cancellableAppointments.length === 0) {
+            alert('Please select pending or confirmed appointments to cancel.');
+            return;
+        }
+        
+        if (confirm(`Cancel ${cancellableAppointments.length} appointment(s)?`)) {
+            cancellableAppointments.forEach(checkbox => {
+                const form = document.createElement('form');
+                form.method = 'post';
+                form.action = `/business/bookings/${checkbox.value}/status/`;
+                form.style.display = 'none';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = 'csrfmiddlewaretoken';
+                csrfToken.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                const statusInput = document.createElement('input');
+                statusInput.type = 'hidden';
+                statusInput.name = 'status';
+                statusInput.value = 'cancelled';
+                
+                form.appendChild(csrfToken);
+                form.appendChild(statusInput);
+                document.body.appendChild(form);
+                form.submit();
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

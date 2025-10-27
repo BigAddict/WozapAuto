@@ -18,9 +18,11 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.utils import timezone
 from .models import UserProfile
-from .forms import CustomUserCreationForm, OnboardingForm, OTPVerificationForm
+from .forms import CustomUserCreationForm, BusinessProfileForm, OTPVerificationForm
+from business.models import BusinessProfile
 from .decorators import verified_email_required, onboarding_required
 from .whatsapp_service import whatsapp_service
+from .utils import get_or_create_profile, log_user_activity
 from audit.services import AuditService
 
 logger = logging.getLogger('core.views')
@@ -158,12 +160,50 @@ class HomePageView(TemplateView):
                         'chats_count': 0
                     }
             
+            # Get business data if user has a business profile
+            business_data = {}
+            try:
+                business_profile = self.request.user.business_profile
+                from business.models import Cart, AppointmentBooking, Product
+                
+                # Get business statistics
+                total_carts = Cart.objects.filter(business=business_profile).count()
+                active_carts = Cart.objects.filter(business=business_profile, status='active').count()
+                completed_carts = Cart.objects.filter(business=business_profile, status='completed').count()
+                
+                total_appointments = AppointmentBooking.objects.filter(business=business_profile).count()
+                pending_appointments = AppointmentBooking.objects.filter(business=business_profile, status='pending').count()
+                confirmed_appointments = AppointmentBooking.objects.filter(business=business_profile, status='confirmed').count()
+                
+                total_products = Product.objects.filter(business=business_profile).count()
+                
+                # Get recent orders (carts and appointments)
+                recent_carts = Cart.objects.filter(business=business_profile).order_by('-created_at')[:5]
+                recent_appointments = AppointmentBooking.objects.filter(business=business_profile).order_by('-created_at')[:5]
+                
+                business_data = {
+                    'business_profile': business_profile,
+                    'total_carts': total_carts,
+                    'active_carts': active_carts,
+                    'completed_carts': completed_carts,
+                    'total_appointments': total_appointments,
+                    'pending_appointments': pending_appointments,
+                    'confirmed_appointments': confirmed_appointments,
+                    'total_products': total_products,
+                    'recent_carts': recent_carts,
+                    'recent_appointments': recent_appointments,
+                }
+            except:
+                # User doesn't have a business profile
+                pass
+            
             # Dashboard stats
             context.update({
                 'total_connections': connections.count(),
                 'active_connections': active_connections.count(),
                 'user_profile': getattr(self.request.user, 'profile', None),
-                **connection_data  # Add connection data to context
+                **connection_data,  # Add connection data to context
+                **business_data  # Add business data to context
             })
         
         return context
@@ -174,14 +214,14 @@ class HomePageView(TemplateView):
 @login_required
 def profile_view(request):
     """View user profile"""
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    profile = get_or_create_profile(request.user)
     return render(request, 'core/profile.html', {'profile': profile})
 
 
 @login_required
 def profile_edit(request):
     """Edit user profile"""
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    profile = get_or_create_profile(request.user)
     
     if request.method == 'POST':
         # Update user fields
@@ -221,9 +261,8 @@ def profile_edit(request):
 def profile_api(request):
     """API endpoint for profile data"""
     if request.method == 'GET':
-        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        profile = get_or_create_profile(request.user)
         return JsonResponse({
-            'company_name': profile.company_name or '',
             'phone_number': profile.phone_number or '',
             'timezone': profile.timezone,
             'language': profile.language,
@@ -359,26 +398,33 @@ def resend_verification(request):
             }
         )
         # Get or create profile
-        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        profile = get_or_create_profile(request.user)
+        
+        # Get business profile for verification status
+        try:
+            business_profile = request.user.business_profile
+        except:
+            messages.error(request, 'Please create a business profile first.')
+            return redirect('create_business_profile')
+        
         logger.info(
             "resend_verification:profile",
             extra={
                 'profile_id': getattr(profile, 'id', None),
-                'profile_created': created,
-                'is_verified': profile.is_verified,
-                'last_sent_at': getattr(profile.otp_created_at, 'isoformat', lambda: None)(),
+                'is_verified': business_profile.is_verified,
+                'last_sent_at': getattr(business_profile.otp_created_at, 'isoformat', lambda: None)(),
             }
         )
         
         # Check if already verified
-        if profile.is_verified:
+        if business_profile.is_verified:
             logger.info("resend_verification:already_verified")
             messages.info(request, 'Your WhatsApp number is already verified.')
             return redirect('home')
         
         # Rate limiting: max 1 request per hour (more lenient)
-        if profile.otp_created_at:
-            time_diff = timezone.now() - profile.otp_created_at
+        if business_profile.otp_created_at:
+            time_diff = timezone.now() - business_profile.otp_created_at
             if time_diff.total_seconds() < 60 * 60:  # 1 hour
                 wait_seconds = int(60 * 60 - time_diff.total_seconds())
                 logger.info("resend_verification:rate_limited", extra={'wait_seconds': wait_seconds})
@@ -387,7 +433,8 @@ def resend_verification(request):
         
         # Send verification WhatsApp message
         t0 = time.monotonic()
-        success = whatsapp_service.send_otp_message(request.user, request.user.profile.generate_otp(), request)
+        otp_code = business_profile.generate_otp()
+        success = whatsapp_service.send_otp_message(request.user, otp_code, request)
         duration_s = time.monotonic() - t0
         logger.info("resend_verification:send_completed", extra={'success': success, 'duration_s': round(duration_s, 3)})
         
@@ -404,10 +451,10 @@ def resend_verification(request):
         return redirect('verification_required')
 
 
-# Welcome Onboarding View
+# Business Profile Creation View
 @login_required
-def welcome_onboarding(request):
-    """Welcome onboarding flow for new users"""
+def create_business_profile(request):
+    """Create business profile during onboarding"""
     try:
         profile = request.user.profile
         
@@ -416,24 +463,37 @@ def welcome_onboarding(request):
             messages.info(request, 'You have already completed the onboarding process.')
             return redirect('home')
         
+        # Check if business profile already exists
+        try:
+            business_profile = request.user.business_profile
+            if business_profile.is_verified:
+                messages.info(request, 'Your business profile is already verified.')
+                return redirect('home')
+            # If exists but not verified, continue to OTP verification
+            return redirect('verify_whatsapp_otp')
+        except BusinessProfile.DoesNotExist:
+            pass
+        
         if request.method == 'POST':
-            form = OnboardingForm(request.POST, request.FILES, instance=profile)
+            form = BusinessProfileForm(request.POST)
             if form.is_valid():
-                # Save profile data
-                profile = form.save()
+                # Create business profile
+                business_profile = form.save(commit=False)
+                business_profile.user = request.user
+                business_profile.save()
                 
                 # Generate and send OTP for WhatsApp verification
-                otp_code = profile.generate_otp()
+                otp_code = business_profile.generate_otp()
                 if whatsapp_service.send_otp_message(request.user, otp_code, request):
-                    messages.success(request, 'Profile saved! Please check your WhatsApp for the verification code.')
+                    messages.success(request, 'Business profile created! Please check your WhatsApp for the verification code.')
                     return redirect('verify_whatsapp_otp')
                 else:
-                    messages.error(request, 'Profile saved but failed to send verification code. Please contact support.')
+                    messages.error(request, 'Profile created but failed to send verification code. Please contact support.')
                     return redirect('verify_whatsapp_otp')
         else:
-            form = OnboardingForm(instance=profile)
+            form = BusinessProfileForm()
         
-        return render(request, 'core/welcome_onboarding.html', {'form': form})
+        return render(request, 'core/create_business_profile.html', {'form': form})
         
     except UserProfile.DoesNotExist:
         messages.error(request, 'Profile not found. Please contact support.')
@@ -445,9 +505,10 @@ def verify_whatsapp_otp(request):
     """Verify WhatsApp OTP code"""
     try:
         profile = request.user.profile
+        business_profile = request.user.business_profile
         
         # Check if already verified
-        if profile.is_verified:
+        if business_profile.is_verified:
             messages.info(request, 'Your WhatsApp number is already verified.')
             return redirect('home')
         
@@ -455,7 +516,7 @@ def verify_whatsapp_otp(request):
             form = OTPVerificationForm(request.POST)
             if form.is_valid():
                 otp_code = form.cleaned_data['otp_code']
-                success, message = profile.verify_otp(otp_code)
+                success, message = business_profile.verify_otp(otp_code)
                 
                 if success:
                     profile.onboarding_completed = True
@@ -468,7 +529,7 @@ def verify_whatsapp_otp(request):
                             action='whatsapp_verification',
                             ip_address=request.META.get('REMOTE_ADDR'),
                             user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                            metadata={'phone_number': profile.phone_number}
+                            metadata={'phone_number': business_profile.phone_number}
                         )
                     except Exception as e:
                         logger.error(f"Failed to log WhatsApp verification: {e}")
@@ -487,6 +548,9 @@ def verify_whatsapp_otp(request):
     except UserProfile.DoesNotExist:
         messages.error(request, 'Profile not found. Please contact support.')
         return redirect('home')
+    except BusinessProfile.DoesNotExist:
+        messages.error(request, 'Business profile not found. Please create your business profile first.')
+        return redirect('create_business_profile')
 
 
 @login_required
@@ -494,14 +558,15 @@ def resend_otp(request):
     """Resend OTP code"""
     try:
         profile = request.user.profile
+        business_profile = request.user.business_profile
         
         # Check if already verified
-        if profile.is_verified:
+        if business_profile.is_verified:
             messages.info(request, 'Your WhatsApp number is already verified.')
             return redirect('home')
         
         # Generate and send new OTP
-        otp_code = profile.generate_otp()
+        otp_code = business_profile.generate_otp()
         if whatsapp_service.send_otp_message(request.user, otp_code, request):
             messages.success(request, 'New verification code sent to your WhatsApp.')
         else:
@@ -512,3 +577,6 @@ def resend_otp(request):
     except UserProfile.DoesNotExist:
         messages.error(request, 'Profile not found. Please contact support.')
         return redirect('home')
+    except BusinessProfile.DoesNotExist:
+        messages.error(request, 'Business profile not found. Please create your business profile first.')
+        return redirect('create_business_profile')
