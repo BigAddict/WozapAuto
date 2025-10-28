@@ -429,7 +429,7 @@ def resend_verification(request):
                 wait_seconds = int(5 * 60 - time_diff.total_seconds())
                 logger.info("resend_verification:rate_limited", extra={'wait_seconds': wait_seconds})
                 messages.warning(request, f'Please wait {wait_seconds} seconds before requesting another verification message.')
-                return redirect('verification_required')
+                return redirect('onboarding_verify')
         
         # Send verification WhatsApp message
         t0 = time.monotonic()
@@ -443,12 +443,12 @@ def resend_verification(request):
             return redirect('verify_whatsapp_otp')
         else:
             messages.error(request, 'Failed to send verification code. Please try again later.')
-            return redirect('verification_required')
+            return redirect('onboarding_verify')
         
     except Exception as e:
         logger.exception("resend_verification:error")
         messages.error(request, f'An error occurred: {str(e)}')
-        return redirect('verification_required')
+        return redirect('onboarding_verify')
 
 
 # Business Profile Creation View

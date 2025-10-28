@@ -82,17 +82,28 @@ class BusinessDetailView(BusinessProfileRequiredMixin, AuditLogMixin, DetailView
         context = super().get_context_data(**kwargs)
         business = self.object
         
-        # Get business stats
-        context.update({
-            'products_count': business.products.filter(is_active=True).count(),
-            'services_count': business.services.filter(is_active=True).count(),
-            'categories_count': business.categories.filter(is_active=True).count(),
-            'appointments_count': AppointmentSlot.objects.filter(
-                service__business=business
-            ).count(),
-            'recent_products': business.products.filter(is_active=True)[:5],
-            'recent_services': business.services.filter(is_active=True)[:5],
-        })
+        # Get business stats - only if business exists
+        if business:
+            context.update({
+                'products_count': business.products.filter(is_active=True).count(),
+                'services_count': business.services.filter(is_active=True).count(),
+                'categories_count': business.categories.filter(is_active=True).count(),
+                'appointments_count': AppointmentSlot.objects.filter(
+                    service__business=business
+                ).count(),
+                'recent_products': business.products.filter(is_active=True)[:5],
+                'recent_services': business.services.filter(is_active=True)[:5],
+            })
+        else:
+            # Default values when no business profile exists
+            context.update({
+                'products_count': 0,
+                'services_count': 0,
+                'categories_count': 0,
+                'appointments_count': 0,
+                'recent_products': [],
+                'recent_services': [],
+            })
         
         return context
 

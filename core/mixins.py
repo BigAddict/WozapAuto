@@ -56,7 +56,8 @@ class BusinessProfileRequiredMixin(ProfileRequiredMixin):
             messages.info(request, 'Please create your business profile to continue.')
             return redirect('onboarding_business')
         
-        return super().dispatch(request, *args, **kwargs)
+        # If we get here, both profile and business profile exist, proceed with the view
+        return super(ProfileRequiredMixin, self).dispatch(request, *args, **kwargs)
 
 
 class AuditLogMixin:

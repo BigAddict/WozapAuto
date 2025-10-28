@@ -21,16 +21,16 @@ def verified_email_required(view_func):
             if not business_profile.is_verified:
                 messages.warning(
                     request, 
-                    'Please verify your WhatsApp number to access this feature.'
+                    'Please complete your WhatsApp verification to access this feature.'
                 )
-                return redirect('verification_required')
+                return redirect('onboarding_verify')
         except AttributeError:
-            # Business profile doesn't exist, redirect to verification
+            # Business profile doesn't exist, redirect to onboarding
             messages.warning(
                 request, 
-                'Please verify your WhatsApp number to access this feature.'
+                'Please complete your business profile setup to access this feature.'
             )
-            return redirect('verification_required')
+            return redirect('onboarding_business')
         
         return view_func(request, *args, **kwargs)
     
