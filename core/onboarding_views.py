@@ -82,8 +82,19 @@ def onboarding_business(request):
             return redirect('home')
         
         # If not on business step, redirect to current step
+        # Exception: allow verify step users to access business if no business profile exists
         if profile.onboarding_step not in ['profile', 'business']:
-            return redirect(profile.get_onboarding_redirect_url())
+            # Check if user is on verify step but has no business profile
+            if profile.onboarding_step == 'verify':
+                try:
+                    request.user.business_profile
+                    # Business profile exists, redirect to verify
+                    return redirect(profile.get_onboarding_redirect_url())
+                except AttributeError:
+                    # No business profile, allow access to business step
+                    pass
+            else:
+                return redirect(profile.get_onboarding_redirect_url())
         
         # Check if business profile already exists
         try:
@@ -132,12 +143,18 @@ def onboarding_verify(request):
     """Step 3: WhatsApp verification"""
     try:
         profile = request.user.profile
-        business_profile = request.user.business_profile
         
         # If already completed, redirect to home
         if profile.is_onboarding_complete():
             messages.info(request, 'You have already completed the onboarding process.')
             return redirect('home')
+        
+        # Check if business profile exists first
+        try:
+            business_profile = request.user.business_profile
+        except AttributeError:
+            messages.error(request, 'Business profile not found. Please create your business profile first.')
+            return redirect('onboarding_business')
         
         # If not on verify step, redirect to current step
         if profile.onboarding_step not in ['business', 'verify']:
@@ -185,9 +202,6 @@ def onboarding_verify(request):
     except UserProfile.DoesNotExist:
         messages.error(request, 'Profile not found. Please contact support.')
         return redirect('home')
-    except AttributeError:
-        messages.error(request, 'Business profile not found. Please create your business profile first.')
-        return redirect('onboarding_business')
 
 
 @login_required
@@ -215,4 +229,5 @@ def redirect_to_onboarding(request):
         except UserProfile.DoesNotExist:
             pass
     
-    return redirect('onboarding_welcome')
+    # For unauthenticated users, redirect to signin with next parameter
+    return redirect(f"{reverse('signin')}?next={reverse('onboarding_welcome')}")

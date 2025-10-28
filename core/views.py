@@ -36,6 +36,9 @@ def signup(request):
                 # Create user
                 user = form.save()
                 
+                # Log the user in automatically
+                login(request, user)
+                
                 # Skip email verification, go directly to onboarding
                 messages.success(
                     request, 
@@ -119,7 +122,9 @@ class HomePageView(TemplateView):
                 if not profile.is_onboarding_complete():
                     return redirect(profile.get_onboarding_redirect_url())
             except AttributeError:
-                # Profile doesn't exist, redirect to onboarding
+                # Profile doesn't exist, create one and redirect to onboarding
+                from .models import UserProfile
+                UserProfile.objects.create(user=request.user)
                 return redirect('onboarding_welcome')
         
         return super().dispatch(request, *args, **kwargs)
@@ -230,11 +235,8 @@ def profile_edit(request):
         request.user.email = request.POST.get('email', '').strip()
         request.user.save()
         
-        # Update profile fields
-        profile.phone_number = request.POST.get('phone_number', '').strip()
-        profile.company_name = request.POST.get('company_name', '').strip()
-        profile.timezone = request.POST.get('timezone', 'UTC')
-        profile.language = request.POST.get('language', 'en')
+        # Update profile fields (only fields that exist in UserProfile)
+        profile.newsletter_subscribed = request.POST.get('newsletter_subscribed', False) == 'on'
         profile.save()
         
         # Log profile update activity
@@ -245,7 +247,7 @@ def profile_edit(request):
                 ip_address=request.META.get('REMOTE_ADDR'),
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
                 metadata={
-                    'updated_fields': ['first_name', 'last_name', 'email', 'phone_number', 'company_name', 'timezone', 'language']
+                    'updated_fields': ['first_name', 'last_name', 'email', 'newsletter_subscribed']
                 }
             )
         except Exception as e:
@@ -263,12 +265,12 @@ def profile_api(request):
     if request.method == 'GET':
         profile = get_or_create_profile(request.user)
         return JsonResponse({
-            'phone_number': profile.phone_number or '',
-            'timezone': profile.timezone,
-            'language': profile.language,
             'first_name': request.user.first_name,
             'last_name': request.user.last_name,
             'email': request.user.email,
+            'newsletter_subscribed': profile.newsletter_subscribed,
+            'onboarding_completed': profile.onboarding_completed,
+            'onboarding_step': profile.onboarding_step,
         })
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
