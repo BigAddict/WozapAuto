@@ -86,6 +86,78 @@ class UserProfileModelTestCase(TestCase):
         self.profile.onboarding_step = 'complete'
         url = self.profile.get_onboarding_redirect_url()
         self.assertEqual(url, reverse('home'))
+    
+    def test_is_onboarding_complete_without_business_profile(self):
+        """Test is_onboarding_complete when user has no business profile."""
+        profile = self.profile
+        profile.onboarding_step = 'complete'
+        profile.onboarding_completed = True
+        profile.save()
+        
+        # Should return False even if marked as completed, because no business profile
+        self.assertFalse(profile.is_onboarding_complete())
+    
+    def test_is_onboarding_complete_with_unverified_business_profile(self):
+        """Test is_onboarding_complete when user has unverified business profile."""
+        from business.models import BusinessProfile, BusinessType
+        
+        # Create business type
+        business_type = BusinessType.objects.create(
+            name='ecommerce',
+            display_name='E-commerce Store',
+            is_active=True
+        )
+        
+        # Create unverified business profile
+        business_profile = BusinessProfile.objects.create(
+            user=self.user,
+            name='Test Business',
+            business_type=business_type,
+            phone_number='+1234567890',
+            timezone='UTC',
+            language='en',
+            currency='USD',
+            is_verified=False
+        )
+        
+        profile = self.profile
+        profile.onboarding_step = 'complete'
+        profile.onboarding_completed = True
+        profile.save()
+        
+        # Should return False because business profile is not verified
+        self.assertFalse(profile.is_onboarding_complete())
+    
+    def test_is_onboarding_complete_with_verified_business_profile(self):
+        """Test is_onboarding_complete when user has verified business profile."""
+        from business.models import BusinessProfile, BusinessType
+        
+        # Create business type
+        business_type = BusinessType.objects.create(
+            name='ecommerce',
+            display_name='E-commerce Store',
+            is_active=True
+        )
+        
+        # Create verified business profile
+        business_profile = BusinessProfile.objects.create(
+            user=self.user,
+            name='Test Business',
+            business_type=business_type,
+            phone_number='+1234567890',
+            timezone='UTC',
+            language='en',
+            currency='USD',
+            is_verified=True
+        )
+        
+        profile = self.profile
+        profile.onboarding_step = 'complete'
+        profile.onboarding_completed = True
+        profile.save()
+        
+        # Should return True because business profile is verified
+        self.assertTrue(profile.is_onboarding_complete())
         
         # Test completed profile
         self.profile.onboarding_completed = True

@@ -86,7 +86,16 @@ class UserProfile(models.Model):
     
     def is_onboarding_complete(self):
         """Check if onboarding is complete"""
-        return self.onboarding_completed or self.onboarding_step == 'complete'
+        # Must have completed onboarding AND have a business profile
+        if self.onboarding_completed or self.onboarding_step == 'complete':
+            try:
+                # Check if business profile exists and is verified
+                business_profile = self.user.business_profile
+                return business_profile.is_verified
+            except AttributeError:
+                # No business profile means onboarding is not complete
+                return False
+        return False
     
 
 @receiver(post_save, sender=User)
