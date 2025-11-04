@@ -1,0 +1,90 @@
+.business-profile-form {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.business-profile-form .form-section {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #eef2f6;
+}
+
+.business-profile-form .section-title {
+    color: #2563eb;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.business-profile-form .required-field {
+    color: #dc2626;
+}
+
+.business-profile-form .form-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.business-profile-form .btn-create-profile {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border: none;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.business-profile-form .btn-create-profile:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.category-form-page .icon-selector {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8f9fa;
+}
+
+.category-form-page .icon-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 2px;
+}
+
+.category-form-page .icon-option:hover {
+    border-color: #0d6efd;
+    background-color: #f0f8ff;
+    transform: scale(1.05);
+}
+
+.category-form-page .icon-option.selected {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+}
+
+.category-form-page .icon-option i {
+    font-size: 1.2rem;
+}
+
+.category-form-page .icon-grid {
+    max-height: 200px;
+    overflow-y: auto;
+}
+

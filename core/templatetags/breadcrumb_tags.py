@@ -40,10 +40,15 @@ def breadcrumb(context):
     html_parts = ['<nav aria-label="breadcrumb" class="mb-4">', '<ol class="breadcrumb">']
     
     for breadcrumb in breadcrumbs:
+        name = breadcrumb['name']
+        url = breadcrumb.get('url')
+
         if breadcrumb['active']:
-            html_parts.append(f'<li class="breadcrumb-item active" aria-current="page">{breadcrumb["name"]}</li>')
+            html_parts.append(f'<li class="breadcrumb-item active" aria-current="page">{name}</li>')
+        elif url:
+            html_parts.append(f'<li class="breadcrumb-item"><a href="{url}">{name}</a></li>')
         else:
-            html_parts.append(f'<li class="breadcrumb-item"><a href="{breadcrumb["url"]}">{breadcrumb["name"]}</a></li>')
+            html_parts.append(f'<li class="breadcrumb-item">{name}</li>')
     
     html_parts.extend(['</ol>', '</nav>'])
     
@@ -57,11 +62,15 @@ def get_breadcrumb_info(part, current_url, context):
     breadcrumb_mappings = {
         'connections': {
             'name': 'Connections',
-            'url': reverse('connections:qr_display') if 'qr_display' in current_url else reverse('connections:create')
+            'url': reverse('connections:qr_display')
         },
         'business': {
             'name': 'Business',
             'url': reverse('business:business_list')
+        },
+        'knowledge': {
+            'name': 'Knowledge Base',
+            'url': reverse('knowledgebase:knowledge_base_list')
         },
         'aiengine': {
             'name': 'AI Agent',

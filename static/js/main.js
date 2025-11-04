@@ -1,17 +1,51 @@
 // WozapAuto - Interactive JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all components
-    initScrollAnimations();
-    initFloatingCards();
-    initParticleEffect();
-    initTypingEffect();
-    initCounterAnimations();
-    initParallaxEffect();
-    initSmoothScrolling();
-    initLoadingStates();
+    if (document.querySelector('.scroll-animate')) {
+        initScrollAnimations();
+    }
+
+    if (document.querySelector('.floating-card')) {
+        initFloatingCards();
+    }
+
+    if (document.querySelector('.hero-section')) {
+        initParticleEffect();
+    }
+
+    if (document.querySelector('[data-typing]')) {
+        initTypingEffect();
+    }
+
+    if (document.querySelector('.stat-number')) {
+        initCounterAnimations();
+    }
+
+    if (document.querySelector('[data-parallax]')) {
+        initParallaxEffect();
+    }
+
+    if (document.querySelector('a[href^="#"]')) {
+        initSmoothScrolling();
+    }
+
+    if (document.querySelector('[data-loading-button]')) {
+        initLoadingStates();
+    }
+
     initMobileNavigation();
-    initNotificationDropdown();
+
+    if (document.querySelector('#notificationsDropdown')) {
+        initNotificationDropdown();
+    }
+
+    if (document.querySelectorAll('input, textarea').length) {
+        initFormEnhancements();
+    }
+
+    if (document.querySelector('.mini-chart')) {
+        initMiniCharts();
+    }
 });
 
 // Scroll Animations
@@ -243,20 +277,22 @@ function initSmoothScrolling() {
 
 // Loading States
 function initLoadingStates() {
-    // Exclude dropdown toggles and link-style buttons to avoid breaking menus
-    const buttons = document.querySelectorAll('.btn:not([type="submit"]):not([data-bs-toggle="dropdown"]):not(.btn-link)');
-    
+    const buttons = document.querySelectorAll('[data-loading-button]');
+    if (!buttons.length) return;
+
     buttons.forEach(button => {
         button.addEventListener('click', function() {
-            // Only apply loading state to non-submit buttons
             this.classList.add('loading');
+            this.setAttribute('aria-busy', 'true');
             this.disabled = true;
-            
-            // Remove loading state after 3 seconds (for demo)
+
+            const timeout = Number(this.dataset.loadingButton) || 3000;
+
             setTimeout(() => {
                 this.classList.remove('loading');
+                this.removeAttribute('aria-busy');
                 this.disabled = false;
-            }, 3000);
+            }, timeout);
         });
     });
 }

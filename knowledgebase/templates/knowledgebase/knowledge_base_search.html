@@ -4,148 +4,7 @@
 {% block title %}Search Knowledge Base{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
-<style>
-    .search-container {
-        max-width: 1000px;
-        margin: 0 auto;
-    }
-    
-    .search-form {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    
-    .search-input {
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        font-size: 1.1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .search-input:focus {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        border: none;
-        outline: none;
-    }
-    
-    .btn-search {
-        background: rgba(255,255,255,0.2);
-        border: 2px solid rgba(255,255,255,0.3);
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-search:hover {
-        background: rgba(255,255,255,0.3);
-        border-color: rgba(255,255,255,0.5);
-        color: white;
-        transform: translateY(-1px);
-    }
-    
-    .result-card {
-        background: white;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border-left: 4px solid #007bff;
-        transition: all 0.3s ease;
-    }
-    
-    .result-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .result-header {
-        display: flex;
-        justify-content-between;
-        align-items-start;
-        margin-bottom: 1rem;
-    }
-    
-    .result-filename {
-        font-weight: 600;
-        color: #495057;
-        margin: 0;
-    }
-    
-    .similarity-score {
-        background: #e9ecef;
-        color: #495057;
-        padding: 0.25rem 0.5rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    
-    .result-text {
-        color: #6c757d;
-        line-height: 1.6;
-        margin-bottom: 1rem;
-    }
-    
-    .result-meta {
-        display: flex;
-        justify-content-between;
-        align-items-center;
-        font-size: 0.875rem;
-        color: #6c757d;
-    }
-    
-    .chunk-info {
-        display: flex;
-        align-items-center;
-        gap: 1rem;
-    }
-    
-    .no-results {
-        text-align: center;
-        padding: 3rem 2rem;
-        color: #6c757d;
-    }
-    
-    .no-results i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-    
-    .search-stats {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 2rem;
-        display: flex;
-        justify-content-between;
-        align-items-center;
-    }
-    
-    .back-link {
-        color: #6c757d;
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-    
-    .back-link:hover {
-        color: #007bff;
-    }
-    
-    .highlight {
-        background: #fff3cd;
-        padding: 0.1rem 0.2rem;
-        border-radius: 3px;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/knowledgebase.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -163,7 +22,7 @@
         </div>
 
         <!-- Search Form -->
-        <div class="search-form">
+        <div class="search-form search-form--gradient">
             <form method="post">
                 {% csrf_token %}
                 <div class="row">

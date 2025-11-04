@@ -8,9 +8,9 @@ These items can be tackled right away to reduce user confusion and prepare for t
 - [x] Document current breadcrumb outputs for key flows (Connections, Business, Knowledge Base) to highlight mismatches between labels and user intent.
 
 ## Visual Consistency & Layout Hygiene
-- [ ] List all templates that re-import Bootstrap or define inline `<style>` blocks, starting with `knowledgebase/knowledge_base_list.html` and `connections/base.html`.
-- [ ] Consolidate duplicated card and stat styles by replacing per-page CSS with reusable components from `components/`.
-- [ ] Identify animation-heavy assets loaded globally and note where they are actually required.
+- [x] List all templates that re-import Bootstrap or define inline `<style>` blocks, starting with `knowledgebase/knowledge_base_list.html` and `connections/base.html`.
+- [x] Consolidate duplicated card and stat styles by replacing per-page CSS with reusable components from `components/`.
+- [x] Identify animation-heavy assets loaded globally and note where they are actually required.
 
 ## Guidance & Onboarding Support
 - [ ] Audit `core/home.html` widgets and label each card with its target user state (new vs. returning) to prepare for progressive disclosure.
