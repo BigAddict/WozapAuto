@@ -19,7 +19,7 @@
     
     {% with progress=onboarding_progress %}
     {% if progress %}
-    <section class="onboarding-panel" role="region" aria-labelledby="onboarding-progress-heading">
+    <section class="surface-card surface-card--muted onboarding-panel" role="region" aria-labelledby="onboarding-progress-heading">
         <div class="onboarding-panel__header">
             <div>
                 <h2 id="onboarding-progress-heading">Getting set up</h2>
@@ -33,8 +33,8 @@
             </span>
             {% endif %}
         </div>
-        <ol class="onboarding-panel__list">
-            <li class="onboarding-step {% if progress.profile %}onboarding-step--completed{% endif %}">
+        <ol class="onboarding-panel__list surface-list">
+            <li class="surface-list__item onboarding-step {% if progress.profile %}onboarding-step--completed{% endif %}">
                 <div class="onboarding-step__indicator" aria-hidden="true">
                     <i class="bi {% if progress.profile %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
                 </div>
@@ -48,7 +48,7 @@
                     {% endif %}
                 </div>
             </li>
-            <li class="onboarding-step {% if progress.business %}onboarding-step--completed{% endif %}">
+            <li class="surface-list__item onboarding-step {% if progress.business %}onboarding-step--completed{% endif %}">
                 <div class="onboarding-step__indicator" aria-hidden="true">
                     <i class="bi {% if progress.business %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
                 </div>
@@ -62,7 +62,7 @@
                     {% endif %}
                 </div>
             </li>
-            <li class="onboarding-step {% if progress.connection %}onboarding-step--completed{% endif %}">
+            <li class="surface-list__item onboarding-step {% if progress.connection %}onboarding-step--completed{% endif %}">
                 <div class="onboarding-step__indicator" aria-hidden="true">
                     <i class="bi {% if progress.connection %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
                 </div>
@@ -76,7 +76,7 @@
                     {% endif %}
                 </div>
             </li>
-            <li class="onboarding-step {% if progress.knowledge %}onboarding-step--completed{% endif %}">
+            <li class="surface-list__item onboarding-step {% if progress.knowledge %}onboarding-step--completed{% endif %}">
                 <div class="onboarding-step__indicator" aria-hidden="true">
                     <i class="bi {% if progress.knowledge %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
                 </div>
@@ -95,7 +95,7 @@
         </ol>
     </section>
     {% if onboarding_steps_completed == onboarding_steps_total %}
-    <section class="onboarding-panel onboarding-panel--complete" aria-live="polite">
+    <section class="surface-card surface-card--success onboarding-panel onboarding-panel--complete" aria-live="polite">
         <p class="onboarding-panel__complete-message">
             You’re all set! Jump into any section via the navigation to start managing your WhatsApp automation.
         </p>

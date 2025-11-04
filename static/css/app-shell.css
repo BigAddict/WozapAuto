@@ -1,3 +1,14 @@
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 .skip-link {
     position: fixed;
     top: -40px;
@@ -698,5 +709,184 @@ body {
     font-weight: var(--font-weight-medium);
     color: var(--success-color);
     text-align: center;
+}
+
+.surface-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: var(--space-xl);
+    border: 1px solid rgba(15, 118, 110, 0.08);
+    box-shadow: 0 20px 50px rgba(15, 118, 110, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.surface-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 30px 60px rgba(15, 118, 110, 0.12);
+}
+
+.surface-card--muted {
+    background: linear-gradient(160deg, rgba(241, 253, 250, 0.85) 0%, rgba(229, 248, 255, 0.85) 100%);
+}
+
+.surface-card--success {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #0f5132;
+}
+
+.surface-card--outline {
+    background: transparent;
+    border: 1px dashed rgba(15, 118, 110, 0.2);
+}
+
+.surface-grid {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+@media (min-width: 992px) {
+    .surface-grid--two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .surface-grid--three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.surface-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.surface-section__title {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.surface-section__description {
+    margin: var(--space-xs) 0 0;
+    color: var(--text-secondary);
+}
+
+.surface-meta {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.surface-actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.btn-gradient {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1.75rem;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-gradient:hover,
+.btn-gradient:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(15, 118, 110, 0.25);
+    color: #ffffff;
+}
+
+.btn-outline-mint {
+    border-radius: 12px;
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    background: transparent;
+    padding: 0.75rem 1.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-mint:hover,
+.btn-outline-mint:focus-visible {
+    background: var(--primary-color);
+    color: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 118, 110, 0.25);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: 0.35rem 0.85rem;
+}
+
+.status-pill--success {
+    background: rgba(34, 197, 94, 0.15);
+    color: #0f5132;
+}
+
+.status-pill--info {
+    background: rgba(59, 130, 246, 0.15);
+    color: #1d4ed8;
+}
+
+.status-pill--warning {
+    background: rgba(250, 204, 21, 0.15);
+    color: #a16207;
+}
+
+.surface-list {
+    display: grid;
+    gap: var(--space-md);
+}
+
+.surface-list__item {
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 14px;
+    padding: var(--space-lg);
+    border: 1px solid rgba(15, 118, 110, 0.08);
+}
+
+.surface-list__item:hover {
+    border-color: rgba(15, 118, 110, 0.2);
+    box-shadow: 0 16px 40px rgba(15, 118, 110, 0.18);
+}
+
+.surface-list__title {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0 0 var(--space-xs);
+}
+
+.surface-list__meta {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.surface-empty {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--text-secondary);
+}
+
+.surface-empty__icon {
+    font-size: 3rem;
+    margin-bottom: var(--space-md);
+    color: rgba(15, 118, 110, 0.35);
+}
+
+.surface-empty__cta {
+    margin-top: var(--space-lg);
 }
 

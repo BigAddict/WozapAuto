@@ -11,19 +11,19 @@
 <div class="container-fluid">
     <div class="search-container">
         <!-- Header -->
-        <div class="d-flex align-items-center mb-4">
+        <div class="surface-card surface-card--muted d-flex align-items-center mb-4">
             <a href="{% url 'knowledgebase:knowledge_base_list' %}" class="back-link me-3">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>
                 <h1 class="h3 mb-1">Search Knowledge Base</h1>
-                <p class="text-muted">Find relevant information from your documents using semantic search</p>
+                <p class="text-muted">Find relevant information across your uploaded documents</p>
             </div>
         </div>
 
         <!-- Search Form -->
-        <div class="search-form search-form--gradient">
-            <form method="post">
+        <div class="surface-card surface-card--muted">
+            <form method="post" action="{% url 'knowledgebase:knowledge_base_search' %}">
                 {% csrf_token %}
                 <div class="row">
                     <div class="col-md-8">
@@ -102,13 +102,12 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="no-results">
-                    <i class="fas fa-search"></i>
+                <div class="surface-card surface-card--outline surface-empty">
+                    <div class="surface-empty__icon">
+                        <i class="fas fa-search"></i>
+                    </div>
                     <h4>No results found</h4>
-                    <p>Try adjusting your search query or check if you have documents in your knowledge base.</p>
-                    <a href="{% url 'knowledgebase:knowledge_base_list' %}" class="btn btn-primary">
-                        <i class="fas fa-upload me-2"></i>Upload Documents
-                    </a>
+                    <p class="text-muted">Try refining your query or upload more documents to improve coverage.</p>
                 </div>
             {% endif %}
         {% else %}

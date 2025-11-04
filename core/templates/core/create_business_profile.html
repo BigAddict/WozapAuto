@@ -8,143 +8,190 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="business-profile-wrapper container-lg">
     <div class="business-profile-form">
-        <div class="text-center mb-4">
-            <h1 class="h3 mb-3">Create Your Business Profile</h1>
-            <p class="text-muted">Set up your business information to get started with WozapAuto</p>
+        <div class="surface-card surface-card--muted business-setup-header">
+            <div class="business-setup-header__body">
+                <p class="business-setup-eyebrow">Onboarding</p>
+                <h1 class="business-setup-title">Set Up Your Business Profile</h1>
+                <p class="business-setup-description">
+                    This information helps your automations feel on-brand and surfaces the right context to customers.
+                </p>
+            </div>
+            <ol class="setup-stepper" role="list">
+                <li class="setup-step setup-step--current" aria-current="step">
+                    <span class="setup-step__index">1</span>
+                    <span class="setup-step__label">Business Details</span>
+                </li>
+                <li class="setup-step setup-step--upcoming">
+                    <span class="setup-step__index">2</span>
+                    <span class="setup-step__label">Contact Info</span>
+                </li>
+                <li class="setup-step setup-step--upcoming">
+                    <span class="setup-step__index">3</span>
+                    <span class="setup-step__label">Operating Hours</span>
+                </li>
+            </ol>
         </div>
 
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
+            <div class="form-alert-stack">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
 
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" novalidate>
             {% csrf_token %}
             
-            <!-- Business Information -->
-            <div class="form-section">
-                <h3 class="section-title">Business Information</h3>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.name.id_for_label }}" class="form-label">
-                            Business Name <span class="required-field">*</span>
-                        </label>
-                        {{ form.name }}
-                        {% if form.name.errors %}
-                            <div class="text-danger small">{{ form.name.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.business_type.id_for_label }}" class="form-label">
-                            Business Type <span class="required-field">*</span>
-                        </label>
-                        {{ form.business_type }}
-                        {% if form.business_type.errors %}
-                            <div class="text-danger small">{{ form.business_type.errors.0 }}</div>
-                        {% endif %}
+            <section class="surface-card form-section" aria-labelledby="business-info-heading">
+                <div class="form-section__header">
+                    <div>
+                        <h2 id="business-info-heading" class="section-title">Business Information</h2>
+                        <p class="section-subtitle">Introduce how your brand appears to customers.</p>
                     </div>
                 </div>
-                
-                <div class="mb-3">
-                    <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
-                    {{ form.description }}
-                    {% if form.description.errors %}
-                        <div class="text-danger small">{{ form.description.errors.0 }}</div>
-                    {% endif %}
-                </div>
-            </div>
 
-            <!-- Contact Information -->
-            <div class="form-section">
-                <h3 class="section-title">Contact Information</h3>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.phone_number.id_for_label }}" class="form-label">
-                            WhatsApp Number <span class="required-field">*</span>
-                        </label>
-                        {{ form.phone_number }}
-                        <div class="form-text">{{ form.phone_number.help_text }}</div>
-                        {% if form.phone_number.errors %}
-                            <div class="text-danger small">{{ form.phone_number.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
-                        {{ form.email }}
-                        {% if form.email.errors %}
-                            <div class="text-danger small">{{ form.email.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="{{ form.website.id_for_label }}" class="form-label">Website</label>
-                    {{ form.website }}
-                    {% if form.website.errors %}
-                        <div class="text-danger small">{{ form.website.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                    <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
-                    {{ form.address }}
-                    {% if form.address.errors %}
-                        <div class="text-danger small">{{ form.address.errors.0 }}</div>
-                    {% endif %}
-                </div>
-            </div>
+                <div class="form-section__body">
+                    <div class="row g-4">
+                        <div class="col-md-6 form-field">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                Business Name <span class="required-field">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
 
-            <!-- Business Settings -->
-            <div class="form-section">
-                <h3 class="section-title">Business Settings</h3>
-                
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="{{ form.timezone.id_for_label }}" class="form-label">
-                            Timezone <span class="required-field">*</span>
-                        </label>
-                        {{ form.timezone }}
-                        {% if form.timezone.errors %}
-                            <div class="text-danger small">{{ form.timezone.errors.0 }}</div>
-                        {% endif %}
+                        <div class="col-md-6 form-field">
+                            <label for="{{ form.business_type.id_for_label }}" class="form-label">
+                                Business Type <span class="required-field">*</span>
+                            </label>
+                            {{ form.business_type }}
+                            {% if form.business_type.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.business_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
                     </div>
-                    
-                    <div class="col-md-4 mb-3">
-                        <label for="{{ form.language.id_for_label }}" class="form-label">
-                            Language <span class="required-field">*</span>
-                        </label>
-                        {{ form.language }}
-                        {% if form.language.errors %}
-                            <div class="text-danger small">{{ form.language.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-md-4 mb-3">
-                        <label for="{{ form.currency.id_for_label }}" class="form-label">
-                            Currency <span class="required-field">*</span>
-                        </label>
-                        {{ form.currency }}
-                        {% if form.currency.errors %}
-                            <div class="text-danger small">{{ form.currency.errors.0 }}</div>
+
+                    <div class="form-field">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Business Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <p class="form-feedback form-feedback--error">{{ form.description.errors.0 }}</p>
                         {% endif %}
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="text-center">
-                <button type="submit" class="btn btn-primary btn-create-profile">
-                    <i class="fas fa-building me-2"></i>
-                    Create Business Profile
+            <section class="surface-card form-section" aria-labelledby="contact-info-heading">
+                <div class="form-section__header">
+                    <div>
+                        <h2 id="contact-info-heading" class="section-title">Contact Information</h2>
+                        <p class="section-subtitle">Share the channels customers can reach your team.</p>
+                    </div>
+                </div>
+
+                <div class="form-section__body">
+                    <div class="row g-4">
+                        <div class="col-md-6 form-field">
+                            <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                                WhatsApp Number <span class="required-field">*</span>
+                            </label>
+                            {{ form.phone_number }}
+                            {% if form.phone_number.help_text %}
+                                <p class="form-hint">{{ form.phone_number.help_text }}</p>
+                            {% endif %}
+                            {% if form.phone_number.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.phone_number.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 form-field">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">Business Email Address</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6 form-field">
+                            <label for="{{ form.website.id_for_label }}" class="form-label">Website (optional)</label>
+                            {{ form.website }}
+                            {% if form.website.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.website.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 form-field">
+                            <label for="{{ form.address.id_for_label }}" class="form-label">Physical Address (optional)</label>
+                            {{ form.address }}
+                            {% if form.address.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.address.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="surface-card form-section" aria-labelledby="business-settings-heading">
+                <div class="form-section__header">
+                    <div>
+                        <h2 id="business-settings-heading" class="section-title">Business Settings</h2>
+                        <p class="section-subtitle">Configure the defaults your automations rely on.</p>
+                    </div>
+                </div>
+
+                <div class="form-section__body">
+                    <div class="row g-4">
+                        <div class="col-md-4 form-field">
+                            <label for="{{ form.timezone.id_for_label }}" class="form-label">
+                                Timezone <span class="required-field">*</span>
+                            </label>
+                            {{ form.timezone }}
+                            {% if form.timezone.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.timezone.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 form-field">
+                            <label for="{{ form.language.id_for_label }}" class="form-label">
+                                Language <span class="required-field">*</span>
+                            </label>
+                            {{ form.language }}
+                            {% if form.language.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.language.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 form-field">
+                            <label for="{{ form.currency.id_for_label }}" class="form-label">
+                                Currency <span class="required-field">*</span>
+                            </label>
+                            {{ form.currency }}
+                            {% if form.currency.errors %}
+                                <p class="form-feedback form-feedback--error">{{ form.currency.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="form-actions surface-card surface-card--muted">
+                <a href="{% url 'home' %}" class="btn-outline-mint btn--lg">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Cancel
+                </a>
+                <button type="submit" class="btn-gradient btn--lg">
+                    <i class="bi bi-save me-2"></i>
+                    Save Profile
                 </button>
             </div>
         </form>

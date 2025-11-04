@@ -10,7 +10,7 @@
 
 {% block content %}
 <!-- Edit Header -->
-<div class="edit-header">
+<div class="edit-header surface-card surface-card--muted">
     <div class="container profile-edit-page">
         <div class="row align-items-center">
             <div class="col-md-8">
@@ -18,7 +18,7 @@
                 <p class="mb-0 opacity-75">Update your personal information and account settings</p>
             </div>
             <div class="col-md-4 text-md-end">
-                <a href="{% url 'profile' %}" class="btn btn-outline-light">
+                <a href="{% url 'profile' %}" class="btn-outline-mint">
                     <i class="bi bi-arrow-left me-2"></i>Back to Profile
                 </a>
             </div>
@@ -44,9 +44,9 @@
         {% csrf_token %}
         
         <!-- Personal Information Section -->
-        <div class="edit-section" id="personal-info">
-            <div class="section-header">
-                <h2 class="section-title">
+        <div class="surface-card edit-section" id="personal-info">
+            <div class="surface-section__header">
+                <h2 class="surface-section__title">
                     <i class="bi bi-person-circle"></i>
                     Personal Information
                 </h2>
@@ -99,16 +99,16 @@
             </div>
             
             <div class="section-actions">
-                <button type="button" class="save-btn" onclick="saveSection('personal-info')">
+                <button type="button" class="btn-gradient" onclick="saveSection('personal-info')">
                     <i class="bi bi-check-circle"></i>Save Personal Info
                 </button>
             </div>
         </div>
         
         <!-- Account Settings Section -->
-        <div class="edit-section" id="account-settings">
-            <div class="section-header">
-                <h2 class="section-title">
+        <div class="surface-card edit-section" id="account-settings">
+            <div class="surface-section__header">
+                <h2 class="surface-section__title">
                     <i class="bi bi-gear"></i>
                     Account Settings
                 </h2>
@@ -162,16 +162,16 @@
             </div>
             
             <div class="section-actions">
-                <button type="button" class="save-btn" onclick="saveSection('account-settings')">
+                <button type="button" class="btn-gradient" onclick="saveSection('account-settings')">
                     <i class="bi bi-check-circle"></i>Save Account Settings
                 </button>
             </div>
         </div>
         
         <!-- Review Section -->
-        <div class="edit-section" id="review">
-            <div class="section-header">
-                <h2 class="section-title">
+        <div class="surface-card edit-section" id="review">
+            <div class="surface-section__header">
+                <h2 class="surface-section__title">
                     <i class="bi bi-check-circle"></i>
                     Review & Save All Changes
                 </h2>
@@ -196,10 +196,10 @@
             </div>
             
             <div class="section-actions">
-                <button type="submit" class="save-btn">
+                <button type="submit" class="btn-gradient">
                     <i class="bi bi-check-circle"></i>Save All Changes
                 </button>
-                <a href="{% url 'profile' %}" class="cancel-btn">
+                <a href="{% url 'profile' %}" class="btn-outline-mint">
                     <i class="bi bi-x-circle"></i>Cancel
                 </a>
             </div>

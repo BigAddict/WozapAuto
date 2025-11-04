@@ -1,4 +1,81 @@
-/* Connections module styles extracted from inline template CSS */
+/* Connections module styles */
+
+.connection-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: rgba(15, 118, 110, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--primary-color);
+}
+
+.connection-avatar__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.connection-overview {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+@media (min-width: 768px) {
+    .connection-overview {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.connection-overview__meta {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.connection-overview__value {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.connection-stats .surface-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.connection-stat__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: rgba(15, 118, 110, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.connection-stat__number {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.connection-stat__label {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* Existing modal styles retained below */
 
 .modal {
     display: none;

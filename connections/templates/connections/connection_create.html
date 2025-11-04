@@ -11,13 +11,13 @@
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
+            <div class="surface-card surface-card--muted">
+                <div class="surface-section__header">
                     <h4 class="mb-0">
                         <i class="bi bi-whatsapp me-2"></i>Create WhatsApp Connection
                     </h4>
                 </div>
-                <div class="card-body">
+                <div>
                     <form method="post" id="connectionForm">
                         {% csrf_token %}
                         
@@ -47,7 +47,7 @@
                         </div>
                         
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn-gradient btn-lg">
                                 <i class="bi bi-rocket-takeoff me-2"></i>Create Connection
                             </button>
                         </div>

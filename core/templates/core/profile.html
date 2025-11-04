@@ -10,7 +10,7 @@
 
 {% block content %}
 <!-- Profile Header -->
-<div class="profile-header">
+<div class="profile-header surface-card surface-card--muted">
     <div class="container profile-page">
         <div class="row align-items-center">
             <div class="col-md-3 text-center">
@@ -40,13 +40,13 @@
     <div class="row">
         <div class="col-lg-8">
             <!-- Personal Information Section -->
-            <div class="profile-section" id="personal-info-section">
-                <div class="section-header">
-                    <h3 class="section-title">
+            <div class="surface-card profile-section" id="personal-info-section">
+                <div class="surface-section__header">
+                    <h3 class="surface-section__title">
                         <i class="bi bi-person-circle"></i>
                         Personal Information
                     </h3>
-                    <button class="edit-btn" onclick="editSection('personal-info')">
+                    <button class="btn-outline-mint" onclick="editSection('personal-info')">
                         <i class="bi bi-pencil me-1"></i>Edit
                     </button>
                 </div>
@@ -72,13 +72,13 @@
             </div>
             
             <!-- Account Settings Section -->
-            <div class="profile-section" id="account-settings-section">
-                <div class="section-header">
-                    <h3 class="section-title">
+            <div class="surface-card profile-section" id="account-settings-section">
+                <div class="surface-section__header">
+                    <h3 class="surface-section__title">
                         <i class="bi bi-gear"></i>
                         Account Settings
                     </h3>
-                    <button class="edit-btn" onclick="editSection('account-settings')">
+                    <button class="btn-outline-mint" onclick="editSection('account-settings')">
                         <i class="bi bi-pencil me-1"></i>Edit
                     </button>
                 </div>
@@ -99,7 +99,7 @@
                     <div class="info-item">
                         <span class="info-label">Account Status</span>
                         <div class="info-value">
-                            <span class="status-badge status-connected">
+                            <span class="status-pill status-pill--success">
                                 <i class="bi bi-check-circle me-1"></i>Active
                             </span>
                         </div>
@@ -108,26 +108,28 @@
             </div>
             
             <!-- WhatsApp Connection Section -->
-            <div class="profile-section" id="connection-section">
-                <div class="section-header">
-                    <h3 class="section-title">
+            <div class="surface-card profile-section" id="connection-section">
+                <div class="surface-section__header">
+                    <h3 class="surface-section__title">
                         <i class="bi bi-whatsapp"></i>
                         WhatsApp Connection
                     </h3>
                     {% if user.connection_set.count > 0 %}
-                        <button class="edit-btn" onclick="window.location.href='{% url 'connections:qr_display' %}'">
+                    <div class="surface-actions">
+                        <a class="btn-outline-mint btn--sm" href="{% url 'connections:qr_display' %}">
                             <i class="bi bi-gear me-1"></i>Manage
-                        </button>
+                        </a>
+                    </div>
                     {% endif %}
                 </div>
-                
+
                 {% if user.connection_set.count > 0 %}
                     {% with connection=user.connection_set.first %}
-                    <div class="info-grid">
+                    <div class="info-grid info-grid--surface">
                         <div class="info-item">
                             <span class="info-label">Connection Status</span>
-                            <div class="info-value">
-                                <span class="status-badge status-connected">
+                            <div class="info-value info-value--pill">
+                                <span class="status-pill status-pill--success">
                                     <i class="bi bi-whatsapp me-1"></i>Connected
                                 </span>
                             </div>
@@ -145,25 +147,25 @@
                             <div class="info-value">{{ connection.updated_at|date:"M d, Y H:i" }}</div>
                         </div>
                     </div>
-                    
-                    <div class="connection-stats">
-                        <div class="stat-item">
-                            <span class="stat-number">1</span>
-                            <span class="stat-label">Active Connection</span>
+
+                    <div class="surface-grid surface-grid--two profile-connection-stats">
+                        <div class="surface-list__item profile-connection-stat">
+                            <span class="profile-connection-stat__value">1</span>
+                            <span class="profile-connection-stat__label">Active Connection</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-number">{{ connection.created_at|timesince }}</span>
-                            <span class="stat-label">Connected For</span>
+                        <div class="surface-list__item profile-connection-stat">
+                            <span class="profile-connection-stat__value">{{ connection.created_at|timesince }}</span>
+                            <span class="profile-connection-stat__label">Connected For</span>
                         </div>
                     </div>
                     {% endwith %}
                 {% else %}
-                    <div class="empty-state">
-                        <i class="bi bi-whatsapp"></i>
+                    <div class="surface-card surface-card--outline surface-empty">
+                        <i class="bi bi-whatsapp surface-empty__icon"></i>
                         <h5>No WhatsApp Connection</h5>
                         <p>Set up your company name and create a WhatsApp connection to get started with AI agents.</p>
                         <div class="quick-actions">
-                            <a href="{% url 'connections:create' %}" class="action-btn action-btn-primary">
+                            <a href="{% url 'connections:create' %}" class="btn-gradient">
                                 <i class="bi bi-plus-circle me-2"></i>Create Connection
                             </a>
                         </div>
@@ -174,29 +176,29 @@
         
         <div class="col-lg-4">
             <!-- Quick Actions Sidebar -->
-            <div class="profile-section">
-                <h3 class="section-title mb-3">
+            <div class="surface-card profile-section">
+                <h3 class="surface-section__title mb-3">
                     <i class="bi bi-lightning"></i>
                     Quick Actions
                 </h3>
                 
                 <div class="quick-actions">
-                    <a href="{% url 'profile_edit' %}" class="action-btn action-btn-primary">
+                    <a href="{% url 'profile_edit' %}" class="btn-gradient">
                         <i class="bi bi-pencil me-2"></i>Edit Profile
                     </a>
-                    <a href="{% url 'change_password' %}" class="action-btn action-btn-outline">
+                    <a href="{% url 'change_password' %}" class="btn-outline-mint">
                         <i class="bi bi-shield-lock me-2"></i>Change Password
                     </a>
                     {% if user.connection_set.count > 0 %}
-                        <a href="{% url 'connections:qr_display' %}" class="action-btn action-btn-outline">
+                        <a href="{% url 'connections:qr_display' %}" class="btn-outline-mint">
                             <i class="bi bi-whatsapp me-2"></i>Manage Connection
                         </a>
                     {% else %}
-                        <a href="{% url 'connections:create' %}" class="action-btn action-btn-outline">
+                        <a href="{% url 'connections:create' %}" class="btn-outline-mint">
                             <i class="bi bi-plus-circle me-2"></i>Create Connection
                         </a>
                     {% endif %}
-                    <a href="{% url 'home' %}" class="action-btn action-btn-outline">
+                    <a href="{% url 'home' %}" class="btn-outline-mint">
                         <i class="bi bi-house me-2"></i>Dashboard
                     </a>
                 </div>

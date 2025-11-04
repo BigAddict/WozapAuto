@@ -1,31 +1,33 @@
 // WozapAuto - Interactive JavaScript
 
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 document.addEventListener('DOMContentLoaded', function() {
-    if (document.querySelector('.scroll-animate')) {
+    if (!prefersReducedMotion && document.querySelector('.scroll-animate')) {
         initScrollAnimations();
     }
 
-    if (document.querySelector('.floating-card')) {
+    if (!prefersReducedMotion && document.querySelector('.floating-card')) {
         initFloatingCards();
     }
 
-    if (document.querySelector('.hero-section')) {
+    if (!prefersReducedMotion && document.querySelector('.hero-section')) {
         initParticleEffect();
     }
 
-    if (document.querySelector('[data-typing]')) {
+    if (!prefersReducedMotion && document.querySelector('[data-typing]')) {
         initTypingEffect();
     }
 
-    if (document.querySelector('.stat-number')) {
+    if (!prefersReducedMotion && document.querySelector('.stat-number')) {
         initCounterAnimations();
     }
 
-    if (document.querySelector('[data-parallax]')) {
+    if (!prefersReducedMotion && document.querySelector('[data-parallax]')) {
         initParallaxEffect();
     }
 
-    if (document.querySelector('a[href^="#"]')) {
+    if (!prefersReducedMotion && document.querySelector('a[href^="#"]')) {
         initSmoothScrolling();
     }
 
@@ -50,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Scroll Animations
 function initScrollAnimations() {
+    if (prefersReducedMotion) return;
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -71,6 +74,7 @@ function initScrollAnimations() {
 
 // Floating Cards Animation
 function initFloatingCards() {
+    if (prefersReducedMotion) return;
     const cards = document.querySelectorAll('.floating-card');
     
     cards.forEach((card, index) => {
@@ -96,6 +100,7 @@ function initFloatingCards() {
 
 // Particle Effect
 function initParticleEffect() {
+    if (prefersReducedMotion) return;
     const heroSection = document.querySelector('.hero-section');
     if (!heroSection) return;
 
@@ -167,6 +172,7 @@ function initParticleEffect() {
 
 // Typing Effect
 function initTypingEffect() {
+    if (prefersReducedMotion) return;
     const typingElements = document.querySelectorAll('[data-typing]');
     
     typingElements.forEach(element => {
@@ -203,6 +209,7 @@ function initTypingEffect() {
 
 // Counter Animations
 function initCounterAnimations() {
+    if (prefersReducedMotion) return;
     const counters = document.querySelectorAll('.stat-number');
     
     counters.forEach(counter => {
@@ -241,6 +248,7 @@ function initCounterAnimations() {
 
 // Parallax Effect
 function initParallaxEffect() {
+    if (prefersReducedMotion) return;
     const parallaxElements = document.querySelectorAll('[data-parallax]');
     
     window.addEventListener('scroll', () => {
@@ -256,6 +264,7 @@ function initParallaxEffect() {
 
 // Smooth Scrolling
 function initSmoothScrolling() {
+    if (prefersReducedMotion) return;
     const links = document.querySelectorAll('a[href^="#"]');
     
     links.forEach(link => {

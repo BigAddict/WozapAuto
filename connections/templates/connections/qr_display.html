@@ -13,13 +13,13 @@
         <!-- Help Needed State -->
         <div class="row justify-content-center">
             <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header bg-warning text-dark">
+                <div class="surface-card surface-card--muted">
+                    <div class="surface-section__header">
                         <h4 class="mb-0">
                             <i class="bi bi-exclamation-triangle me-2"></i>Connection Help Needed
                         </h4>
                     </div>
-                    <div class="card-body text-center">
+                    <div class="text-center">
                         <div class="mb-4">
                             <i class="bi bi-headset" style="font-size: 4rem; color: #ffc107;"></i>
                         </div>
@@ -29,7 +29,7 @@
                             <i class="bi bi-info-circle me-2"></i>
                             You can try again in 2 hours, or contact support for immediate assistance.
                         </div>
-                        <button class="btn btn-primary" onclick="sendHelpRequest()">
+                        <button class="btn-gradient" onclick="sendHelpRequest()">
                             <i class="bi bi-headset me-2"></i>Request Help
                         </button>
                     </div>
@@ -41,13 +41,13 @@
         <!-- Error State -->
         <div class="row justify-content-center">
             <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header bg-danger text-white">
+                <div class="surface-card surface-card--muted">
+                    <div class="surface-section__header">
                         <h4 class="mb-0">
-                            <i class="bi bi-exclamation-circle me-2"></i>Connection Error
+                            <i class="bi bi-exclamation-octagon me-2"></i>Connection Error
                         </h4>
                     </div>
-                    <div class="card-body text-center">
+                    <div class="text-center">
                         <div class="mb-4">
                             <i class="bi bi-wifi-off" style="font-size: 4rem; color: #dc3545;"></i>
                         </div>
@@ -55,25 +55,25 @@
                         <div class="alert alert-danger">
                             <strong>Error:</strong> {{ qr_error }}
                         </div>
-                        <a href="{% url 'connections:create' %}" class="btn btn-primary">
-                            <i class="bi bi-arrow-left me-2"></i>Try Again
-                        </a>
+                        <button class="btn-gradient" onclick="window.location.reload()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Try Again
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     
     {% else %}
-        <!-- QR Code Display State -->
+        <!-- QR State -->
         <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header">
+            <div class="col-lg-10 col-xl-8">
+                <div class="surface-card surface-card--muted mb-4">
+                    <div class="surface-section__header">
                         <h4 class="mb-0">
-                            <i class="bi bi-whatsapp me-2"></i>Connect Your WhatsApp
+                            <i class="bi bi-whatsapp me-2"></i>Connect WhatsApp
                         </h4>
                     </div>
-                    <div class="card-body">
+                    <div>
                         <!-- Progress Indicator -->
                         <div class="progress mb-4">
                             <div class="progress-bar" role="progressbar" style="width: 0%" id="connectionProgress"></div>
@@ -110,17 +110,14 @@
                             
                             <!-- Pairing Code -->
                             {% if qr_code_data.pairing_code and qr_code_data.pairing_code != 'N/A' %}
-                                <div class="alert alert-info">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <i class="bi bi-key me-2"></i>
-                                            <strong>Or use pairing code:</strong> 
-                                            <code class="fs-5" id="pairingCode">{{ qr_code_data.pairing_code }}</code>
-                                        </div>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" id="copyPairingCodeBtn" onclick="copyPairingCode()" title="Copy pairing code">
-                                            <i class="bi bi-clipboard me-1"></i>Copy
-                                        </button>
+                                <div class="surface-card surface-list__item d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <strong>Pairing Code:</strong> <code id="pairingCode">{{ qr_code_data.pairing_code }}</code>
                                     </div>
+                                    <button id="copyPairingCodeBtn" class="btn-outline-mint btn-sm" onclick="copyPairingCode()">
+                                        <i class="bi bi-clipboard me-1"></i>Copy Code
+                                    </button>
                                 </div>
                             {% endif %}
                         </div>
@@ -443,7 +440,7 @@ function fallbackCopyTextToClipboard(text, button) {
 function showCopySuccess(button) {
     const originalContent = button.innerHTML;
     button.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
-    button.classList.remove('btn-outline-primary');
+    button.classList.remove('btn-outline-mint');
     button.classList.add('btn-success');
     
     showStatusMessage('Pairing code copied to clipboard!', 'success');
@@ -452,7 +449,7 @@ function showCopySuccess(button) {
     setTimeout(() => {
         button.innerHTML = originalContent;
         button.classList.remove('btn-success');
-        button.classList.add('btn-outline-primary');
+        button.classList.add('btn-outline-mint');
     }, 2000);
 }
 </script>

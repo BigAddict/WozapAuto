@@ -12,18 +12,32 @@
     <div class="row">
         <div class="col-12">
             <!-- Header -->
-            <div class="d-flex align-items-center mb-4">
-                <a href="{% url 'knowledgebase:knowledge_base_list' %}" class="back-link me-3">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-                <div>
-                    <h1 class="h3 mb-1">Document Details</h1>
-                    <p class="text-muted">View and manage document chunks</p>
+            <div class="surface-card surface-card--muted d-flex align-items-center mb-4 justify-content-between">
+                <div class="d-flex align-items-center">
+                    <a href="{% url 'knowledgebase:knowledge_base_list' %}" class="back-link me-3">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <div>
+                        <h1 class="h3 mb-1">Document Details</h1>
+                        <p class="text-muted">View and manage document chunks</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'knowledgebase:knowledge_base_search' %}" class="btn-outline-mint">
+                        <i class="fas fa-search me-1"></i>Search
+                    </a>
+                    <form method="post" action="{% url 'knowledgebase:knowledge_base_delete' document.document_id %}" 
+                          class="d-inline" onsubmit="return confirm('Are you sure you want to delete this document? This action cannot be undone.')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-outline-mint">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                    </form>
                 </div>
             </div>
 
             <!-- Document Header -->
-            <div class="document-header">
+            <div class="surface-card surface-card--muted document-header">
                 <div class="row align-items-center">
                     <div class="col-md-8">
                         <div class="d-flex align-items-center mb-2">
@@ -54,7 +68,7 @@
             </div>
 
             <!-- Document Stats -->
-            <div class="document-stats">
+            <div class="surface-card surface-card--muted document-stats">
                 <div class="row">
                     <div class="col-md-3">
                         <div class="stat-item">
@@ -84,7 +98,7 @@
             </div>
 
             <!-- Chunk Search -->
-            <div class="chunk-search">
+            <div class="surface-card surface-card--muted chunk-search">
                 <div class="row">
                     <div class="col-md-8">
                         <input type="text" class="form-control" id="chunk-search" placeholder="Search within this document...">
@@ -103,7 +117,7 @@
                     <h4 class="mb-3">Document Chunks</h4>
                     <div id="chunks-container">
                         {% for chunk in chunks %}
-                            <div class="chunk-card" data-chunk-index="{{ chunk.chunk_index }}">
+                            <div class="surface-card surface-list__item chunk-card" id="chunk-{{ chunk.chunk_index }}">
                                 <div class="chunk-header">
                                     <div class="chunk-number">
                                         Chunk {{ chunk.chunk_index|add:1 }}

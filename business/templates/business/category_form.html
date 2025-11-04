@@ -11,14 +11,14 @@
 <div class="container-fluid py-4 category-form-page">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
+            <div class="surface-card surface-card--muted">
+                <div class="surface-section__header">
                     <h4 class="mb-0">
                         <i class="bi bi-tag me-2"></i>
                         {{ object|yesno:'Edit,Create' }} Category
                     </h4>
                 </div>
-                <div class="card-body">
+                <div>
                     <form method="post">
                         {% csrf_token %}
                         
@@ -66,10 +66,10 @@
 
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between">
-                            <a href="{% url 'business:category_list' %}" class="btn btn-secondary">
+                            <a href="{% url 'business:category_list' %}" class="btn-outline-mint">
                                 <i class="bi bi-arrow-left me-2"></i>Back to Categories
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn-gradient">
                                 <i class="bi bi-check-circle me-2"></i>
                                 {{ object|yesno:'Update,Create' }} Category
                             </button>

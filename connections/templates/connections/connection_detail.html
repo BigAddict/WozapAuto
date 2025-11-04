@@ -8,119 +8,104 @@
 {% endblock %}
 
 {% block content %}
-{% csrf_token %}
-<div class="page-container">
-    <header class="page-header">
-        <nav class="breadcrumb" aria-label="Breadcrumb">
-            <ol class="breadcrumb__list">
-                <li class="breadcrumb__item">
-                    <a href="{% url 'home' %}" class="breadcrumb__link">Home</a>
-                </li>
-                <li class="breadcrumb__item breadcrumb__item--current">
-                    Connection Details
-                </li>
-            </ol>
-        </nav>
-        
-        <div class="page-header__actions">
-            <button class="btn btn--outline btn--sm" onclick="window.history.back()">
-                ← Back
-            </button>
-            <button class="btn btn--success btn--sm" data-action="test-connection" id="testConnectionBtn">
-                <i class="bi bi-check-circle me-1"></i>Test Connection
-            </button>
-            <button class="btn btn--primary btn--sm" data-action="refresh">
-                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-            </button>
-        </div>
-    </header>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+            <div class="surface-card surface-card--muted mb-4">
+                <div class="surface-section__header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="connection-avatar">
+                            {% if instance_data.profile_pic_url %}
+                                <img src="{{ instance_data.profile_pic_url }}" 
+                                     alt="{{ connection.profileName }}" 
+                                     class="connection-avatar__img">
+                            {% else %}
+                                <div class="connection-avatar__placeholder">
+                                    <i class="bi bi-whatsapp"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h1 class="surface-section__title mb-1">WhatsApp Connection</h1>
+                            <p class="surface-section__description mb-0">Manage the live connection powering your automation.</p>
+                        </div>
+                    </div>
+                    <div class="surface-actions">
+                        <button class="btn-outline-mint btn--sm" onclick="window.history.back()">← Back</button>
+                        <button class="btn-outline-mint btn--sm" data-action="refresh">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                        </button>
+                        <button class="btn-gradient btn--sm" data-action="test-connection" id="testConnectionBtn">
+                            <i class="bi bi-check-circle me-1"></i>Test Connection
+                        </button>
+                    </div>
+                </div>
 
-    <main class="page-content">
-        <!-- Connection Overview Card -->
-        <div class="card card--elevated">
-            <div class="card__header">
                 <div class="connection-overview">
-                    <div class="connection-overview__avatar">
-                        {% if instance_data.profile_pic_url %}
-                            <img src="{{ instance_data.profile_pic_url }}" 
-                                 alt="{{ connection.profileName }}" 
-                                 class="connection-overview__avatar-img">
-                        {% else %}
-                            <div class="connection-overview__avatar-placeholder">
-                                <i class="bi bi-whatsapp connection-overview__avatar-icon"></i>
-                            </div>
-                        {% endif %}
+                    <div>
+                        <div class="connection-overview__meta">INSTANCE NAME</div>
+                        <div class="connection-overview__value">{{ connection.instance_name }}</div>
                     </div>
-                    
-                    <div class="connection-overview__info">
-                        <h1 class="connection-overview__name">{{ connection.instance_name }}</h1>
-                        <p class="connection-overview__phone">{{ connection.ownerPhone }}</p>
-                        <p class="connection-overview__profile">{{ connection.profileName }}</p>
+                    <div>
+                        <div class="connection-overview__meta">WHATSAPP NUMBER</div>
+                        <div class="connection-overview__value">{{ connection.ownerPhone }}</div>
                     </div>
-                    
-                    <div class="connection-overview__status">
+                    <div>
+                        <div class="connection-overview__meta">LAST UPDATED</div>
+                        <div class="connection-overview__value">{{ connection.updated_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <div>
+                        <div class="connection-overview__meta">CONNECTION STATUS</div>
                         {% if connection.connection_status == 'open' %}
-                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Open</span>
+                            <span class="status-pill status-pill--success"><i class="bi bi-check-circle"></i>Connected</span>
                         {% elif connection.connection_status == 'connecting' %}
-                            <span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat me-1"></i>Connecting</span>
+                            <span class="status-pill status-pill--warning"><i class="bi bi-arrow-repeat"></i>Connecting</span>
                         {% else %}
-                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Disconnected</span>
+                            <span class="status-pill"><i class="bi bi-x-circle"></i>Disconnected</span>
                         {% endif %}
                     </div>
                 </div>
             </div>
-            
-            <div class="card__content">
-                <div class="connection-stats-grid">
-                    <div class="stat-card">
-                        <i class="bi bi-chat-dots stat-card__icon"></i>
-                        <div class="stat-card__content">
-                            <div class="stat-card__number">{{ instance_data.count.messages|default:0 }}</div>
-                            <div class="stat-card__label">Messages</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <i class="bi bi-people stat-card__icon"></i>
-                        <div class="stat-card__content">
-                            <div class="stat-card__number">{{ instance_data.count.contacts|default:0 }}</div>
-                            <div class="stat-card__label">Contacts</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-card__icon"><i class="bi bi-chat-left-dots"></i></div>
-                        <div class="stat-card__content">
-                            <div class="stat-card__number">{{ instance_data.count.chat|default:0 }}</div>
-                            <div class="stat-card__label">Chats</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-card__icon"><i class="bi bi-calendar3"></i></div>
-                        <div class="stat-card__content">
-                            <div class="stat-card__number">{{ connection.created_at|date:"M d" }}</div>
-                            <div class="stat-card__label">Created</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Test Results Section -->
-        <div class="card card--elevated" id="testResultsCard" style="display: none;">
-            <div class="card__header">
-                <h3 class="card__title">
-                    <i class="bi bi-check-circle me-2"></i>Test Results
-                </h3>
-            </div>
-            <div class="card__content">
-                <div id="testResultsContent">
-                    <!-- Test results will be displayed here -->
+            <div class="surface-grid surface-grid--two connection-stats">
+                <div class="surface-card surface-list__item">
+                    <div class="connection-stat__icon"><i class="bi bi-chat-dots"></i></div>
+                    <div class="connection-stat__content">
+                        <div class="connection-stat__number">{{ instance_data.count.messages|default:0 }}</div>
+                        <div class="connection-stat__label">Messages</div>
+                    </div>
+                </div>
+                <div class="surface-card surface-list__item">
+                    <div class="connection-stat__icon"><i class="bi bi-people"></i></div>
+                    <div class="connection-stat__content">
+                        <div class="connection-stat__number">{{ instance_data.count.contacts|default:0 }}</div>
+                        <div class="connection-stat__label">Contacts</div>
+                    </div>
+                </div>
+                <div class="surface-card surface-list__item">
+                    <div class="connection-stat__icon"><i class="bi bi-chat-left-dots"></i></div>
+                    <div class="connection-stat__content">
+                        <div class="connection-stat__number">{{ instance_data.count.chat|default:0 }}</div>
+                        <div class="connection-stat__label">Chats</div>
+                    </div>
+                </div>
+                <div class="surface-card surface-list__item">
+                    <div class="connection-stat__icon"><i class="bi bi-calendar3"></i></div>
+                    <div class="connection-stat__content">
+                        <div class="connection-stat__number">{{ connection.created_at|date:"M d" }}</div>
+                        <div class="connection-stat__label">Created</div>
+                    </div>
                 </div>
             </div>
+
+            <div class="surface-card mt-4" id="testResultsCard" style="display: none;">
+                <div class="surface-section__header">
+                    <h3 class="surface-section__title"><i class="bi bi-check-circle me-2"></i>Test Results</h3>
+                </div>
+                <div id="testResultsContent"></div>
+            </div>
         </div>
-    </main>
+    </div>
 </div>
 {% endblock %}
 
