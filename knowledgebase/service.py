@@ -43,13 +43,13 @@ class KnowledgeBaseService:
     def _initialize_embeddings(self):
         """Initialize Google Gemini embeddings with error handling."""
         try:
-            if not settings.GOOGLE_API_KEY:
-                logger.error("GOOGLE_API_KEY not configured")
+            if not settings.GEMINI_API_KEY:
+                logger.error("GEMINI_API_KEY not configured")
                 return
                 
             self.embeddings = GoogleGenerativeAIEmbeddings(
                 model="models/gemini-embedding-001",
-                google_api_key=settings.GOOGLE_API_KEY,
+                google_api_key=settings.GEMINI_API_KEY,
                 task_type="retrieval_document"  # Optimize for document retrieval
             )
             logger.info("Successfully initialized Google Gemini embeddings")
