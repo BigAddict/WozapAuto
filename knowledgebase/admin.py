@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.utils.html import format_html
+import numpy as np
 from .models import KnowledgeBase, KnowledgeBaseSettings
 from .service import KnowledgeBaseService
 
@@ -24,7 +26,7 @@ class KnowledgeBaseAdmin(admin.ModelAdmin):
     ]
     
     readonly_fields = [
-        'created_at', 'updated_at', 'embedding'
+        'created_at', 'updated_at', 'embedding_display'
     ]
     
     fieldsets = (
@@ -35,7 +37,7 @@ class KnowledgeBaseAdmin(admin.ModelAdmin):
             'fields': ('parent_document_id', 'chunk_index', 'chunk_text', 'page_number')
         }),
         ('Embedding & Metadata', {
-            'fields': ('embedding', 'metadata'),
+            'fields': ('embedding_display', 'metadata'),
             'classes': ('collapse',)
         }),
         ('Timestamps', {
@@ -54,6 +56,42 @@ class KnowledgeBaseAdmin(admin.ModelAdmin):
         """Show a preview of the chunk text."""
         return obj.chunk_text[:100] + '...' if len(obj.chunk_text) > 100 else obj.chunk_text
     chunk_text_preview.short_description = 'Chunk Preview'
+    
+    def embedding_display(self, obj):
+        """Display embedding vector in a safe format for admin."""
+        if obj.embedding is None:
+            return format_html('<span style="color: #999;">No embedding</span>')
+        
+        try:
+            # Convert to numpy array if it isn't already
+            if hasattr(obj.embedding, '__array__'):
+                embedding_array = np.array(obj.embedding)
+            else:
+                embedding_array = obj.embedding
+            
+            # Get shape and first few values for display
+            shape = embedding_array.shape if hasattr(embedding_array, 'shape') else (len(embedding_array),)
+            first_values = embedding_array[:5] if len(embedding_array) >= 5 else embedding_array
+            
+            # Format display
+            first_values_str = ', '.join([f'{val:.4f}' for val in first_values])
+            return format_html(
+                '<div style="font-family: monospace; font-size: 11px;">'
+                '<strong>Shape:</strong> {}<br>'
+                '<strong>First 5 values:</strong> [{}]<br>'
+                '<strong>Min:</strong> {:.4f}, <strong>Max:</strong> {:.4f}, '
+                '<strong>Mean:</strong> {:.4f}'
+                '</div>',
+                shape,
+                first_values_str,
+                float(np.min(embedding_array)) if hasattr(embedding_array, '__len__') and len(embedding_array) > 0 else 0,
+                float(np.max(embedding_array)) if hasattr(embedding_array, '__len__') and len(embedding_array) > 0 else 0,
+                float(np.mean(embedding_array)) if hasattr(embedding_array, '__len__') and len(embedding_array) > 0 else 0,
+            )
+        except (TypeError, AttributeError, ValueError) as e:
+            return format_html('<span style="color: #dc3545;">Error displaying embedding: {}</span>', str(e))
+    
+    embedding_display.short_description = 'Embedding Vector'
     
     def has_add_permission(self, request):
         """Disable adding through admin - use the upload interface instead."""
