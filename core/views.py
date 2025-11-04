@@ -24,6 +24,7 @@ from .decorators import verified_email_required, onboarding_required, business_p
 from .whatsapp_service import whatsapp_service
 from .utils import get_or_create_profile, log_user_activity
 from audit.services import AuditService
+from knowledgebase.models import KnowledgeBase
 
 logger = logging.getLogger('core.views')
 
@@ -202,11 +203,30 @@ class HomePageView(TemplateView):
                 # User doesn't have a business profile
                 pass
             
+            # Knowledge base insights
+            knowledge_docs_count = KnowledgeBase.objects.filter(user=self.request.user).values('parent_document_id').distinct().count()
+            has_knowledge_docs = knowledge_docs_count > 0
+
+            # Onboarding progress
+            user_profile = getattr(self.request.user, 'profile', None)
+            onboarding_progress = {
+                'profile': bool(self.request.user.first_name or self.request.user.last_name or getattr(user_profile, 'phone_number', None)),
+                'business': bool(business_data.get('business_profile')),
+                'connection': connections.exists(),
+                'knowledge': has_knowledge_docs,
+            }
+            onboarding_steps_completed = sum(1 for value in onboarding_progress.values() if value)
+            onboarding_steps_total = len(onboarding_progress)
+
             # Dashboard stats
             context.update({
                 'total_connections': connections.count(),
                 'active_connections': active_connections.count(),
                 'user_profile': getattr(self.request.user, 'profile', None),
+                'knowledge_docs_count': knowledge_docs_count,
+                'onboarding_progress': onboarding_progress,
+                'onboarding_steps_completed': onboarding_steps_completed,
+                'onboarding_steps_total': onboarding_steps_total,
                 **connection_data,  # Add connection data to context
                 **business_data  # Add business data to context
             })

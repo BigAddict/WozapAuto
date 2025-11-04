@@ -17,282 +17,92 @@
         <p class="dashboard-subtitle">Your WhatsApp AI Agent Platform Dashboard</p>
     </div>
     
-    <!-- Dashboard Stats -->
-    {% if total_connections > 0 %}
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-whatsapp text-primary fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-primary">{{ connection_status|default:'Disconnected' }}</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">Connection Status</h6>
-                    </div>
-                </div>
+    {% with progress=onboarding_progress %}
+    {% if progress %}
+    <section class="onboarding-panel" role="region" aria-labelledby="onboarding-progress-heading">
+        <div class="onboarding-panel__header">
+            <div>
+                <h2 id="onboarding-progress-heading">Getting set up</h2>
+                <p class="onboarding-panel__subtitle">
+                    {{ onboarding_steps_completed }} of {{ onboarding_steps_total }} steps complete
+                </p>
             </div>
+            {% if onboarding_steps_completed == onboarding_steps_total %}
+            <span class="onboarding-panel__status" role="status">
+                <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>All set!
+            </span>
+            {% endif %}
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-chat-dots text-info fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-info">{{ messages_count|default:'0' }}</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">Messages</h6>
-                    </div>
+        <ol class="onboarding-panel__list">
+            <li class="onboarding-step {% if progress.profile %}onboarding-step--completed{% endif %}">
+                <div class="onboarding-step__indicator" aria-hidden="true">
+                    <i class="bi {% if progress.profile %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-people text-success fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-success">{{ contacts_count|default:'0' }}</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">Contacts</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-robot text-warning fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-warning">0</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">AI Agents</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Business Statistics -->
-    {% if business_profile %}
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <h4 class="mb-3">Business Overview - {{ business_profile.name }}</h4>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-cart text-primary fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-primary">{{ total_carts|default:'0' }}</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">Total Orders</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-cart-check text-success fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-success">{{ completed_carts|default:'0' }}</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">Completed Orders</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-calendar-check text-info fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-info">{{ total_appointments|default:'0' }}</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">Appointments</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-box text-warning fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-warning">{{ total_products|default:'0' }}</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">Products</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Recent Orders -->
-    {% if recent_carts or recent_appointments %}
-    <div class="row g-3 mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Recent Orders</h5>
-                </div>
-                <div class="card-body">
-                    {% if recent_carts %}
-                        {% for cart in recent_carts %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <strong>{{ cart.name|default:"Anonymous" }}</strong>
-                                <br><small class="text-muted">{{ cart.total_items }} items</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-{{ cart.status|yesno:'success,warning,danger,primary' }}">{{ cart.status|title }}</span>
-                                <br><small>{{ cart.created_at|date:"M d" }}</small>
-                            </div>
-                        </div>
-                        {% endfor %}
+                <div class="onboarding-step__content">
+                    <p class="onboarding-step__title">Set up your personal profile</p>
+                    <p class="onboarding-step__description">Add your name and contact details so we can personalize your workspace.</p>
+                    {% if progress.profile %}
+                        <span class="badge rounded-pill text-bg-success">Complete</span>
                     {% else %}
-                        <p class="text-muted">No recent orders</p>
+                        <a class="onboarding-step__action" href="{% url 'profile_edit' %}">Complete profile</a>
                     {% endif %}
                 </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Recent Appointments</h5>
+            </li>
+            <li class="onboarding-step {% if progress.business %}onboarding-step--completed{% endif %}">
+                <div class="onboarding-step__indicator" aria-hidden="true">
+                    <i class="bi {% if progress.business %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
                 </div>
-                <div class="card-body">
-                    {% if recent_appointments %}
-                        {% for appointment in recent_appointments %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <strong>{{ appointment.customer_name }}</strong>
-                                <br><small class="text-muted">{{ appointment.service.name }}</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-{% if appointment.status == 'confirmed' %}success{% elif appointment.status == 'pending' %}warning{% elif appointment.status == 'cancelled' %}danger{% else %}primary{% endif %}">{{ appointment.get_status_display }}</span>
-                                <br><small>{{ appointment.booking_date|date:"M d" }}</small>
-                            </div>
-                        </div>
-                        {% endfor %}
+                <div class="onboarding-step__content">
+                    <p class="onboarding-step__title">Create your business profile</p>
+                    <p class="onboarding-step__description">Tell us about your business to unlock products, services, and appointments.</p>
+                    {% if progress.business %}
+                        <a class="onboarding-step__action" href="{% url 'business:business_detail' %}">View business profile</a>
                     {% else %}
-                        <p class="text-muted">No recent appointments</p>
+                        <a class="onboarding-step__action" href="{% url 'create_business_profile' %}">Create business profile</a>
                     {% endif %}
                 </div>
-            </div>
-        </div>
-    </div>
+            </li>
+            <li class="onboarding-step {% if progress.connection %}onboarding-step--completed{% endif %}">
+                <div class="onboarding-step__indicator" aria-hidden="true">
+                    <i class="bi {% if progress.connection %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
+                </div>
+                <div class="onboarding-step__content">
+                    <p class="onboarding-step__title">Connect WhatsApp</p>
+                    <p class="onboarding-step__description">Link your WhatsApp account to start sending and receiving messages.</p>
+                    {% if progress.connection %}
+                        <a class="onboarding-step__action" href="{% url 'connections:qr_display' %}">Manage connection</a>
+                    {% else %}
+                        <a class="onboarding-step__action" href="{% url 'connections:create' %}">Create connection</a>
+                    {% endif %}
+                </div>
+            </li>
+            <li class="onboarding-step {% if progress.knowledge %}onboarding-step--completed{% endif %}">
+                <div class="onboarding-step__indicator" aria-hidden="true">
+                    <i class="bi {% if progress.knowledge %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
+                </div>
+                <div class="onboarding-step__content">
+                    <p class="onboarding-step__title">Upload knowledge base documents</p>
+                    <p class="onboarding-step__description">Help your AI agent answer questions by providing product guides and FAQs.</p>
+                    {% if progress.knowledge %}
+                        <a class="onboarding-step__action" href="{% url 'knowledgebase:knowledge_base_list' %}">
+                            View documents ({{ knowledge_docs_count }})
+                        </a>
+                    {% else %}
+                        <a class="onboarding-step__action" href="{% url 'knowledgebase:knowledge_base_upload' %}">Upload your first document</a>
+                    {% endif %}
+                </div>
+            </li>
+        </ol>
+    </section>
+    {% if onboarding_steps_completed == onboarding_steps_total %}
+    <section class="onboarding-panel onboarding-panel--complete" aria-live="polite">
+        <p class="onboarding-panel__complete-message">
+            You’re all set! Jump into any section via the navigation to start managing your WhatsApp automation.
+        </p>
+    </section>
     {% endif %}
     {% endif %}
-    
-    {% else %}
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-whatsapp text-primary fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-primary">0</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">WhatsApp Connection</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-robot text-info fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-info">0</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">AI Agents</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card stat-card hover-lift">
-                <div class="card-body text-center">
-                    <div class="stat-icon mb-3">
-                        <i class="bi bi-chat-dots text-success fs-1"></i>
-                    </div>
-                    <div class="stat-value mb-2">
-                        <h3 class="mb-0 text-success">0</h3>
-                    </div>
-                    <div class="stat-title mb-2">
-                        <h6 class="text-muted mb-0">Messages Processed</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Quick Actions -->
-    <div class="row g-3 mb-4">
-        {% if total_connections == 0 %}
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Setup Connection</h5>
-                    <h6 class="card-subtitle text-muted">Connect your WhatsApp account</h6>
-        </div>
-                <div class="card-body">
-                    <p>Connect your WhatsApp account to start using AI agents</p>
-                        <button class="btn btn-primary" onclick="window.location.href='{% url 'connections:create' %}'">
-                            <i class="bi-plus-circle me-2"></i>Create Connection
-                        </button>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">AI Agents</h5>
-                    <h6 class="card-subtitle text-muted">Coming Soon</h6>
-                </div>
-                <div class="card-body">
-                    <p>Create and manage AI agents for automated responses</p>
-                    <button class="btn btn-outline-secondary" disabled>
-                        <i class="bi-robot me-2"></i>Coming Soon
-                    </button>
-                </div>
-            </div>
-        </div>
-            </div>
-            
+    {% endwith %}
     
     {% else %}
     <!-- Landing Page for Unauthenticated Users -->
