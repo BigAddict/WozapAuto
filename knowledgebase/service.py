@@ -17,6 +17,7 @@ import pypdf
 import numpy as np
 
 from .models import KnowledgeBase, KnowledgeBaseSettings
+from base.env_config import get_env_variable
 
 logger = logging.getLogger("knowledgebase.service")
 
@@ -43,13 +44,13 @@ class KnowledgeBaseService:
     def _initialize_embeddings(self):
         """Initialize Google Gemini embeddings with error handling."""
         try:
-            if not settings.GEMINI_API_KEY:
+            if not get_env_variable('GEMINI_API_KEY'):
                 logger.error("GEMINI_API_KEY not configured")
                 return
                 
             self.embeddings = GoogleGenerativeAIEmbeddings(
                 model="models/gemini-embedding-001",
-                google_api_key=settings.GEMINI_API_KEY,
+                google_api_key=get_env_variable('GEMINI_API_KEY'),
                 task_type="retrieval_document"  # Optimize for document retrieval
             )
             logger.info("Successfully initialized Google Gemini embeddings")
