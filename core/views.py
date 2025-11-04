@@ -113,9 +113,8 @@ def signout(request):
 class HomePageView(TemplateView):
     template_name = 'core/home.html'
     
-    @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
-        # Check if user needs onboarding
+        # For authenticated users, check if they need onboarding
         if request.user.is_authenticated:
             try:
                 profile = request.user.profile
@@ -127,6 +126,7 @@ class HomePageView(TemplateView):
                 UserProfile.objects.create(user=request.user)
                 return redirect('onboarding_welcome')
         
+        # Allow unauthenticated users to see the landing page
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
