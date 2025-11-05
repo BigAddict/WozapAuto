@@ -111,9 +111,13 @@ class ChatAssistant:
             self._search_performed = used
     
     def _get_system_instructions(self) -> str:
-        """Get the complete system instructions."""
+        """Get the complete system instructions with user's timezone."""
         from aiengine.prompts import create_system_instructions
-        return create_system_instructions(self.system_prompt)
+        return create_system_instructions(
+            self.system_prompt, 
+            user=self.user if hasattr(self, 'user') else None,
+            business=self.business if hasattr(self, 'business') else None
+        )
     
     def _create_agent(self):
         """Create agent using LangGraph's create_react_agent."""
@@ -263,9 +267,13 @@ class ChatAssistant:
                 logger.warning(f"Failed to cleanup messages: {e}")
 
     def get_prompt_template(self) -> ChatPromptTemplate:
-        """Get prompt template for the agent."""
+        """Get prompt template for the agent with user's timezone."""
         logger.info("Building prompt template")
-        return create_prompt_template(self.system_prompt)
+        return create_prompt_template(
+            self.system_prompt,
+            user=self.user if hasattr(self, 'user') else None,
+            business=self.business if hasattr(self, 'business') else None
+        )
     
     def message_trimmer(
             self,

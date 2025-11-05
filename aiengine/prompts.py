@@ -1,5 +1,8 @@
 from datetime import datetime
+from django.utils import timezone as django_timezone
+import zoneinfo
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from typing import Optional
 
 text_formatting_guide = """
 # Below is a text formatting guide for whatsapp messages
@@ -42,18 +45,20 @@ To add inline code to your message, place a backtick on both sides of the messag
 `text`
 """
 
-def create_system_instructions(system_prompt: str) -> str:
+def create_system_instructions(system_prompt: str, user=None, business=None) -> str:
     """
     Create comprehensive system instructions for the AI agent.
     
     Args:
         system_prompt: The base system prompt from the Agent model
+        user: Optional User object to get timezone preferences
+        business: Optional BusinessProfile object to get timezone preferences
         
     Returns:
         Complete system instructions string
     """
-    # Get current time and date
-    current_time = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+    # Get current time in user's timezone
+    current_time = _get_user_time(user, business)
     
     system_instructions = f"""
 Current time: {current_time}
@@ -162,17 +167,70 @@ You must respond with a JSON object in this exact format:
     
     return system_instructions
 
-def create_prompt_template(system_prompt: str) -> ChatPromptTemplate:
+
+def _get_user_time(user=None, business=None) -> str:
+    """
+    Get current time formatted in user's timezone.
+    
+    Args:
+        user: Optional User object
+        business: Optional BusinessProfile object
+        
+    Returns:
+        Formatted time string in user's timezone
+    """
+    # Try to get timezone from business profile
+    user_timezone = None
+    timezone_name = 'UTC'
+    
+    try:
+        if business and hasattr(business, 'timezone'):
+            timezone_name = business.timezone
+            user_timezone = zoneinfo.ZoneInfo(business.timezone)
+        elif user and hasattr(user, 'business_profile'):
+            timezone_name = user.business_profile.timezone
+            user_timezone = zoneinfo.ZoneInfo(user.business_profile.timezone)
+    except (AttributeError, zoneinfo.ZoneInfoNotFoundError) as e:
+        import logging
+        logger = logging.getLogger("aiengine.prompts")
+        logger.warning(f"Could not get user timezone, using UTC: {e}")
+        user_timezone = zoneinfo.ZoneInfo('UTC')
+        timezone_name = 'UTC'
+    
+    # If no timezone found, default to UTC
+    if not user_timezone:
+        user_timezone = zoneinfo.ZoneInfo('UTC')
+        timezone_name = 'UTC'
+    
+    # Get current time in user's timezone
+    now = django_timezone.now().astimezone(user_timezone)
+    
+    # Format: "Monday, January 15, 2024 at 02:30 PM (EAT)"
+    time_str = now.strftime("%A, %B %d, %Y at %I:%M %p")
+    
+    # Add timezone abbreviation
+    tz_abbr = now.strftime("%Z")
+    if tz_abbr:
+        time_str += f" ({tz_abbr})"
+    else:
+        time_str += f" ({timezone_name})"
+    
+    return time_str
+
+
+def create_prompt_template(system_prompt: str, user=None, business=None) -> ChatPromptTemplate:
     """
     Create the complete prompt template for the agent.
     
     Args:
         system_prompt: The base system prompt from the Agent model
+        user: Optional User object to get timezone preferences
+        business: Optional BusinessProfile object to get timezone preferences
         
     Returns:
         ChatPromptTemplate with system instructions and message placeholder
     """
-    system_instructions = create_system_instructions(system_prompt)
+    system_instructions = create_system_instructions(system_prompt, user, business)
     
     return ChatPromptTemplate.from_messages([
         ("system", system_instructions),

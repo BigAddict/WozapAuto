@@ -71,7 +71,7 @@
                            id="phone_number" 
                            name="phone_number" 
                            class="form-control" 
-                           value="{{ profile.phone_number }}"
+                           value="{{ business_profile.phone_number|default:'' }}"
                            placeholder="+1234567890"
                            pattern="^\+[1-9]\d{1,14}$">
                     <div class="form-help">Enter your WhatsApp number with country code (e.g., +1234567890).</div>
@@ -96,46 +96,53 @@
             
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="company_name" class="form-label">Company Name</label>
+                    <label for="company_name" class="form-label">Business Name</label>
                     <input type="text" 
                            id="company_name" 
                            name="company_name" 
                            class="form-control" 
-                           value="{{ profile.company_name }}"
-                           placeholder="Enter your company name">
+                           value="{{ business_profile.name|default:'' }}"
+                           placeholder="Enter your business name">
                     <div class="form-help">This will be used as your WhatsApp instance name.</div>
                 </div>
                 
                 <div class="form-group">
                     <label for="timezone" class="form-label">Timezone</label>
                     <select name="timezone" id="timezone" class="form-control">
-                        <option value="UTC" {% if profile.timezone == 'UTC' %}selected{% endif %}>UTC</option>
-                        <option value="America/New_York" {% if profile.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (ET)</option>
-                        <option value="America/Chicago" {% if profile.timezone == 'America/Chicago' %}selected{% endif %}>Central Time (CT)</option>
-                        <option value="America/Denver" {% if profile.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (MT)</option>
-                        <option value="America/Los_Angeles" {% if profile.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (PT)</option>
-                        <option value="Europe/London" {% if profile.timezone == 'Europe/London' %}selected{% endif %}>London (GMT)</option>
-                        <option value="Europe/Paris" {% if profile.timezone == 'Europe/Paris' %}selected{% endif %}>Paris (CET)</option>
-                        <option value="Asia/Tokyo" {% if profile.timezone == 'Asia/Tokyo' %}selected{% endif %}>Tokyo (JST)</option>
-                        <option value="Asia/Shanghai" {% if profile.timezone == 'Asia/Shanghai' %}selected{% endif %}>Shanghai (CST)</option>
-                        <option value="Asia/Kolkata" {% if profile.timezone == 'Asia/Kolkata' %}selected{% endif %}>Mumbai (IST)</option>
+                        {% for tz_value, tz_label in timezone_choices %}
+                            {% if tz_value %}
+                                <option value="{{ tz_value }}" {% if business_profile and business_profile.timezone == tz_value %}selected{% elif not business_profile and tz_value == 'UTC' %}selected{% endif %}>
+                                    {{ tz_label }}
+                                </option>
+                            {% else %}
+                                <option disabled>{{ tz_label }}</option>
+                            {% endif %}
+                        {% endfor %}
                     </select>
                     <div class="form-help">Set your preferred timezone for accurate time displays.</div>
                 </div>
                 
                 <div class="form-group">
+                    <label for="currency" class="form-label">Currency</label>
+                    <select name="currency" id="currency" class="form-control">
+                        {% for curr_value, curr_label in currency_choices %}
+                            {% if curr_value %}
+                                <option value="{{ curr_value }}" {% if business_profile and business_profile.currency == curr_value %}selected{% elif not business_profile and curr_value == 'USD' %}selected{% endif %}>
+                                    {{ curr_label }}
+                                </option>
+                            {% else %}
+                                <option disabled>{{ curr_label }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    <div class="form-help">Set your preferred currency for pricing and transactions.</div>
+                </div>
+                
+                <div class="form-group">
                     <label for="language" class="form-label">Language</label>
                     <select name="language" id="language" class="form-control">
-                        <option value="en" {% if profile.language == 'en' %}selected{% endif %}>English</option>
-                        <option value="es" {% if profile.language == 'es' %}selected{% endif %}>Spanish</option>
-                        <option value="fr" {% if profile.language == 'fr' %}selected{% endif %}>French</option>
-                        <option value="de" {% if profile.language == 'de' %}selected{% endif %}>German</option>
-                        <option value="pt" {% if profile.language == 'pt' %}selected{% endif %}>Portuguese</option>
-                        <option value="it" {% if profile.language == 'it' %}selected{% endif %}>Italian</option>
-                        <option value="ru" {% if profile.language == 'ru' %}selected{% endif %}>Russian</option>
-                        <option value="ja" {% if profile.language == 'ja' %}selected{% endif %}>Japanese</option>
-                        <option value="ko" {% if profile.language == 'ko' %}selected{% endif %}>Korean</option>
-                        <option value="zh" {% if profile.language == 'zh' %}selected{% endif %}>Chinese</option>
+                        <option value="en" {% if not business_profile or business_profile.language == 'en' %}selected{% endif %}>English</option>
+                        <option value="sw" {% if business_profile.language == 'sw' %}selected{% endif %}>Swahili</option>
                     </select>
                     <div class="form-help">Choose your preferred language for the interface.</div>
                 </div>
@@ -194,6 +201,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('profileForm');
     const sections = document.querySelectorAll('.edit-section');
     const progressSteps = document.querySelectorAll('.progress-step');
+    
+    // Add search functionality to timezone and currency selects
+    addSelectSearch('timezone');
+    addSelectSearch('currency');
     
     // Initialize page
     initializePage();
@@ -447,6 +458,182 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+    
+    // Add search functionality to select elements
+    function addSelectSearch(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        
+        // Store the currently selected value
+        let currentValue = select.value;
+        
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'select-search-wrapper';
+        wrapper.style.position = 'relative';
+        
+        // Wrap the select
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(select);
+        
+        // Create search input
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'form-control';
+        searchInput.placeholder = `Search ${selectId}...`;
+        searchInput.style.marginBottom = '8px';
+        searchInput.style.display = 'none';
+        
+        // Insert search input before select
+        wrapper.insertBefore(searchInput, select);
+        
+        // Store all options with their selected state
+        const storeAllOptions = () => {
+            return Array.from(select.options).map(opt => ({
+                value: opt.value,
+                text: opt.text,
+                disabled: opt.disabled,
+                selected: opt.selected
+            }));
+        };
+        
+        let allOptions = storeAllOptions();
+        
+        // Function to restore all options with proper selection
+        const restoreAllOptions = () => {
+            const selectedValue = select.value || currentValue;
+            
+            select.innerHTML = '';
+            
+            allOptions.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.text = opt.text;
+                option.disabled = opt.disabled;
+                select.appendChild(option);
+            });
+            
+            // Set the selected value after all options are added
+            if (selectedValue) {
+                select.value = selectedValue;
+            }
+        };
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const selectedValue = select.value;
+            
+            select.innerHTML = '';
+            
+            if (!searchTerm) {
+                // If search is empty, restore all options
+                restoreAllOptions();
+                return;
+            }
+            
+            // Filter and add matching options
+            let hasResults = false;
+            allOptions.forEach(opt => {
+                if (opt.text.toLowerCase().includes(searchTerm) || 
+                    opt.value.toLowerCase().includes(searchTerm)) {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.text = opt.text;
+                    option.disabled = opt.disabled;
+                    if (opt.value === selectedValue) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                    hasResults = true;
+                }
+            });
+            
+            // If no results, show message
+            if (!hasResults) {
+                const noResultOption = document.createElement('option');
+                noResultOption.text = 'No results found';
+                noResultOption.disabled = true;
+                select.appendChild(noResultOption);
+            }
+        });
+        
+        // Track if we're in selection mode
+        let isSelecting = false;
+        
+        // Save selection when changed
+        select.addEventListener('change', function() {
+            currentValue = this.value;
+            isSelecting = true;
+            
+            // Clear search input immediately
+            searchInput.value = '';
+            
+            // Restore all options immediately after selection
+            // Use requestAnimationFrame to ensure smooth rendering
+            requestAnimationFrame(() => {
+                restoreAllOptions();
+                
+                // Hide search after showing the restored options
+                setTimeout(() => {
+                    searchInput.style.display = 'none';
+                    isSelecting = false;
+                }, 150);
+            });
+        });
+        
+        // Show search on focus
+        select.addEventListener('focus', () => {
+            // Don't show search if we just made a selection
+            if (!isSelecting) {
+                // Ensure all options are restored before showing search
+                restoreAllOptions();
+                searchInput.style.display = 'block';
+                setTimeout(() => searchInput.focus(), 100);
+            }
+        });
+        
+        // Handle search input blur
+        searchInput.addEventListener('blur', () => {
+            // Don't hide if we're in the middle of selecting
+            if (isSelecting) return;
+            
+            setTimeout(() => {
+                if (document.activeElement !== select && document.activeElement !== searchInput) {
+                    searchInput.style.display = 'none';
+                    searchInput.value = '';
+                    restoreAllOptions();
+                }
+            }, 200);
+        });
+        
+        // Handle select blur
+        select.addEventListener('blur', () => {
+            // Don't hide if we're in the middle of selecting
+            if (isSelecting) return;
+            
+            setTimeout(() => {
+                if (document.activeElement !== select && document.activeElement !== searchInput) {
+                    searchInput.style.display = 'none';
+                    searchInput.value = '';
+                    restoreAllOptions();
+                }
+            }, 200);
+        });
+        
+        // Handle keyboard navigation
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                select.focus();
+            } else if (e.key === 'Escape') {
+                searchInput.style.display = 'none';
+                searchInput.value = '';
+                restoreAllOptions();
+                select.focus();
+            }
+        });
     }
 });
 </script>

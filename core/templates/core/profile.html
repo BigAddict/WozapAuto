@@ -51,7 +51,7 @@
                     </div>
                     <div class="info-item">
                         <span class="info-label">WhatsApp Number</span>
-                        <div class="info-value">{{ profile.phone_number|default:"Not set" }}</div>
+                        <div class="info-value">{{ business_profile.phone_number|default:"Not set" }}</div>
                     </div>
                 </div>
             </div>
@@ -70,16 +70,26 @@
                 
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="info-label">Company Name</span>
-                        <div class="info-value">{{ profile.company_name|default:"Not set" }}</div>
+                        <span class="info-label">Business Name</span>
+                        <div class="info-value">{{ business_profile.name|default:"Not set" }}</div>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Timezone</span>
-                        <div class="info-value">{{ profile.timezone }}</div>
+                        <div class="info-value">{{ business_profile.timezone|default:"UTC" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Currency</span>
+                        <div class="info-value">
+                            {% if business_profile and business_profile.currency %}
+                                {{ business_profile.get_currency_name }} ({{ business_profile.currency }})
+                            {% else %}
+                                Not set
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Language</span>
-                        <div class="info-value">{{ profile.language|upper }}</div>
+                        <div class="info-value">{{ business_profile.get_language_display|default:"Not set" }}</div>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Account Status</span>
@@ -99,7 +109,7 @@
                         <i class="bi bi-whatsapp"></i>
                         WhatsApp Connection
                     </h3>
-                    {% if user.connection_set.count > 0 %}
+                    {% if user.connection_set.all %}
                     <div class="surface-actions">
                         <a class="btn-outline-mint btn--sm" href="{% url 'connections:qr_display' %}">
                             <i class="bi bi-gear me-1"></i>Manage
@@ -108,7 +118,7 @@
                     {% endif %}
                 </div>
                 
-                {% if user.connection_set.count > 0 %}
+                {% if user.connection_set.all %}
                     {% with connection=user.connection_set.first %}
                     <div class="info-grid info-grid--surface">
                         <div class="info-item">
@@ -174,7 +184,7 @@
                     <a href="{% url 'change_password' %}" class="btn-outline-mint">
                         <i class="bi bi-shield-lock me-2"></i>Change Password
                     </a>
-                    {% if user.connection_set.count > 0 %}
+                    {% if user.connection_set.all %}
                         <a href="{% url 'connections:qr_display' %}" class="btn-outline-mint">
                             <i class="bi bi-whatsapp me-2"></i>Manage Connection
                         </a>

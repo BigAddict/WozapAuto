@@ -211,9 +211,10 @@ class HomePageView(TemplateView):
 
             # Onboarding progress
             user_profile = getattr(self.request.user, 'profile', None)
+            business_profile = business_data.get('business_profile')
             onboarding_progress = {
-                'profile': bool(getattr(user_profile, 'phone_number', None)),
-                'business': bool(business_data.get('business_profile')),
+                'profile': bool(business_profile and business_profile.phone_number),
+                'business': bool(business_profile),
                 'connection': connections.exists(),
                 'knowledge': has_knowledge_docs,
             }
@@ -242,22 +243,89 @@ class HomePageView(TemplateView):
 def profile_view(request):
     """View user profile"""
     profile = get_or_create_profile(request.user)
-    return render(request, 'core/profile.html', {'profile': profile})
+    
+    # Get business profile if available
+    business_profile = None
+    try:
+        business_profile = request.user.business_profile
+    except AttributeError:
+        pass
+    
+    context = {
+        'profile': profile,
+        'business_profile': business_profile,
+    }
+    
+    return render(request, 'core/profile.html', context)
 
 
 @login_required
 def profile_edit(request):
     """Edit user profile"""
+    from core.timezone_utils import format_timezone_choices
+    from core.currency_utils import format_currency_choices
+    
     profile = get_or_create_profile(request.user)
     
+    # Get business profile if available
+    business_profile = None
+    try:
+        business_profile = request.user.business_profile
+    except AttributeError:
+        pass
+    
     if request.method == 'POST':
+        updated_fields = []
+        
         # Update user fields
-        request.user.email = request.POST.get('email', '').strip()
-        request.user.save()
+        email = request.POST.get('email', '').strip()
+        if email:
+            request.user.email = email
+            request.user.save()
+            updated_fields.append('email')
         
         # Update profile fields (only fields that exist in UserProfile)
         profile.newsletter_subscribed = request.POST.get('newsletter_subscribed', False) == 'on'
         profile.save()
+        updated_fields.append('newsletter_subscribed')
+        
+        # Update business profile fields if business profile exists
+        if business_profile:
+            try:
+                phone_number = request.POST.get('phone_number', '').strip()
+                if phone_number and phone_number != business_profile.phone_number:
+                    business_profile.phone_number = phone_number
+                    updated_fields.append('phone_number')
+                
+                # Note: company_name is actually business_profile.name
+                company_name = request.POST.get('company_name', '').strip()
+                if company_name:
+                    business_profile.name = company_name
+                    updated_fields.append('name')
+                
+                timezone = request.POST.get('timezone', '').strip()
+                if timezone:
+                    business_profile.timezone = timezone
+                    updated_fields.append('timezone')
+                
+                currency = request.POST.get('currency', '').strip()
+                if currency:
+                    business_profile.currency = currency
+                    updated_fields.append('currency')
+                
+                language = request.POST.get('language', '').strip()
+                if language:
+                    business_profile.language = language
+                    updated_fields.append('language')
+                
+                business_profile.save()
+            except Exception as e:
+                logger.error(f"Error updating business profile: {e}")
+                messages.error(request, f'Error updating business profile: {str(e)}')
+                return render(request, 'core/profile_edit.html', {
+                    'profile': profile,
+                    'business_profile': business_profile,
+                })
         
         # Log profile update activity
         try:
@@ -267,7 +335,7 @@ def profile_edit(request):
                 ip_address=request.META.get('REMOTE_ADDR'),
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
                 metadata={
-                    'updated_fields': ['email', 'newsletter_subscribed']
+                    'updated_fields': updated_fields
                 }
             )
         except Exception as e:
@@ -276,7 +344,18 @@ def profile_edit(request):
         messages.success(request, 'Profile updated successfully!')
         return redirect('profile')
     
-    return render(request, 'core/profile_edit.html', {'profile': profile})
+    # Get timezone and currency choices
+    timezone_choices = format_timezone_choices()
+    currency_choices = format_currency_choices()
+    
+    context = {
+        'profile': profile,
+        'business_profile': business_profile,
+        'timezone_choices': timezone_choices,
+        'currency_choices': currency_choices,
+    }
+    
+    return render(request, 'core/profile_edit.html', context)
 
 
 @login_required
