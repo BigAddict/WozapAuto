@@ -48,9 +48,9 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
         )
         
         if created:
-            print(f"Created new conversation thread: {self.thread_id}")
+            logger.info(f"Created new conversation thread: {self.thread_id}")
         else:
-            print(f"Using existing conversation thread: {self.thread_id}")
+            logger.info(f"Using existing conversation thread: {self.thread_id}")
 
     def get_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
         """Get the latest checkpoint for this thread."""
@@ -82,7 +82,7 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
                 ),
             )
         except Exception as e:
-            print(f"Error getting checkpoint tuple: {e}")
+            logger.error(f"Error getting checkpoint tuple: {e}")
             return None
 
     def list(
@@ -140,7 +140,7 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
                 yield checkpoint_tuple
             
         except Exception as e:
-            print(f"Error listing checkpoints: {e}")
+            logger.error(f"Error listing checkpoints: {e}")
             return
 
     def put(
@@ -212,7 +212,7 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
             return config
             
         except Exception as e:
-            print(f"Error saving checkpoint: {e}")
+            logger.error(f"Error saving checkpoint: {e}")
             # Don't raise the error to prevent webhook failure
             return config
 
@@ -237,7 +237,7 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
                 pending_sends=checkpoint_data.get('pending_sends', []),
             )
         except Exception as e:
-            print(f"Error getting checkpoint: {e}")
+            logger.error(f"Error getting checkpoint: {e}")
             return None
 
     def put_writes(self, config: RunnableConfig, writes: Sequence[tuple[str, Any]], task_id: str, task_path: str = '') -> None:
@@ -247,7 +247,7 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
             # In a full implementation, you might want to store these writes
             logger.info(f"Put writes: {len(writes)} writes for task {task_id}")
         except Exception as e:
-            print(f"Error putting writes: {e}")
+            logger.error(f"Error putting writes: {e}")
 
     def delete_thread(self, thread_id: str) -> None:
         """Delete a thread and all its checkpoints."""
@@ -261,7 +261,7 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
                 thread.delete()
                 logger.info(f"Deleted thread {thread_id}")
         except Exception as e:
-            print(f"Error deleting thread: {e}")
+            logger.error(f"Error deleting thread: {e}")
 
     def get_tuple_by_id(self, config: RunnableConfig, checkpoint_id: str) -> Optional[CheckpointTuple]:
         """Get a specific checkpoint by ID."""
@@ -294,5 +294,5 @@ class DatabaseCheckpointSaver(BaseCheckpointSaver):
                 ),
             )
         except Exception as e:
-            print(f"Error getting checkpoint by ID: {e}")
+            logger.error(f"Error getting checkpoint by ID: {e}")
             return None

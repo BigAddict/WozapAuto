@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', function() {
         initFormEnhancements();
     }
 
+    initPasswordToggles();
+
     if (document.querySelector('.mini-chart')) {
         initMiniCharts();
     }
@@ -288,13 +290,13 @@ function initSmoothScrolling() {
 function initLoadingStates() {
     const buttons = document.querySelectorAll('[data-loading-button]');
     if (!buttons.length) return;
-
+    
     buttons.forEach(button => {
         button.addEventListener('click', function() {
             this.classList.add('loading');
             this.setAttribute('aria-busy', 'true');
             this.disabled = true;
-
+            
             const timeout = Number(this.dataset.loadingButton) || 3000;
 
             setTimeout(() => {
@@ -305,6 +307,61 @@ function initLoadingStates() {
         });
     });
 }
+
+// Password Visibility Toggle
+function initPasswordToggles() {
+    const wrappers = document.querySelectorAll('.password-input');
+    if (!wrappers.length) return;
+
+    wrappers.forEach(wrapper => {
+        const input = wrapper.querySelector('input');
+        if (!input || input.dataset.passwordToggle === 'initialized') {
+            return;
+        }
+
+        let button = wrapper.querySelector('.password-input__toggle');
+        if (!button) {
+            button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'password-input__toggle';
+            button.setAttribute('aria-label', 'Show password');
+            button.setAttribute('aria-pressed', 'false');
+            button.innerHTML = '<i class="bi bi-eye"></i><span class="visually-hidden">Toggle password visibility</span>';
+            wrapper.appendChild(button);
+        } else {
+            if (!button.querySelector('.visually-hidden')) {
+                const sr = document.createElement('span');
+                sr.className = 'visually-hidden';
+                sr.textContent = 'Toggle password visibility';
+                button.appendChild(sr);
+            }
+        }
+
+        const icon = button.querySelector('i') || document.createElement('i');
+        if (!icon.parentElement) {
+            icon.className = 'bi bi-eye';
+            button.insertBefore(icon, button.firstChild);
+        }
+
+        const setState = (visible) => {
+            button.setAttribute('aria-pressed', visible ? 'true' : 'false');
+            button.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+            icon.className = `bi ${visible ? 'bi-eye-slash' : 'bi-eye'}`;
+        };
+
+        setState(input.type === 'text');
+
+        button.addEventListener('click', () => {
+            const shouldShow = input.type === 'password';
+            input.type = shouldShow ? 'text' : 'password';
+            setState(shouldShow);
+        });
+
+        input.dataset.passwordToggle = 'initialized';
+    });
+}
+
+window.initPasswordToggles = initPasswordToggles;
 
 // Chart Animations
 function animateCharts() {

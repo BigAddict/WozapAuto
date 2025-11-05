@@ -95,6 +95,8 @@ Implementation guidance: reuse `AuditService` where possible, add lightweight an
 | 2025-11-04 | Documentation | Consolidated `visual_style_audit.md` into this playbook with IA map, component inventory, and analytics plan. |
 | 2025-11-05 | Profile | Harmonized WhatsApp connection section with moon-kiss surfaces and updated Manage CTA. |
 | 2025-11-05 | Business onboarding | Restyled create business profile flow with guided stepper and moon-kiss surface system. |
+| 2025-11-05 | Auth flows | Added password visibility toggles, compact sign-in layout, and shared styling across auth endpoints. |
+| 2025-11-05 | Identity simplification | Removed in-app profile avatars/names and enforced no-space usernames across auth flows. |
 
 Add future entries when UI/UX changes ship or plans evolve.
 

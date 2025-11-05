@@ -1025,6 +1025,48 @@ h6 { font-size: var(--font-size-base); }
     box-shadow: var(--shadow-sm);
 }
 
+/* Password Visibility Toggle */
+.password-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input input[type="password"],
+.password-input input[type="text"] {
+    padding-right: calc(var(--space-xl) + 1.5rem);
+}
+
+.password-input__toggle {
+    position: absolute;
+    top: 50%;
+    right: var(--space-md);
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--border-radius-full);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.password-input__toggle:hover,
+.password-input__toggle:focus-visible,
+.password-input__toggle[aria-pressed="true"] {
+    color: var(--primary-dark);
+    background: rgba(37, 211, 102, 0.12);
+}
+
+.password-input__toggle i {
+    font-size: 1.1rem;
+    pointer-events: none;
+}
+
 .form-control:focus {
     outline: none;
     border-color: var(--primary-color);

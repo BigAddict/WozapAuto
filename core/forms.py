@@ -13,27 +13,7 @@ import re
 
 class CustomUserCreationForm(UserCreationForm):
     """Custom user creation form with additional fields and validation"""
-    
-    first_name = forms.CharField(
-        max_length=30,
-        required=True,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Enter your first name',
-            'autocomplete': 'given-name'
-        })
-    )
-    
-    last_name = forms.CharField(
-        max_length=30,
-        required=True,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Enter your last name',
-            'autocomplete': 'family-name'
-        })
-    )
-    
+
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={
@@ -62,12 +42,14 @@ class CustomUserCreationForm(UserCreationForm):
     
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2')
+        fields = ('username', 'email', 'password1', 'password2')
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Choose a username',
-                'autocomplete': 'username'
+                'placeholder': 'Choose a username (no spaces)',
+                'autocomplete': 'username',
+                'pattern': r'[^\s]+',
+                'title': 'Username cannot contain spaces'
             }),
         }
     
@@ -96,15 +78,10 @@ class CustomUserCreationForm(UserCreationForm):
     
     def clean_username(self):
         """Normalize username"""
-        return normalize_string_field(self.cleaned_data.get('username'))
-    
-    def clean_first_name(self):
-        """Normalize first name"""
-        return normalize_string_field(self.cleaned_data.get('first_name'))
-    
-    def clean_last_name(self):
-        """Normalize last name"""
-        return normalize_string_field(self.cleaned_data.get('last_name'))
+        username = normalize_string_field(self.cleaned_data.get('username'))
+        if username and ' ' in username:
+            raise ValidationError('Username cannot contain spaces.')
+        return username
     
     def clean_password1(self):
         """Enhanced password validation"""
@@ -136,8 +113,6 @@ class CustomUserCreationForm(UserCreationForm):
         """Save user and create profile with newsletter preference"""
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
         
         if commit:
             user.save()

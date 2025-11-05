@@ -34,18 +34,18 @@
                         <button class="btn-outline-mint btn--sm" onclick="window.history.back()">← Back</button>
                         <button class="btn-outline-mint btn--sm" data-action="refresh">
                             <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-                        </button>
+            </button>
                         <button class="btn-gradient btn--sm" data-action="test-connection" id="testConnectionBtn">
-                            <i class="bi bi-check-circle me-1"></i>Test Connection
-                        </button>
+                <i class="bi bi-check-circle me-1"></i>Test Connection
+            </button>
                     </div>
-                </div>
+        </div>
 
                 <div class="connection-overview">
                     <div>
                         <div class="connection-overview__meta">INSTANCE NAME</div>
                         <div class="connection-overview__value">{{ connection.instance_name }}</div>
-                    </div>
+                            </div>
                     <div>
                         <div class="connection-overview__meta">WHATSAPP NUMBER</div>
                         <div class="connection-overview__value">{{ connection.ownerPhone }}</div>
@@ -66,7 +66,7 @@
                     </div>
                 </div>
             </div>
-
+            
             <div class="surface-grid surface-grid--two connection-stats">
                 <div class="surface-card surface-list__item">
                     <div class="connection-stat__icon"><i class="bi bi-chat-dots"></i></div>
@@ -74,29 +74,29 @@
                         <div class="connection-stat__number">{{ instance_data.count.messages|default:0 }}</div>
                         <div class="connection-stat__label">Messages</div>
                     </div>
-                </div>
+                        </div>
                 <div class="surface-card surface-list__item">
                     <div class="connection-stat__icon"><i class="bi bi-people"></i></div>
                     <div class="connection-stat__content">
                         <div class="connection-stat__number">{{ instance_data.count.contacts|default:0 }}</div>
                         <div class="connection-stat__label">Contacts</div>
                     </div>
-                </div>
+                        </div>
                 <div class="surface-card surface-list__item">
                     <div class="connection-stat__icon"><i class="bi bi-chat-left-dots"></i></div>
                     <div class="connection-stat__content">
                         <div class="connection-stat__number">{{ instance_data.count.chat|default:0 }}</div>
                         <div class="connection-stat__label">Chats</div>
                     </div>
-                </div>
+                        </div>
                 <div class="surface-card surface-list__item">
                     <div class="connection-stat__icon"><i class="bi bi-calendar3"></i></div>
                     <div class="connection-stat__content">
                         <div class="connection-stat__number">{{ connection.created_at|date:"M d" }}</div>
                         <div class="connection-stat__label">Created</div>
-                    </div>
                 </div>
             </div>
+        </div>
 
             <div class="surface-card mt-4" id="testResultsCard" style="display: none;">
                 <div class="surface-section__header">

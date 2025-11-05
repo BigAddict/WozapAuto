@@ -13,7 +13,7 @@
     {% if user.is_authenticated %}
     <!-- Authenticated User Dashboard -->
     <div class="dashboard-header">
-        <h1 class="dashboard-title">Welcome back, {{ user.first_name|default:user.username }}!</h1>
+        <h1 class="dashboard-title">Welcome back, {{ user.username }}!</h1>
         <p class="dashboard-subtitle">Your WhatsApp AI Agent Platform Dashboard</p>
     </div>
     

@@ -165,6 +165,94 @@
     text-decoration: underline;
 }
 
+.auth-card--compact {
+    max-width: 420px;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+}
+
+.auth-header--compact {
+    padding: var(--space-xl) var(--space-lg);
+}
+
+.auth-header--compact .auth-header__title {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--space-xs);
+}
+
+.auth-header--compact .auth-header__subtitle {
+    font-size: var(--font-size-sm);
+    opacity: 0.85;
+}
+
+.auth-logo--compact img {
+    height: 40px;
+    width: 40px;
+}
+
+.auth-body--compact {
+    padding: var(--space-xl) var(--space-lg);
+}
+
+.form-group--compact {
+    margin-bottom: var(--space-md);
+}
+
+.auth-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.auth-meta .form-check {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+}
+
+.auth-meta .form-check-input {
+    margin-top: 0;
+}
+
+.auth-meta__link {
+    font-size: var(--font-size-sm);
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.auth-meta__link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.auth-actions--compact {
+    margin-top: var(--space-lg);
+}
+
+.auth-switch {
+    text-align: center;
+    padding: 0 var(--space-lg) var(--space-lg);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.auth-switch a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.auth-switch a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
 @media (max-width: 768px) {
     .auth-container {
         padding: var(--space-sm);
@@ -247,8 +335,9 @@
         font-size: var(--font-size-base);
     }
 
-    .forgot-password {
-        margin-top: var(--space-md);
+    .auth-meta {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 
@@ -305,7 +394,6 @@
         font-size: var(--font-size-sm);
     }
 
-    .forgot-password__link,
     .auth-footer__text {
         font-size: var(--font-size-xs);
     }

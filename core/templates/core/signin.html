@@ -9,20 +9,20 @@
 
 {% block content %}
 <div class="auth-container">
-    <div class="auth-card">
-        <div class="auth-header">
-            <div class="auth-logo mb-3">
-                <img src="{% static 'images/brand/wozapauto.svg' %}" alt="WozapAuto Logo" height="48" width="48">
+    <div class="auth-card auth-card--compact">
+        <div class="auth-header auth-header--compact">
+            <div class="auth-logo auth-logo--compact mb-2">
+                <img src="{% static 'images/brand/wozapauto.svg' %}" alt="WozapAuto Logo" height="40" width="40">
             </div>
             <h1 class="auth-header__title">Welcome Back</h1>
-            <p class="auth-header__subtitle">Sign in to your WozapAuto account</p>
+            <p class="auth-header__subtitle">Sign in to continue</p>
         </div>
         
-        <div class="auth-body">
+        <div class="auth-body auth-body--compact">
             <form method="post" action="{% url 'signin' %}" id="signinForm">
                 {% csrf_token %}
                 
-                <div class="form-group">
+                <div class="form-group form-group--compact">
                     <label for="username" class="form-label">
                         Username or Email
                         <span class="form-label__required" aria-label="required">*</span>
@@ -34,62 +34,55 @@
                            required
                            placeholder="Enter your username or email"
                            autocomplete="username"
-                           aria-describedby="username_help">
-                    <div id="username_help" class="form-help">
-                        Enter your registered username or email address
-                    </div>
+                           pattern="[^\s]+"
+                           title="Username cannot contain spaces">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group form-group--compact">
                     <label for="password" class="form-label">
                         Password
                         <span class="form-label__required" aria-label="required">*</span>
                     </label>
+                    <div class="password-input">
                     <input type="password" 
                            id="password" 
                            name="password" 
                            class="form-control" 
                            required
                            placeholder="Enter your password"
-                           autocomplete="current-password"
-                           aria-describedby="password_help">
-                    <div id="password_help" class="form-help">
-                        Enter your account password
+                               autocomplete="current-password">
+                        <button type="button" class="password-input__toggle" aria-label="Show password" aria-pressed="false">
+                            <i class="bi bi-eye"></i>
+                            <span class="visually-hidden">Toggle password visibility</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="form-check">
+                <div class="auth-meta">
+                    <div class="form-check form-check-inline">
                     <input type="checkbox" 
                            class="form-check-input" 
                            id="remember_me" 
                            name="remember_me">
                     <label class="form-check-label" for="remember_me">
-                        Remember me for 30 days
+                            Remember me
                     </label>
+                    </div>
+                    <a href="{% url 'forgot_password' %}" class="auth-meta__link">Forgot password?</a>
                 </div>
 
-                <div class="form-actions form-actions--center">
-                    <button type="submit" class="btn btn--primary btn--lg">
+                <div class="form-actions form-actions--center auth-actions--compact">
+                    <button type="submit" class="btn btn--primary btn--md">
                         <i class="bi bi-rocket btn__icon" aria-hidden="true"></i>
                         Sign In
                     </button>
                 </div>
             </form>
-            
-            <div class="forgot-password">
-                <a href="{% url 'forgot_password' %}" class="forgot-password__link">
-                    Forgot your password?
-                </a>
-            </div>
-            
         </div>
-        
-        <div class="auth-footer">
-            <p class="auth-footer__text">
+        <p class="auth-switch">
                 Don't have an account? 
-                <a href="{% url 'signup' %}" class="auth-footer__link">Sign up here</a>
+            <a href="{% url 'signup' %}">Sign up</a>
             </p>
-        </div>
     </div>
 </div>
 {% endblock %}
@@ -101,6 +94,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     
+    usernameInput.addEventListener('input', function() {
+        if (this.value.includes(' ')) {
+            this.value = this.value.replace(/\s+/g, '');
+        }
+    });
+
     // Form validation
     form.addEventListener('submit', function(e) {
         let isValid = true;
@@ -111,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Validate username
-        if (!usernameInput.value.trim()) {
+        if (!usernameInput.value.trim() || usernameInput.value.includes(' ')) {
             usernameInput.closest('.form-group').classList.add('form-group--error');
             isValid = false;
         }

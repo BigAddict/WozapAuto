@@ -210,7 +210,7 @@ class HomePageView(TemplateView):
             # Onboarding progress
             user_profile = getattr(self.request.user, 'profile', None)
             onboarding_progress = {
-                'profile': bool(self.request.user.first_name or self.request.user.last_name or getattr(user_profile, 'phone_number', None)),
+                'profile': bool(getattr(user_profile, 'phone_number', None)),
                 'business': bool(business_data.get('business_profile')),
                 'connection': connections.exists(),
                 'knowledge': has_knowledge_docs,
@@ -250,8 +250,6 @@ def profile_edit(request):
     
     if request.method == 'POST':
         # Update user fields
-        request.user.first_name = request.POST.get('first_name', '').strip()
-        request.user.last_name = request.POST.get('last_name', '').strip()
         request.user.email = request.POST.get('email', '').strip()
         request.user.save()
         
@@ -267,7 +265,7 @@ def profile_edit(request):
                 ip_address=request.META.get('REMOTE_ADDR'),
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
                 metadata={
-                    'updated_fields': ['first_name', 'last_name', 'email', 'newsletter_subscribed']
+                    'updated_fields': ['email', 'newsletter_subscribed']
                 }
             )
         except Exception as e:
@@ -285,8 +283,8 @@ def profile_api(request):
     if request.method == 'GET':
         profile = get_or_create_profile(request.user)
         return JsonResponse({
-            'first_name': request.user.first_name,
-            'last_name': request.user.last_name,
+            'first_name': '',
+            'last_name': '',
             'email': request.user.email,
             'newsletter_subscribed': profile.newsletter_subscribed,
             'onboarding_completed': profile.onboarding_completed,

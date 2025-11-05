@@ -24,13 +24,6 @@
     box-shadow: 0 0 0 0.2rem rgba(37, 211, 102, 0.25);
 }
 
-.account-page .toggle-password {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
 .account-page .password-checklist li.valid {
     color: #28a745;
 }

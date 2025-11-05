@@ -22,36 +22,6 @@
             <form method="post" id="signupForm">
                 {% csrf_token %}
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="first_name" class="form-label">
-                            First Name
-                            <span class="form-label__required" aria-label="required">*</span>
-                        </label>
-                        <input type="text" 
-                               id="first_name" 
-                               name="first_name" 
-                               class="form-control" 
-                               required
-                               placeholder="Enter your first name"
-                               autocomplete="given-name">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="last_name" class="form-label">
-                            Last Name
-                            <span class="form-label__required" aria-label="required">*</span>
-                        </label>
-                        <input type="text" 
-                               id="last_name" 
-                               name="last_name" 
-                               class="form-control" 
-                               required
-                               placeholder="Enter your last name"
-                               autocomplete="family-name">
-                    </div>
-                </div>
-                
                 <div class="form-group">
                     <label for="email" class="form-label">
                         Email Address
@@ -76,7 +46,9 @@
                            name="username" 
                            class="form-control" 
                            required
-                           placeholder="Choose a username"
+                           placeholder="Choose a username (no spaces)"
+                           pattern="[^\s]+"
+                           title="Username cannot contain spaces"
                            autocomplete="username">
                 </div>
                 
@@ -85,13 +57,19 @@
                         Password
                         <span class="form-label__required" aria-label="required">*</span>
                     </label>
-                    <input type="password" 
-                           id="password1" 
-                           name="password1" 
-                           class="form-control" 
-                           required
-                           placeholder="Create a strong password"
-                           autocomplete="new-password">
+                    <div class="password-input">
+                        <input type="password" 
+                               id="password1" 
+                               name="password1" 
+                               class="form-control" 
+                               required
+                               placeholder="Create a strong password"
+                               autocomplete="new-password">
+                        <button type="button" class="password-input__toggle" aria-label="Show password" aria-pressed="false">
+                            <i class="bi bi-eye"></i>
+                            <span class="visually-hidden">Toggle password visibility</span>
+                        </button>
+                    </div>
                     
                     <div class="password-requirements">
                         <h4 class="password-requirements__title">Password Requirements:</h4>
@@ -110,13 +88,19 @@
                         Confirm Password
                         <span class="form-label__required" aria-label="required">*</span>
                     </label>
-                    <input type="password" 
-                           id="password2" 
-                           name="password2" 
-                           class="form-control" 
-                           required
-                           placeholder="Confirm your password"
-                           autocomplete="new-password">
+                    <div class="password-input">
+                        <input type="password" 
+                               id="password2" 
+                               name="password2" 
+                               class="form-control" 
+                               required
+                               placeholder="Confirm your password"
+                               autocomplete="new-password">
+                        <button type="button" class="password-input__toggle" aria-label="Show password" aria-pressed="false">
+                            <i class="bi bi-eye"></i>
+                            <span class="visually-hidden">Toggle password visibility</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -177,6 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password1');
     const confirmPasswordInput = document.getElementById('password2');
     const termsCheckbox = document.getElementById('terms_agreement');
+    const usernameField = document.getElementById('username');
     
     // Password validation
     const requirements = {
@@ -226,6 +211,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    usernameField.addEventListener('input', function() {
+        if (this.value.includes(' ')) {
+            this.value = this.value.replace(/\s+/g, '');
+        }
+    });
+
     // Confirm password validation
     confirmPasswordInput.addEventListener('input', function() {
         if (this.value === passwordInput.value && this.value.length > 0) {
@@ -245,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Validate required fields
-        const requiredFields = ['first_name', 'last_name', 'email', 'username', 'password1', 'password2'];
+        const requiredFields = ['email', 'username', 'password1', 'password2'];
         requiredFields.forEach(fieldName => {
             const field = document.getElementById(fieldName);
             if (!field.value.trim()) {
@@ -265,6 +256,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Validate password match
         if (passwordInput.value !== confirmPasswordInput.value) {
             confirmPasswordInput.closest('.form-group').classList.add('form-group--error');
+            isValid = false;
+        }
+
+        // Validate username spaces
+        if (usernameField.value.includes(' ')) {
+            usernameField.closest('.form-group').classList.add('form-group--error');
+            showNotification('Username cannot contain spaces', 'error');
             isValid = false;
         }
         
