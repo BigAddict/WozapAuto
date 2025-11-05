@@ -65,9 +65,38 @@ def normalize_string_field(value: Optional[str]) -> Optional[str]:
     return value
 
 
+def sanitize_business_name_to_username(business_name: str) -> str:
+    """
+    Sanitize business name to a valid username format.
+    Converts "Binary Craft Technologies" to "binary-craft-technologies"
+    
+    Args:
+        business_name: Business name string
+        
+    Returns:
+        Sanitized username string
+    """
+    if not business_name:
+        return ""
+    
+    # Convert to lowercase, replace spaces and special chars with hyphens
+    username = business_name.lower().strip()
+    # Remove special characters except spaces and hyphens
+    username = ''.join(c if c.isalnum() or c in [' ', '-'] else '' for c in username)
+    # Replace spaces with hyphens
+    username = username.replace(' ', '-')
+    # Replace multiple hyphens with single hyphen
+    while '--' in username:
+        username = username.replace('--', '-')
+    # Remove leading/trailing hyphens
+    username = username.strip('-')
+    
+    return username
+
+
 def get_user_display_name(user: User) -> str:
     """
-    Get user's display name (full name or username).
+    Get user's display name (business name or username).
     
     Args:
         user: Django User instance
@@ -75,12 +104,16 @@ def get_user_display_name(user: User) -> str:
     Returns:
         Display name string
     """
-    if user.first_name and user.last_name:
-        return f"{user.first_name} {user.last_name}"
-    elif user.first_name:
-        return user.first_name
-    else:
-        return user.username
+    # Try to get business name from business profile
+    try:
+        business_profile = user.business_profile
+        if business_profile and business_profile.name:
+            return business_profile.name
+    except AttributeError:
+        pass
+    
+    # Fallback to username
+    return user.username
 
 
 def get_onboarding_progress(user: User) -> Dict[str, Any]:
@@ -95,14 +128,15 @@ def get_onboarding_progress(user: User) -> Dict[str, Any]:
     """
     try:
         profile = user.profile
+        # Handle legacy 'profile' step
+        current_step = 'profile' if profile.onboarding_step == 'profile' else profile.onboarding_step
         return {
             'is_complete': profile.is_onboarding_complete(),
-            'current_step': profile.onboarding_step,
+            'current_step': current_step,
             'next_url': profile.get_onboarding_redirect_url(),
             'steps': {
                 'welcome': profile.onboarding_step == 'welcome',
-                'profile': profile.onboarding_step in ['profile', 'business', 'verify', 'complete'],
-                'business': profile.onboarding_step in ['business', 'verify', 'complete'],
+                'business': profile.onboarding_step in ['business', 'verify', 'complete'] or profile.onboarding_step == 'profile',
                 'verify': profile.onboarding_step in ['verify', 'complete'],
                 'complete': profile.onboarding_step == 'complete'
             }
@@ -114,7 +148,6 @@ def get_onboarding_progress(user: User) -> Dict[str, Any]:
             'next_url': '/onboarding/',
             'steps': {
                 'welcome': True,
-                'profile': False,
                 'business': False,
                 'verify': False,
                 'complete': False

@@ -10,7 +10,6 @@ class UserProfile(models.Model):
     
     ONBOARDING_STEP_CHOICES = [
         ('welcome', 'Welcome'),
-        ('profile', 'Personal Profile'),
         ('business', 'Business Profile'),
         ('verify', 'WhatsApp Verification'),
         ('complete', 'Completed'),
@@ -40,13 +39,17 @@ class UserProfile(models.Model):
     
     @property
     def full_name(self):
-        """Return user's full name or username if not available"""
-        if self.user.first_name and self.user.last_name:
-            return f"{self.user.first_name} {self.user.last_name}"
-        elif self.user.first_name:
-            return self.user.first_name
-        else:
-            return self.user.username
+        """Return business name or username if not available"""
+        # Try to get business name from business profile
+        try:
+            business_profile = self.user.business_profile
+            if business_profile and business_profile.name:
+                return business_profile.name
+        except AttributeError:
+            pass
+        
+        # Fallback to username
+        return self.user.username
     
     @property
     def display_name(self):
@@ -62,27 +65,37 @@ class UserProfile(models.Model):
         
         step_urls = {
             'welcome': reverse('onboarding_welcome'),
-            'profile': reverse('onboarding_profile'),
             'business': reverse('onboarding_business'),
             'verify': reverse('onboarding_verify'),
             'complete': reverse('home'),
         }
         
+        # Handle legacy 'profile' step by redirecting to business
+        if self.onboarding_step == 'profile':
+            return step_urls.get('business', reverse('onboarding_welcome'))
+        
         return step_urls.get(self.onboarding_step, reverse('onboarding_welcome'))
     
     def advance_onboarding_step(self):
         """Advance to the next onboarding step"""
-        step_order = ['welcome', 'profile', 'business', 'verify', 'complete']
-        current_index = step_order.index(self.onboarding_step)
+        step_order = ['welcome', 'business', 'verify', 'complete']
         
-        if current_index < len(step_order) - 1:
-            self.onboarding_step = step_order[current_index + 1]
-            
-            # Mark as completed when reaching the final step
-            if self.onboarding_step == 'complete':
-                self.onboarding_completed = True
-            
-            self.save()
+        # Handle legacy 'profile' step
+        if self.onboarding_step == 'profile':
+            self.onboarding_step = 'business'
+        elif self.onboarding_step in step_order:
+            current_index = step_order.index(self.onboarding_step)
+            if current_index < len(step_order) - 1:
+                self.onboarding_step = step_order[current_index + 1]
+        else:
+            # Unknown step, default to welcome
+            self.onboarding_step = 'welcome'
+        
+        # Mark as completed when reaching the final step
+        if self.onboarding_step == 'complete':
+            self.onboarding_completed = True
+        
+        self.save()
     
     def is_onboarding_complete(self):
         """Check if onboarding is complete"""

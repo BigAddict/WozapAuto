@@ -21,6 +21,12 @@ class MemorySearchTool:
         Use this tool when the user asks about something that might have been discussed
         in previous conversations or when you need more context about a topic.
         
+        Examples of when to use:
+        - User references past conversations ("as we discussed", "you mentioned", "last time")
+        - User asks about previous decisions, preferences, or commitments
+        - You need context about an ongoing conversation topic
+        - Follow-up questions that require conversation history
+        
         Args:
             query: The search query to find relevant messages
             limit: Maximum number of messages to return (default: 10)

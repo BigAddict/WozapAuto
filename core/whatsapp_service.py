@@ -8,6 +8,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from .models import UserProfile
+from .utils import get_user_display_name
 from connections.services import evolution_api_service
 from connections.models import Connection
 
@@ -91,15 +92,15 @@ class WhatsAppService:
             logger.error(f"No phone number found for user {user.id}")
             return False
         
-        subject = f"Welcome to WozapAuto, {user.first_name or user.username}!"
+        display_name = get_user_display_name(user)
+        subject = f"Welcome to WozapAuto, {display_name}!"
         template_used = 'whatsapp/welcome_message'
         
         # Prepare context data for logging
         context_data = {
             'user_id': user.id,
             'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
+            'display_name': display_name,
             'phone_number': user.business_profile.phone_number,
             'site_name': 'WozapAuto',
         }
@@ -124,9 +125,10 @@ class WhatsAppService:
                 return False
             
             # Format message content
+            display_name = get_user_display_name(user)
             message_content = f"""*Welcome to WozapAuto!* 👋
 
-Hi {user.first_name or user.username},
+Hi {display_name},
 
 Your account has been created successfully.
 
@@ -217,9 +219,10 @@ Need help? Reply to this message."""
                 return False
             
             # Format message content
+            display_name = get_user_display_name(user)
             message_content = f"""*WozapAuto Verification* 🔐
 
-Hi {user.first_name or user.username},
+Hi {display_name},
 
 To verify your WhatsApp number, use this code:
 *{otp_code}*
@@ -304,9 +307,10 @@ Need help? Reply to this message."""
                 return False
             
             # Format message content
+            display_name = get_user_display_name(user)
             message_content = f"""*Password Reset Request* 🔑
 
-Hi {user.first_name or user.username},
+Hi {display_name},
 
 You requested to reset your password.
 
@@ -396,9 +400,10 @@ If you didn't request this, please ignore this message."""
                 return False
             
             # Format message content
+            display_name = get_user_display_name(user)
             message_content = f"""*WhatsApp Connection Successful!* ✅
 
-Hi {user.first_name or user.username},
+Hi {display_name},
 
 Your WhatsApp connection "{connection.instance_name}" is now active.
 
@@ -455,12 +460,12 @@ Need help? Reply to this message."""
         template_used = 'whatsapp/password_change_message'
         
         # Prepare context data for logging
+        display_name = get_user_display_name(user)
         context_data = {
             'user_id': user.id,
             'username': user.username,
+            'display_name': display_name,
             'phone_number': user.business_profile.phone_number,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
             'site_name': 'WozapAuto',
             'change_timestamp': timezone.now().isoformat(),
         }
@@ -485,9 +490,10 @@ Need help? Reply to this message."""
                 return False
             
             # Format message content
+            display_name = get_user_display_name(user)
             message_content = f"""*Password Changed Successfully* 🔐
 
-Hi {user.first_name or user.username},
+Hi {display_name},
 
 Your password has been changed successfully.
 

@@ -52,7 +52,7 @@
                             {% for error in form.username.errors %}
                                 <span>{{ error }}</span>
                             {% endfor %}
-                        </div>
+                    </div>
                     {% endif %}
                 </div>
 
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
+    
     // Form validation
     form.addEventListener('submit', function(e) {
         let isValid = true;
@@ -140,8 +140,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Validate username
         if (usernameInput) {
             if (!usernameInput.value.trim() || usernameInput.value.includes(' ')) {
-                usernameInput.closest('.form-group').classList.add('form-group--error');
-                isValid = false;
+            usernameInput.closest('.form-group').classList.add('form-group--error');
+            isValid = false;
             }
         }
         
@@ -159,19 +159,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Real-time validation
     if (usernameInput) {
-        usernameInput.addEventListener('blur', function() {
-            if (this.value.trim()) {
-                this.closest('.form-group').classList.remove('form-group--error');
-            }
-        });
+    usernameInput.addEventListener('blur', function() {
+        if (this.value.trim()) {
+            this.closest('.form-group').classList.remove('form-group--error');
+        }
+    });
     }
     
     if (passwordInput) {
-        passwordInput.addEventListener('blur', function() {
-            if (this.value.trim()) {
-                this.closest('.form-group').classList.remove('form-group--error');
-            }
-        });
+    passwordInput.addEventListener('blur', function() {
+        if (this.value.trim()) {
+            this.closest('.form-group').classList.remove('form-group--error');
+        }
+    });
     }
     
     function showNotification(message, type) {

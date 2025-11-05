@@ -66,7 +66,7 @@ def signin(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-
+            
             if not remember_me_checked:
                 request.session.set_expiry(0)
 
@@ -80,7 +80,7 @@ def signin(request):
                 )
             except Exception as e:
                 logger.error(f"Failed to log user login: {e}")
-
+            
             messages.success(request, f'Welcome back, {user.username}!')
             return redirect(next_url or 'home')
         else:
@@ -219,7 +219,7 @@ class HomePageView(TemplateView):
             }
             onboarding_steps_completed = sum(1 for value in onboarding_progress.values() if value)
             onboarding_steps_total = len(onboarding_progress)
-
+            
             # Dashboard stats
             context.update({
                 'total_connections': connections.count(),
@@ -284,9 +284,18 @@ def profile_api(request):
     """API endpoint for profile data"""
     if request.method == 'GET':
         profile = get_or_create_profile(request.user)
+        # Get business name if available
+        business_name = ''
+        try:
+            business_profile = request.user.business_profile
+            if business_profile and business_profile.name:
+                business_name = business_profile.name
+        except AttributeError:
+            pass
+        
         return JsonResponse({
-            'first_name': '',
-            'last_name': '',
+            'business_name': business_name,
+            'username': request.user.username,
             'email': request.user.email,
             'newsletter_subscribed': profile.newsletter_subscribed,
             'onboarding_completed': profile.onboarding_completed,
@@ -314,14 +323,14 @@ def forgot_password(request):
         try:
             business_profile = BusinessProfile.objects.select_related('user').get(phone_number=phone_number)
             user = business_profile.user
-
+            
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-
+            
             reset_url = request.build_absolute_uri(
                 reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
             )
-
+            
             if whatsapp_service.send_password_reset_message(user, reset_url, request):
                 messages.success(request, 'Password reset instructions have been sent to your WhatsApp.')
             else:
@@ -469,54 +478,11 @@ def resend_verification(request):
         return redirect('onboarding_verify')
 
 
-# Business Profile Creation View
+# Business Profile Creation View (Legacy - redirects to onboarding)
 @login_required
 def create_business_profile(request):
-    """Create business profile during onboarding"""
-    try:
-        profile = request.user.profile
-        
-        # Check if already completed
-        if profile.onboarding_completed:
-            messages.info(request, 'You have already completed the onboarding process.')
-            return redirect('home')
-        
-        # Check if business profile already exists
-        try:
-            business_profile = request.user.business_profile
-            if business_profile.is_verified:
-                messages.info(request, 'Your business profile is already verified.')
-                return redirect('home')
-            # If exists but not verified, redirect to OTP verification
-            return redirect('verify_whatsapp_otp')
-        except AttributeError:
-            # Business profile doesn't exist
-            pass
-        
-        if request.method == 'POST':
-            form = BusinessProfileForm(request.POST)
-            if form.is_valid():
-                # Create business profile
-                business_profile = form.save(commit=False)
-                business_profile.user = request.user
-                business_profile.save()
-                
-                # Generate and send OTP for WhatsApp verification
-                otp_code = business_profile.generate_otp()
-                if whatsapp_service.send_otp_message(request.user, otp_code, request):
-                    messages.success(request, 'Business profile created! Please check your WhatsApp for the verification code.')
-                    return redirect('verify_whatsapp_otp')
-                else:
-                    messages.error(request, 'Profile created but failed to send verification code. Please contact support.')
-                    return redirect('verify_whatsapp_otp')
-        else:
-            form = BusinessProfileForm()
-        
-        return render(request, 'core/create_business_profile.html', {'form': form})
-        
-    except UserProfile.DoesNotExist:
-        messages.error(request, 'Profile not found. Please contact support.')
-        return redirect('home')
+    """Legacy business profile creation - redirects to onboarding flow"""
+    return redirect('onboarding_business')
 
 
 @login_required

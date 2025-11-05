@@ -37,22 +37,14 @@ def onboarding_welcome(request):
 
 @login_required
 def onboarding_profile(request):
-    """Deprecated step: immediately advance to business onboarding"""
+    """Legacy profile step - redirects to business onboarding"""
     try:
         profile = request.user.profile
-        
-        # If already completed, redirect to home
-        if profile.is_onboarding_complete():
-            messages.info(request, 'You have already completed the onboarding process.')
-            return redirect('home')
-        
-        # If users land here from welcome or profile step, automatically advance to business setup
-        if profile.onboarding_step in ['welcome', 'profile']:
+        # Update step and redirect to business
+        if profile.onboarding_step == 'profile':
             profile.onboarding_step = 'business'
             profile.save(update_fields=['onboarding_step'])
-
         return redirect('onboarding_business')
-        
     except UserProfile.DoesNotExist:
         messages.error(request, 'Profile not found. Please contact support.')
         return redirect('home')
@@ -69,15 +61,19 @@ def onboarding_business(request):
             messages.info(request, 'You have already completed the onboarding process.')
             return redirect('home')
         
-        # If not on business step, redirect to current step
-        # Exception: allow verify step users to access business if no business profile exists
-        if profile.onboarding_step not in ['profile', 'business']:
-            # Check if user is on verify step but has no business profile
+        # Handle legacy 'profile' step by redirecting to business
+        if profile.onboarding_step == 'profile':
+            profile.onboarding_step = 'business'
+            profile.save(update_fields=['onboarding_step'])
+        
+        # Redirect if not on business step
+        if profile.onboarding_step not in ['welcome', 'business']:
+            # If on verify step but no business profile exists, allow access
             if profile.onboarding_step == 'verify':
                 try:
                     request.user.business_profile
                     # Business profile exists, redirect to verify
-                    return redirect(profile.get_onboarding_redirect_url())
+                    return redirect('onboarding_verify')
                 except AttributeError:
                     # No business profile, allow access to business step
                     pass
@@ -88,7 +84,7 @@ def onboarding_business(request):
         try:
             business_profile = request.user.business_profile
             if business_profile.is_verified:
-                # Already verified, advance to complete
+                # Already verified, mark complete
                 profile.onboarding_step = 'complete'
                 profile.onboarding_completed = True
                 profile.save()
@@ -101,11 +97,14 @@ def onboarding_business(request):
             pass
         
         if request.method == 'POST':
-            form = BusinessProfileForm(request.POST)
+            form = BusinessProfileForm(request.POST, user=request.user)
             if form.is_valid():
                 # Create business profile
                 business_profile = form.save(commit=False)
                 business_profile.user = request.user
+                # Auto-populate email from user if not provided
+                if not business_profile.email:
+                    business_profile.email = request.user.email
                 business_profile.save()
                 
                 # Generate and send OTP for WhatsApp verification
@@ -117,8 +116,7 @@ def onboarding_business(request):
                     messages.error(request, 'Profile created but failed to send verification code. Please contact support.')
                     return redirect('onboarding_verify')
         else:
-            initial = {'email': request.user.email}
-            form = BusinessProfileForm(initial=initial)
+            form = BusinessProfileForm(user=request.user)
         
         return render(request, 'core/onboarding/business.html', {'form': form})
         
@@ -145,7 +143,7 @@ def onboarding_verify(request):
             messages.error(request, 'Business profile not found. Please create your business profile first.')
             return redirect('onboarding_business')
         
-        # If not on verify step, redirect to current step
+        # Redirect if not on verify step
         if profile.onboarding_step not in ['business', 'verify']:
             return redirect(profile.get_onboarding_redirect_url())
         

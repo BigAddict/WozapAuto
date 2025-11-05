@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import UserProfile
-from .utils import normalize_string_field
+from .utils import normalize_string_field, sanitize_business_name_to_username
 from .timezone_utils import format_timezone_choices
 from core.currency_utils import format_currency_choices
 from business.models import BusinessProfile, BusinessType
@@ -13,7 +13,18 @@ import re
 
 class CustomUserCreationForm(UserCreationForm):
     """Custom user creation form with additional fields and validation"""
-
+    
+    business_name = forms.CharField(
+        max_length=100,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your business name',
+            'id': 'business_name'
+        }),
+        help_text='This will be used to generate your username'
+    )
+    
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={
@@ -42,14 +53,15 @@ class CustomUserCreationForm(UserCreationForm):
     
     class Meta:
         model = User
-        fields = ('username', 'email', 'password1', 'password2')
+        fields = ('business_name', 'username', 'email', 'password1', 'password2')
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Choose a username (no spaces)',
+                'placeholder': 'auto-generated-from-business-name',
                 'autocomplete': 'username',
                 'pattern': r'[^\s]+',
-                'title': 'Username cannot contain spaces'
+                'title': 'Username cannot contain spaces',
+                'id': 'username'
             }),
         }
     
@@ -83,6 +95,36 @@ class CustomUserCreationForm(UserCreationForm):
             raise ValidationError('Username cannot contain spaces.')
         return username
     
+    def clean(self):
+        """Auto-generate username from business_name if not provided"""
+        cleaned_data = super().clean()
+        business_name = cleaned_data.get('business_name')
+        username = cleaned_data.get('username', '').strip()
+        
+        # Auto-generate username from business_name if username is empty or not provided
+        if business_name and (not username or username == ''):
+            # Generate sanitized username from business name
+            sanitized_username = sanitize_business_name_to_username(business_name)
+            
+            # Ensure username is not empty
+            if not sanitized_username:
+                sanitized_username = business_name.lower().replace(' ', '-')[:30]  # Fallback
+            
+            # Check if generated username is available, if not append numbers
+            base_username = sanitized_username
+            counter = 1
+            while User.objects.filter(username=sanitized_username).exists():
+                sanitized_username = f"{base_username}-{counter}"
+                counter += 1
+            
+            cleaned_data['username'] = sanitized_username
+        elif business_name and username:
+            # User provided both, validate username doesn't contain spaces
+            if ' ' in username:
+                raise ValidationError({'username': 'Username cannot contain spaces.'})
+        
+        return cleaned_data
+    
     def clean_password1(self):
         """Enhanced password validation"""
         password1 = self.cleaned_data.get('password1')
@@ -113,6 +155,7 @@ class CustomUserCreationForm(UserCreationForm):
         """Save user and create profile with newsletter preference"""
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
+        # Don't store first_name/last_name - they're not relevant for B2B platform
         
         if commit:
             user.save()
@@ -206,6 +249,19 @@ class BusinessProfileForm(forms.ModelForm):
                 'placeholder': 'Business address'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        # Get user from kwargs if provided (for auto-populating email)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Auto-populate email from user.email if business email is empty
+        if self.user and not self.instance.pk:  # Only for new instances
+            if not self.initial.get('email') and not self.data.get('email'):
+                self.initial['email'] = self.user.email
+        elif self.user and self.instance.pk:  # For editing existing instances
+            if not self.instance.email:
+                self.initial['email'] = self.user.email
     
     def clean_phone_number(self):
         """Validate phone number format"""

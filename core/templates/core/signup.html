@@ -28,6 +28,28 @@
                         {% endfor %}
                     </div>
                 {% endif %}
+                    
+                <div class="form-group {% if form.business_name.errors %}form-group--error{% endif %}">
+                    <label for="business_name" class="form-label">
+                        Business Name
+                        <span class="form-label__required" aria-label="required">*</span>
+                    </label>
+                    <input type="text" 
+                           id="business_name" 
+                           name="business_name" 
+                           class="form-control" 
+                           required
+                           placeholder="e.g., Binary Craft Technologies"
+                           value="{{ form.business_name.value|default_if_none:'' }}">
+                    {% if form.business_name.errors %}
+                        <div class="form-error">
+                            {% for error in form.business_name.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small class="form-text text-muted">This will be used to generate your username</small>
+                </div>
                 
                 <div class="form-group {% if form.email.errors %}form-group--error{% endif %}">
                     <label for="email" class="form-label">
@@ -81,13 +103,13 @@
                         <span class="form-label__required" aria-label="required">*</span>
                     </label>
                     <div class="password-input">
-                        <input type="password" 
-                               id="password1" 
-                               name="password1" 
-                               class="form-control" 
-                               required
-                               placeholder="Create a strong password"
-                               autocomplete="new-password">
+                    <input type="password" 
+                           id="password1" 
+                           name="password1" 
+                           class="form-control" 
+                           required
+                           placeholder="Create a strong password"
+                           autocomplete="new-password">
                         <button type="button" class="password-input__toggle" aria-label="Show password" aria-pressed="false">
                             <i class="bi bi-eye"></i>
                             <span class="visually-hidden">Toggle password visibility</span>
@@ -119,13 +141,13 @@
                         <span class="form-label__required" aria-label="required">*</span>
                     </label>
                     <div class="password-input">
-                        <input type="password" 
-                               id="password2" 
-                               name="password2" 
-                               class="form-control" 
-                               required
-                               placeholder="Confirm your password"
-                               autocomplete="new-password">
+                    <input type="password" 
+                           id="password2" 
+                           name="password2" 
+                           class="form-control" 
+                           required
+                           placeholder="Confirm your password"
+                           autocomplete="new-password">
                         <button type="button" class="password-input__toggle" aria-label="Show password" aria-pressed="false">
                             <i class="bi bi-eye"></i>
                             <span class="visually-hidden">Toggle password visibility</span>
@@ -208,6 +230,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmPasswordInput = document.getElementById('password2');
     const termsCheckbox = document.getElementById('terms_agreement');
     const usernameField = document.getElementById('username');
+    const businessNameField = document.getElementById('business_name');
+    
+    // Auto-generate username from business name
+    let userModifiedUsername = false; // Track if user manually edited username
+    
+    businessNameField.addEventListener('input', function() {
+        // Only auto-generate if user hasn't manually modified the username
+        if (!userModifiedUsername) {
+            const businessName = this.value;
+            // Convert to lowercase, replace spaces and special chars with hyphens
+            const sanitizedUsername = businessName
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+                .replace(/\s+/g, '-') // Replace spaces with hyphens
+                .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+                .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+            
+            usernameField.value = sanitizedUsername;
+        }
+    });
+    
+    // Track manual username edits
+    usernameField.addEventListener('input', function() {
+        // User has manually edited the username
+        userModifiedUsername = true;
+    });
+    
+    usernameField.addEventListener('focus', function() {
+        // User focused on username field, consider it as manual editing
+        userModifiedUsername = true;
+    });
     
     // Password validation
     const requirements = {
@@ -262,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.value = this.value.replace(/\s+/g, '');
         }
     });
-
+    
     // Confirm password validation
     confirmPasswordInput.addEventListener('input', function() {
         if (this.value === passwordInput.value && this.value.length > 0) {
@@ -282,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Validate required fields
-        const requiredFields = ['email', 'username', 'password1', 'password2'];
+        const requiredFields = ['business_name', 'email', 'username', 'password1', 'password2'];
         requiredFields.forEach(fieldName => {
             const field = document.getElementById(fieldName);
             if (!field.value.trim()) {

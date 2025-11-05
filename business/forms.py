@@ -60,9 +60,19 @@ class BusinessProfileForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        # Get user from kwargs if provided (for auto-populating email)
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields['timezone'].choices = format_timezone_choices()
         self.fields['currency'].choices = format_currency_choices()
+        
+        # Auto-populate email from user.email if business email is empty
+        if self.user and not self.instance.pk:  # Only for new instances
+            if not self.initial.get('email') and not self.data.get('email'):
+                self.initial['email'] = self.user.email
+        elif self.user and self.instance.pk:  # For editing existing instances
+            if not self.instance.email:
+                self.initial['email'] = self.user.email
     
     def clean_name(self):
         """Normalize business name."""
