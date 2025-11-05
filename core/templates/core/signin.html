@@ -19,34 +19,52 @@
         </div>
         
         <div class="auth-body auth-body--compact">
-            <form method="post" action="{% url 'signin' %}" id="signinForm">
+            <form method="post" action="{% url 'signin' %}" id="signinForm" novalidate>
                 {% csrf_token %}
+                {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                {% endif %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 
-                <div class="form-group form-group--compact">
+                <div class="form-group form-group--compact {% if form.username.errors %}form-group--error{% endif %}">
                     <label for="username" class="form-label">
                         Username or Email
                         <span class="form-label__required" aria-label="required">*</span>
                     </label>
                     <input type="text" 
-                           id="username" 
-                           name="username" 
+                           id="{{ form.username.id_for_label }}" 
+                           name="{{ form.username.html_name }}" 
                            class="form-control" 
                            required
                            placeholder="Enter your username or email"
                            autocomplete="username"
                            pattern="[^\s]+"
-                           title="Username cannot contain spaces">
+                           title="Username cannot contain spaces"
+                           value="{{ form.username.value|default_if_none:'' }}">
+                    {% if form.username.errors %}
+                        <div class="form-error">
+                            {% for error in form.username.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
 
-                <div class="form-group form-group--compact">
+                <div class="form-group form-group--compact {% if form.password.errors %}form-group--error{% endif %}">
                     <label for="password" class="form-label">
                         Password
                         <span class="form-label__required" aria-label="required">*</span>
                     </label>
                     <div class="password-input">
                     <input type="password" 
-                           id="password" 
-                           name="password" 
+                           id="{{ form.password.id_for_label }}" 
+                           name="{{ form.password.html_name }}" 
                            class="form-control" 
                            required
                            placeholder="Enter your password"
@@ -56,6 +74,13 @@
                             <span class="visually-hidden">Toggle password visibility</span>
                         </button>
                     </div>
+                    {% if form.password.errors %}
+                        <div class="form-error">
+                            {% for error in form.password.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
 
                 <div class="auth-meta">
@@ -63,7 +88,8 @@
                     <input type="checkbox" 
                            class="form-check-input" 
                            id="remember_me" 
-                           name="remember_me">
+                           name="remember_me"
+                           {% if remember_me_checked %}checked{% endif %}>
                     <label class="form-check-label" for="remember_me">
                             Remember me
                     </label>
@@ -91,14 +117,16 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('signinForm');
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
+    const usernameInput = document.getElementById('{{ form.username.id_for_label }}');
+    const passwordInput = document.getElementById('{{ form.password.id_for_label }}');
     
-    usernameInput.addEventListener('input', function() {
-        if (this.value.includes(' ')) {
-            this.value = this.value.replace(/\s+/g, '');
-        }
-    });
+    if (usernameInput) {
+        usernameInput.addEventListener('input', function() {
+            if (this.value.includes(' ')) {
+                this.value = this.value.replace(/\s+/g, '');
+            }
+        });
+    }
 
     // Form validation
     form.addEventListener('submit', function(e) {
@@ -110,13 +138,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Validate username
-        if (!usernameInput.value.trim() || usernameInput.value.includes(' ')) {
-            usernameInput.closest('.form-group').classList.add('form-group--error');
-            isValid = false;
+        if (usernameInput) {
+            if (!usernameInput.value.trim() || usernameInput.value.includes(' ')) {
+                usernameInput.closest('.form-group').classList.add('form-group--error');
+                isValid = false;
+            }
         }
         
         // Validate password
-        if (!passwordInput.value.trim()) {
+        if (passwordInput && !passwordInput.value.trim()) {
             passwordInput.closest('.form-group').classList.add('form-group--error');
             isValid = false;
         }
@@ -128,17 +158,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Real-time validation
-    usernameInput.addEventListener('blur', function() {
-        if (this.value.trim()) {
-            this.closest('.form-group').classList.remove('form-group--error');
-        }
-    });
+    if (usernameInput) {
+        usernameInput.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                this.closest('.form-group').classList.remove('form-group--error');
+            }
+        });
+    }
     
-    passwordInput.addEventListener('blur', function() {
-        if (this.value.trim()) {
-            this.closest('.form-group').classList.remove('form-group--error');
-        }
-    });
+    if (passwordInput) {
+        passwordInput.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                this.closest('.form-group').classList.remove('form-group--error');
+            }
+        });
+    }
     
     function showNotification(message, type) {
         const notification = document.createElement('div');

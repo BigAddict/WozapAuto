@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import login, logout
 import logging
 import time
 from django.contrib.auth.decorators import login_required
@@ -13,12 +13,12 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_str, force_bytes
 from django.urls import reverse
-from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.forms import SetPasswordForm, AuthenticationForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.utils import timezone
 from .models import UserProfile
-from .forms import CustomUserCreationForm, BusinessProfileForm, OTPVerificationForm, PersonalProfileForm
+from .forms import CustomUserCreationForm, BusinessProfileForm, OTPVerificationForm
 from business.models import BusinessProfile
 from .decorators import verified_email_required, onboarding_required, business_profile_required
 from .whatsapp_service import whatsapp_service
@@ -56,42 +56,44 @@ def signup(request):
     return render(request, 'core/signup.html', {'form': form})
 
 def signin(request):
+    next_url = request.POST.get('next') or request.GET.get('next')
+    remember_me_checked = False
+
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+        form = AuthenticationForm(request, data=request.POST)
+        remember_me_checked = bool(request.POST.get('remember_me'))
 
-        if not username or not password:
-            messages.error(request, 'Please fill in all fields')
-            return render(request, 'core/signin.html')
-
-        user = authenticate(request, username=username, password=password)
-
-        if user is not None:
+        if form.is_valid():
+            user = form.get_user()
             login(request, user)
-            
-            # Log user login activity
+
+            if not remember_me_checked:
+                request.session.set_expiry(0)
+
             try:
                 AuditService.log_user_activity(
                     user=user,
                     action='login',
                     ip_address=request.META.get('REMOTE_ADDR'),
                     user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    metadata={'username': username}
+                    metadata={'username': user.username}
                 )
             except Exception as e:
                 logger.error(f"Failed to log user login: {e}")
-            
-            messages.success(request, f'Welcome back, {user.first_name or user.username}!')
-            next_url = request.POST.get('next')
-            if next_url:
-                return redirect(next_url)
-            else:
-                return redirect('home')
-        else:
-            messages.error(request, 'Invalid username or password')
-            return render(request, 'core/signin.html')
 
-    return render(request, 'core/signin.html')
+            messages.success(request, f'Welcome back, {user.username}!')
+            return redirect(next_url or 'home')
+        else:
+            messages.error(request, 'Please correct the highlighted errors below.')
+    else:
+        form = AuthenticationForm(request)
+
+    context = {
+        'form': form,
+        'remember_me_checked': remember_me_checked,
+        'next': next_url,
+    }
+    return render(request, 'core/signin.html', context)
 
 def signout(request):
     # Log user logout activity before logout
@@ -310,25 +312,21 @@ def forgot_password(request):
         phone_number = '+' + ''.join(re.findall(r'\d+', phone_number)) if not phone_number.startswith('+') else phone_number
         
         try:
-            profile = UserProfile.objects.get(phone_number=phone_number)
-            user = profile.user
-            
-            # Generate password reset token
+            business_profile = BusinessProfile.objects.select_related('user').get(phone_number=phone_number)
+            user = business_profile.user
+
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            
-            # Build reset URL
+
             reset_url = request.build_absolute_uri(
                 reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
             )
-            
-            # Send password reset WhatsApp message
+
             if whatsapp_service.send_password_reset_message(user, reset_url, request):
                 messages.success(request, 'Password reset instructions have been sent to your WhatsApp.')
             else:
-                messages.error(request, 'Failed to send password reset message. Please contact support.')
-        except UserProfile.DoesNotExist:
-            # Don't reveal whether the number exists
+                messages.error(request, 'Profile found but failed to send reset instructions. Please contact support.')
+        except BusinessProfile.DoesNotExist:
             messages.success(request, 'If an account with that number exists, password reset instructions have been sent.')
         
         return render(request, 'core/forgot_password.html')

@@ -97,6 +97,9 @@ Implementation guidance: reuse `AuditService` where possible, add lightweight an
 | 2025-11-05 | Business onboarding | Restyled create business profile flow with guided stepper and moon-kiss surface system. |
 | 2025-11-05 | Auth flows | Added password visibility toggles, compact sign-in layout, and shared styling across auth endpoints. |
 | 2025-11-05 | Identity simplification | Removed in-app profile avatars/names and enforced no-space usernames across auth flows. |
+| 2025-11-05 | Onboarding | Skipped legacy personal-profile step; business setup now pre-fills signup email and flows straight to verification. |
+| 2025-11-05 | Signup UX | Wired server-side validation into the custom signup form so errors persist and render inline. |
+| 2025-11-05 | Form validation | Synced sign-in, change/reset password flows with inline server errors and value persistence. |
 
 Add future entries when UI/UX changes ship or plans evolve.
 
