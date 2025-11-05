@@ -453,6 +453,99 @@ class ConversationDetailView(TemplateView):
             return redirect('aiengine:conversation_history')
 
 
+@login_required
+@require_POST
+def delete_conversation_thread(request: HttpRequest, thread_id: str):
+    """Delete a specific conversation thread and all its messages."""
+    try:
+        thread = get_object_or_404(ConversationThread, thread_id=thread_id, user=request.user)
+        
+        # Count messages before deletion
+        message_count = ConversationMessage.objects.filter(thread=thread).count()
+        
+        # Delete the thread (cascade will delete messages)
+        remote_jid = thread.remote_jid
+        thread.delete()
+        
+        logger.info(f"Deleted thread {thread_id} with {message_count} messages for user {request.user.username}")
+        messages.success(request, f'Successfully deleted conversation with {remote_jid} ({message_count} messages)')
+        
+        return redirect('aiengine:conversation_history')
+        
+    except Exception as e:
+        logger.error(f"Error deleting conversation thread {thread_id}: {e}")
+        messages.error(request, f'Failed to delete conversation: {str(e)}')
+        return redirect('aiengine:conversation_history')
+
+
+@login_required
+@require_POST
+def clear_conversation_messages(request: HttpRequest, thread_id: str):
+    """Clear messages from a conversation thread."""
+    try:
+        thread = get_object_or_404(ConversationThread, thread_id=thread_id, user=request.user)
+        
+        # Get keep_recent parameter (default: 0 means delete all)
+        keep_recent = int(request.POST.get('keep_recent', 0))
+        
+        if keep_recent > 0:
+            # Keep N most recent messages
+            messages_query = ConversationMessage.objects.filter(thread=thread).order_by('-created_at')
+            total_count = messages_query.count()
+            
+            if total_count <= keep_recent:
+                messages.info(request, f'No messages to delete. Thread has {total_count} messages.')
+                return redirect('aiengine:conversation_detail', thread_id=thread_id)
+            
+            # Get IDs of messages to keep
+            keep_ids = list(messages_query[:keep_recent].values_list('id', flat=True))
+            
+            # Delete messages not in keep list
+            deleted_count = ConversationMessage.objects.filter(thread=thread).exclude(id__in=keep_ids).delete()[0]
+            
+            messages.success(request, f'Cleared {deleted_count} messages (kept {keep_recent} most recent)')
+        else:
+            # Delete all messages
+            deleted_count = ConversationMessage.objects.filter(thread=thread).delete()[0]
+            messages.success(request, f'Cleared all {deleted_count} messages from conversation')
+        
+        logger.info(f"Cleared {deleted_count} messages from thread {thread_id} (kept {keep_recent}) for user {request.user.username}")
+        
+        return redirect('aiengine:conversation_detail', thread_id=thread_id)
+        
+    except Exception as e:
+        logger.error(f"Error clearing messages from thread {thread_id}: {e}")
+        messages.error(request, f'Failed to clear messages: {str(e)}')
+        return redirect('aiengine:conversation_detail', thread_id=thread_id)
+
+
+@login_required
+@require_POST
+def delete_all_conversations(request: HttpRequest):
+    """Delete all conversation threads for the current user."""
+    try:
+        # Count threads and messages
+        threads = ConversationThread.objects.filter(user=request.user)
+        thread_count = threads.count()
+        
+        total_messages = 0
+        for thread in threads:
+            total_messages += ConversationMessage.objects.filter(thread=thread).count()
+        
+        # Delete all threads (cascade will delete messages)
+        threads.delete()
+        
+        logger.info(f"Deleted all {thread_count} threads with {total_messages} messages for user {request.user.username}")
+        messages.success(request, f'Successfully deleted all {thread_count} conversations ({total_messages} total messages)')
+        
+        return redirect('aiengine:conversation_history')
+        
+    except Exception as e:
+        logger.error(f"Error deleting all conversations for user {request.user.username}: {e}")
+        messages.error(request, f'Failed to delete conversations: {str(e)}')
+        return redirect('aiengine:conversation_history')
+
+
 @method_decorator(login_required, name='dispatch')
 class MemoryManagementView(TemplateView):
     template_name = 'aiengine/memory_management.html'
