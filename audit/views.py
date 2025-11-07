@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.utils import timezone
 from datetime import datetime, timedelta
 import json
@@ -106,5 +106,35 @@ def analytics_api(request):
         analytics_data = AuditService.get_user_analytics(request.user, start_date, end_date)
     
     return JsonResponse(analytics_data, safe=False)
+
+
+@login_required
+def notification_detail(request, pk):
+    """Return notification detail JSON and mark it as read."""
+    notification = get_object_or_404(NotificationLog, pk=pk)
+
+    # Authorization: admins can view all, users only their own/phone-matched notifications
+    if not request.user.is_superuser:
+        profile_phone = getattr(getattr(request.user, 'profile', None), 'phone_number', None)
+        if notification.recipient_user_id != request.user.id and notification.recipient_phone != profile_phone:
+            return HttpResponseForbidden()
+
+    notification.mark_read()
+
+    payload = {
+        'id': notification.id,
+        'type': notification.get_notification_type_display(),
+        'subject': notification.subject,
+        'status': notification.get_status_display(),
+        'created_at': notification.created_at.isoformat(),
+        'sent_at': notification.sent_at.isoformat() if notification.sent_at else None,
+        'read_at': notification.read_at.isoformat() if notification.read_at else None,
+        'is_read': notification.is_read,
+        'context': notification.context_data,
+        'template': notification.template_used,
+        'error_message': notification.error_message,
+    }
+
+    return JsonResponse(payload)
 
 # Create your views here.

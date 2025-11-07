@@ -1,5 +1,5 @@
 {% load static %}
-{% load breadcrumb_tags %}
+{% load navigation_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +21,9 @@
     <!-- Custom CSS -->
     {% load static %}
     {% load component_tags %}
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/layout.css' %}">
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
     <link rel="stylesheet" href="{% static 'css/effects.css' %}">
     {% block extra_css %}{% endblock %}
@@ -29,111 +31,58 @@
 <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
-                <img src="{% static 'images/brand/wozapauto.svg' %}" alt="WozapAuto Logo" height="32" width="32" class="me-2">
-                WozapAuto
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid d-flex align-items-center justify-content-between gap-3">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home' %}">
+                <img src="{% static 'images/brand/wozapauto.svg' %}" alt="WozapAuto Logo" height="32" width="32">
+                <span class="navbar-brand__text">WozapAuto</span>
             </a>
-            
-            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <!-- Mobile Navigation Menu -->
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto d-lg-none" id="mobileNavMenu">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">
-                            <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    {% if user.is_authenticated %}
-                    {% if user.connection_set.count > 0 %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'connections' in request.resolver_match.namespace and request.resolver_match.url_name == 'qr_display' %}active{% endif %}" href="{% url 'connections:qr_display' %}">
-                            <i class="bi bi-whatsapp me-2"></i>Manage Connection
-                            <span class="badge bg-success ms-auto">Connected</span>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'connections' in request.resolver_match.namespace and request.resolver_match.url_name == 'create' %}active{% endif %}" href="{% url 'connections:create' %}">
-                            <i class="bi bi-plus-circle me-2"></i>Create Connection
-                        </a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_detail' %}active{% endif %}" href="{% url 'aiengine:agent_detail' %}">
-                            <i class="bi bi-robot me-2"></i>AI Agent
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'business' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'business:business_detail' %}">
-                            <i class="bi bi-shop me-2"></i>Business
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'knowledgebase' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'knowledgebase:knowledge_base_list' %}">
-                            <i class="bi bi-book me-2"></i>Knowledge Base
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'profile' %}">
-                            <i class="bi bi-person-circle me-2"></i>Profile
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'signin' %}">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'signup' %}">
-                            <i class="bi bi-person-plus me-2"></i>Sign Up
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
 
-            <!-- Header Icons -->
-            <div class="d-flex align-items-center header-icons">
+            <div class="d-flex align-items-center gap-2">
+                <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav" aria-controls="mobileNav" aria-label="Open navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Header Icons -->
+                <div class="d-flex align-items-center header-icons">
                 {% if user.is_authenticated %}
+                {% notifications_summary 5 as notifications_data %}
                 <!-- Notifications Dropdown -->
                 <div class="dropdown me-2">
                     <button class="btn btn-link text-white position-relative" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
                         <i class="bi bi-bell-fill fs-5"></i>
-                        {% with notification_count=user.notificationlog_set.count %}
-                        {% if notification_count > 0 %}
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            {{ notification_count }}
+                        {% if notifications_data.unread_count > 0 %}
+                        <span id="notificationsUnreadBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ notifications_data.unread_count }}
                             <span class="visually-hidden">unread notifications</span>
                         </span>
                         {% endif %}
-                        {% endwith %}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" style="min-width: 300px;">
                         <li class="dropdown-header">
                             <i class="bi bi-bell-fill me-2"></i>Notifications
                         </li>
                         <li><hr class="dropdown-divider"></li>
-                        {% with notifications=user.notificationlog_set.all|slice:":5" %}
-                        {% for notification in notifications %}
+                        {% if notifications_data.notifications %}
+                        {% for notification in notifications_data.notifications %}
                         <li>
-                            <a class="dropdown-item" href="#">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-semibold">{{ notification.get_notification_type_display }}</span>
-                                    <small class="text-muted">{{ notification.subject }}</small>
-                                    <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                            <button type="button" class="dropdown-item notification-item {% if not notification.is_read %}notification-item--unread{% endif %}" data-notification-id="{{ notification.id }}">
+                                <div class="d-flex align-items-start justify-content-between gap-2">
+                                    <div class="d-flex flex-column text-start">
+                                        <span class="fw-semibold">{{ notification.get_notification_type_display }}</span>
+                                        <small class="text-muted">{{ notification.subject }}</small>
+                                        <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                    </div>
+                                    {% if not notification.is_read %}
+                                    <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill">New</span>
+                                    {% endif %}
                                 </div>
-                            </a>
+                            </button>
                         </li>
-                        {% empty %}
-                        <li><span class="dropdown-item-text text-muted">No notifications</span></li>
                         {% endfor %}
-                        {% endwith %}
+                        {% else %}
+                        <li><span class="dropdown-item-text text-muted">No notifications</span></li>
+                        {% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-center" href="{% url 'audit:notifications' %}"><i class="bi bi-eye me-2"></i>View all notifications</a></li>
                     </ul>
@@ -171,54 +120,31 @@
                     <i class="bi bi-person-plus fs-5"></i>
                 </a>
                 {% endif %}
+                </div>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            {% if user.is_authenticated %}
-            <div class="col-lg-2 col-md-3 p-0">
-                <div class="sidebar">
-                    <nav class="nav flex-column">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">
-                            <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                        </a>
-                {% if user.connection_set.count > 0 %}
-                <a class="nav-link {% if 'connections' in request.resolver_match.namespace and request.resolver_match.url_name == 'qr_display' %}active{% endif %}" href="{% url 'connections:qr_display' %}">
-                    <i class="bi bi-whatsapp me-2"></i>Manage Connection
-                    <span class="badge bg-success ms-auto">Connected</span>
-                </a>
-                {% else %}
-                <a class="nav-link {% if 'connections' in request.resolver_match.namespace and request.resolver_match.url_name == 'create' %}active{% endif %}" href="{% url 'connections:create' %}">
-                    <i class="bi bi-plus-circle me-2"></i>Create Connection
-                </a>
-                {% endif %}
-                        <a class="nav-link {% if 'aiengine' in request.resolver_match.namespace and request.resolver_match.url_name == 'agent_detail' %}active{% endif %}" href="{% url 'aiengine:agent_detail' %}">
-                            <i class="bi bi-robot me-2"></i>AI Agent
-                        </a>
-                        <a class="nav-link {% if 'business' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'business:business_detail' %}">
-                            <i class="bi bi-shop me-2"></i>Business
-                        </a>
-                        <a class="nav-link {% if 'knowledgebase' in request.resolver_match.namespace %}active{% endif %}" href="{% url 'knowledgebase:knowledge_base_list' %}">
-                            <i class="bi bi-book me-2"></i>Knowledge Base
-                        </a>
-                        
-                        <a class="nav-link" href="{% url 'profile' %}">
-                            <i class="bi bi-person-circle me-2"></i>Profile
-                        </a>
-                    </nav>
-                </div>
-            </div>
-            {% endif %}
+    <!-- Mobile Navigation Offcanvas -->
+    <div class="offcanvas offcanvas-start text-bg-dark" tabindex="-1" id="mobileNav" aria-labelledby="mobileNavLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="mobileNavLabel">Navigation</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            {% render_nav_menu 'mobile' %}
+        </div>
+    </div>
 
-            <!-- Main Content -->
-            <div class="{% if user.is_authenticated %}col-lg-10 col-md-9{% else %}col-12{% endif %}">
-                <main id="main-content" class="main-content {% if user.is_authenticated %}with-sidebar{% endif %}" role="main" tabindex="-1">
-                    <!-- Breadcrumb -->
-                    {% breadcrumb %}
+    <div class="app-shell">
+        {% if user.is_authenticated %}
+        <aside class="app-sidebar d-none d-lg-flex" aria-label="Primary navigation">
+            {% render_nav_menu 'sidebar' %}
+        </aside>
+        {% endif %}
 
+        <div class="app-main">
+            <main id="main-content" class="main-content" role="main" tabindex="-1">
                     <!-- Messages -->
                     {% if messages %}
                         <div class="row mb-4">
@@ -237,8 +163,7 @@
                     <div class="fade-in">
                         {% block content %}{% endblock %}
                     </div>
-                </main>
-            </div>
+            </main>
         </div>
     </div>
 
@@ -262,84 +187,50 @@
     <script defer src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <!-- Custom JavaScript -->
     <script defer src="{% static 'js/main.js' %}"></script>
+    <!-- Notification Detail Modal -->
+    <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="notificationModalLabel">Notification detail</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="notification-modal__loading d-flex align-items-center gap-2" data-notification-loading>
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Loading details…</span>
+                    </div>
+                    <div class="notification-modal__content d-none" data-notification-content>
+                        <div class="d-flex flex-column gap-2">
+                            <div>
+                                <span class="badge bg-secondary" data-notification-type>Notification</span>
+                            </div>
+                            <h4 class="mb-1" data-notification-subject></h4>
+                            <div class="d-flex flex-wrap gap-3 small text-muted">
+                                <span><i class="bi bi-clock me-1"></i><span data-notification-created></span></span>
+                                <span class="d-none" data-notification-sent-wrapper><i class="bi bi-send-check me-1"></i><span data-notification-sent></span></span>
+                                <span class="d-none" data-notification-read-wrapper><i class="bi bi-eye me-1"></i><span data-notification-read></span></span>
+                                <span><i class="bi bi-flag me-1"></i><span data-notification-status></span></span>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-3">
+                            <h6 class="fw-semibold">Details</h6>
+                            <pre class="notification-modal__context" data-notification-context>—</pre>
+                        </div>
+                        <div class="alert alert-danger d-none" role="alert" data-notification-error></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Enhanced Mobile Navigation
         document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.querySelector('.sidebar');
-            const navbarToggler = document.querySelector('.navbar-toggler');
-            const navbarCollapse = document.querySelector('.navbar-collapse');
-            const body = document.body;
-            
-            // Mobile sidebar toggle
-            if (navbarToggler && sidebar) {
-                navbarToggler.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    if (window.innerWidth <= 768) {
-                        sidebar.classList.toggle('show');
-                        
-                        // Prevent body scroll when sidebar is open
-                        if (sidebar.classList.contains('show')) {
-                            body.style.overflow = 'hidden';
-                        } else {
-                            body.style.overflow = '';
-                        }
-                    }
-                });
-            }
-
-            // Close sidebar when clicking outside on mobile
-            document.addEventListener('click', function(e) {
-                if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('show')) {
-                    if (!sidebar.contains(e.target) && 
-                        !navbarToggler.contains(e.target) && 
-                        !navbarCollapse.contains(e.target)) {
-                        sidebar.classList.remove('show');
-                        body.style.overflow = '';
-                    }
-                }
-            });
-            
-            // Close sidebar when clicking on nav links on mobile
-            if (sidebar) {
-                const navLinks = sidebar.querySelectorAll('.nav-link');
-                navLinks.forEach(function(link) {
-                    link.addEventListener('click', function() {
-                        if (window.innerWidth <= 768) {
-                            sidebar.classList.remove('show');
-                            body.style.overflow = '';
-                        }
-                    });
-                });
-            }
-            
-            // Handle window resize
-            window.addEventListener('resize', function() {
-                if (window.innerWidth > 768) {
-                    if (sidebar) {
-                        sidebar.classList.remove('show');
-                    }
-                    body.style.overflow = '';
-                }
-            });
-            
-            // Close mobile navbar when clicking outside
-            if (navbarCollapse) {
-                document.addEventListener('click', function(e) {
-                    if (window.innerWidth <= 768) {
-                        if (!navbarCollapse.contains(e.target) && 
-                            !navbarToggler.contains(e.target) &&
-                            navbarCollapse.classList.contains('show')) {
-                            const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
-                                toggle: false
-                            });
-                            bsCollapse.hide();
-                        }
-                    }
-                });
-            }
-
             // Auto-hide only success alerts after 5 seconds (keep warnings/errors visible)
             setTimeout(function() {
                 const alerts = document.querySelectorAll('.alert.alert-success');
@@ -348,26 +239,26 @@
                     bsAlert.close();
                 });
             }, 5000);
-            
+
             // Add touch support for mobile
             if ('ontouchstart' in window) {
                 document.body.classList.add('touch-device');
             }
-        });
 
-        // Page initialization
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize any page-specific functionality here
             console.log('Page loaded successfully');
         });
         
         // Initialize AOS (Animate On Scroll)
-        AOS.init({
-            duration: 800,
-            easing: 'ease-in-out',
-            once: true,
-            offset: 100
-        });
+        if (window.AOS) {
+            window.AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: true,
+                offset: 100
+            });
+        } else {
+            console.warn('AOS library failed to load; skipping animation init');
+        }
     </script>
     
     {% block extra_js %}{% endblock %}

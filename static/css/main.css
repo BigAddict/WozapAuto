@@ -3,95 +3,7 @@
 /* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* CSS Variables - Professional Design System */
-:root {
-    /* Primary Colors */
-    --primary-color: #25D366;        /* WhatsApp Green */
-    --primary-dark: #128C7E;         /* Dark Teal */
-    --primary-light: #DCF8C6;        /* Light Green */
-    
-    /* Secondary Colors */
-    --secondary-color: #075E54;      /* Dark Green */
-    --accent-color: #34B7F1;         /* Light Blue */
-    
-    /* Semantic Colors */
-    --success-color: #28a745;        /* Success Green */
-    --warning-color: #ffc107;        /* Warning Yellow */
-    --error-color: #dc3545;          /* Error Red */
-    --info-color: #17a2b8;           /* Info Blue */
-    
-    /* Neutral Colors */
-    --text-primary: #2c3e50;         /* Dark Gray */
-    --text-secondary: #7f8c8d;       /* Medium Gray */
-    --text-muted: #95a5a6;           /* Light Gray */
-    --border-color: #e9ecef;         /* Light Border */
-    --background-light: #f8f9fa;     /* Light Background */
-    --background-white: #ffffff;     /* White */
-    --dark-bg: #1a1a1a;             /* Dark Background */
-    
-    /* Spacing System (8px base unit) */
-    --space-xs: 0.25rem;   /* 4px */
-    --space-sm: 0.5rem;    /* 8px */
-    --space-md: 1rem;      /* 16px */
-    --space-lg: 1.5rem;    /* 24px */
-    --space-xl: 2rem;      /* 32px */
-    --space-2xl: 3rem;     /* 48px */
-    --space-3xl: 4rem;     /* 64px */
-    
-    /* Typography Scale */
-    --font-size-xs: 0.75rem;    /* 12px */
-    --font-size-sm: 0.875rem;   /* 14px */
-    --font-size-base: 1rem;     /* 16px */
-    --font-size-lg: 1.125rem;   /* 18px */
-    --font-size-xl: 1.25rem;    /* 20px */
-    --font-size-2xl: 1.5rem;    /* 24px */
-    --font-size-3xl: 1.875rem;  /* 30px */
-    --font-size-4xl: 2.25rem;   /* 36px */
-    
-    /* Font Weights */
-    --font-weight-light: 300;
-    --font-weight-normal: 400;
-    --font-weight-medium: 500;
-    --font-weight-semibold: 600;
-    --font-weight-bold: 700;
-    --font-weight-extrabold: 800;
-    --font-weight-black: 900;
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
-    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.25);
-    
-    /* Border Radius */
-    --border-radius-sm: 4px;
-    --border-radius: 8px;
-    --border-radius-md: 12px;
-    --border-radius-lg: 16px;
-    --border-radius-xl: 24px;
-    --border-radius-full: 9999px;
-    
-    /* Transitions */
-    --transition-fast: all 0.15s ease;
-    --transition: all 0.2s ease;
-    --transition-slow: all 0.3s ease;
-    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-    --gradient-secondary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-hero: linear-gradient(135deg, #f8fffe 0%, #e8f5e8 50%, #f0f8ff 100%);
-    
-    /* Font Family */
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-family-mono: 'JetBrains Mono', 'Courier New', monospace;
-    
-    /* Legacy variables for backward compatibility */
-    --card-bg: var(--background-white);
-    --shadow-hover: var(--shadow-md);
-    --shadow-strong: var(--shadow-lg);
-}
+/* Design tokens now live in tokens.css */
 
 /* Reset and Base Styles */
 * {
@@ -105,8 +17,6 @@ body {
     background: var(--gradient-hero);
     min-height: 100vh;
     color: var(--text-primary);
-    padding-top: 76px;
-    padding-bottom: 80px;
     line-height: 1.6;
     overflow-x: hidden;
 }

@@ -1,0 +1,26 @@
+{% if mode == 'mobile' %}
+<ul class="navbar-nav gap-1" id="mobileNavMenu">
+    {% for item in nav_items %}
+    <li class="nav-item">
+        <a class="nav-link {% if item.active %}active{% endif %}" href="{{ item.url }}" {% if item.active %}aria-current="page"{% endif %}>
+            <i class="{{ item.icon }} me-2"></i>{{ item.label }}
+            {% if item.badge %}
+            <span class="badge {{ item.badge_class|default:'bg-success' }} ms-auto">{{ item.badge }}</span>
+            {% endif %}
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% elif mode == 'sidebar' %}
+<nav class="nav flex-column">
+    {% for item in nav_items %}
+    <a class="nav-link {% if item.active %}active{% endif %}" href="{{ item.url }}" {% if item.active %}aria-current="page"{% endif %}>
+        <i class="{{ item.icon }} me-2"></i>{{ item.label }}
+        {% if item.badge %}
+        <span class="badge {{ item.badge_class|default:'bg-success' }} ms-auto">{{ item.badge }}</span>
+        {% endif %}
+    </a>
+    {% endfor %}
+</nav>
+{% endif %}
+

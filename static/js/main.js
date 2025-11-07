@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (document.querySelector('#notificationsDropdown')) {
         initNotificationDropdown();
+        initNotificationCenter();
     }
 
     if (document.querySelectorAll('input, textarea').length) {
@@ -592,6 +593,150 @@ function initNotificationDropdown() {
                 notificationsDropdown.setAttribute('aria-expanded', 'false');
                 notificationsDropdown.focus();
             }
+        });
+    });
+}
+
+// Notification detail modal
+function initNotificationCenter() {
+    const modalElement = document.getElementById('notificationModal');
+    const dropdownTrigger = document.getElementById('notificationsDropdown');
+
+    if (!modalElement || !dropdownTrigger || !window.bootstrap) return;
+
+    const modalInstance = new bootstrap.Modal(modalElement, {
+        focus: true,
+    });
+
+    const loadingState = modalElement.querySelector('[data-notification-loading]');
+    const contentState = modalElement.querySelector('[data-notification-content]');
+    const errorAlert = modalElement.querySelector('[data-notification-error]');
+    const typeEl = modalElement.querySelector('[data-notification-type]');
+    const subjectEl = modalElement.querySelector('[data-notification-subject]');
+    const createdEl = modalElement.querySelector('[data-notification-created]');
+    const sentWrapper = modalElement.querySelector('[data-notification-sent-wrapper]');
+    const sentEl = modalElement.querySelector('[data-notification-sent]');
+    const readWrapper = modalElement.querySelector('[data-notification-read-wrapper]');
+    const readEl = modalElement.querySelector('[data-notification-read]');
+    const statusEl = modalElement.querySelector('[data-notification-status]');
+    const contextEl = modalElement.querySelector('[data-notification-context]');
+    const unreadBadge = document.getElementById('notificationsUnreadBadge');
+
+    const formatDateTime = (iso) => {
+        if (!iso) return null;
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return null;
+        return date.toLocaleString(undefined, {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        });
+    };
+
+    const setLoadingState = (isLoading) => {
+        if (isLoading) {
+            loadingState.classList.remove('d-none');
+            contentState.classList.add('d-none');
+            errorAlert.classList.add('d-none');
+            errorAlert.textContent = '';
+        } else {
+            loadingState.classList.add('d-none');
+        }
+    };
+
+    const updateUnreadBadge = (currentItem) => {
+        currentItem.classList.remove('notification-item--unread');
+        const badge = currentItem.querySelector('.badge');
+        if (badge) {
+            badge.remove();
+        }
+
+        if (!unreadBadge) return;
+        const currentValue = parseInt(unreadBadge.textContent, 10);
+        if (!Number.isNaN(currentValue)) {
+            const nextValue = Math.max(currentValue - 1, 0);
+            if (nextValue === 0) {
+                unreadBadge.remove();
+            } else {
+                unreadBadge.textContent = nextValue;
+            }
+        }
+    };
+
+    const showError = (message) => {
+        errorAlert.textContent = message || 'Unable to load notification details. Please try again later.';
+        errorAlert.classList.remove('d-none');
+    };
+
+    document.querySelectorAll('[data-notification-id]').forEach((item) => {
+        item.addEventListener('click', (event) => {
+            event.preventDefault();
+
+            const notificationId = item.dataset.notificationId;
+            if (!notificationId) return;
+
+            const wasUnread = item.classList.contains('notification-item--unread');
+
+            const dropdownInstance = bootstrap.Dropdown.getInstance(dropdownTrigger);
+            if (dropdownInstance) {
+                dropdownInstance.hide();
+            }
+
+            modalInstance.show();
+            setLoadingState(true);
+
+            fetch(`/audit/notifications/${notificationId}/detail/`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`Request failed with status ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    setLoadingState(false);
+
+                    typeEl.textContent = data.type || 'Notification';
+                    subjectEl.textContent = data.subject || 'No subject';
+                    createdEl.textContent = formatDateTime(data.created_at) || '—';
+                    statusEl.textContent = data.status || 'Unknown status';
+
+                    if (data.sent_at) {
+                        sentEl.textContent = formatDateTime(data.sent_at);
+                        sentWrapper.classList.remove('d-none');
+                    } else {
+                        sentWrapper.classList.add('d-none');
+                        sentEl.textContent = '';
+                    }
+
+                    if (data.read_at) {
+                        readEl.textContent = formatDateTime(data.read_at);
+                        readWrapper.classList.remove('d-none');
+                    } else {
+                        readWrapper.classList.add('d-none');
+                        readEl.textContent = '';
+                    }
+
+                    const context = data.context && Object.keys(data.context).length
+                        ? JSON.stringify(data.context, null, 2)
+                        : 'No additional context available.';
+                    contextEl.textContent = context;
+
+                    contentState.classList.remove('d-none');
+
+                    if (data.is_read && wasUnread) {
+                        updateUnreadBadge(item);
+                    }
+                })
+                .catch((error) => {
+                    setLoadingState(false);
+                    showError(error.message);
+                    console.error('Failed to load notification detail', error);
+                });
         });
     });
 }

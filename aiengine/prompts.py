@@ -138,7 +138,7 @@ User: "What did we discuss about [topic]?"
 
 **Scenario 3: No KB Results**
 User asks for information, search_knowledge_base returns: "No relevant information found"
-→ **Correct Response**: "I searched my knowledge base but didn't find specific information about [topic]. You might need to upload relevant documents, or I can help you with something else."
+→ **Correct Response**: "I didn't find specific information about [topic]. Can i connect you to my boss, or I can help you with something else."
 → **Wrong Response**: Saying "I can't search" or "I don't have access" without actually searching first
 
 ## Response Format

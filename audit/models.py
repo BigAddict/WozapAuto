@@ -100,6 +100,15 @@ class NotificationLog(models.Model):
         blank=True,
         help_text="User agent of the request that triggered the notification"
     )
+    is_read = models.BooleanField(
+        default=False,
+        help_text="Whether the in-app notification has been read"
+    )
+    read_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the notification was read in-app"
+    )
     
     # Timestamps
     created_at = models.DateTimeField(
@@ -138,6 +147,15 @@ class NotificationLog(models.Model):
         self.failed_at = timezone.now()
         self.error_message = error_message
         self.save(update_fields=['status', 'failed_at', 'error_message', 'updated_at'])
+
+    def mark_read(self, commit=True):
+        """Mark notification as read in the UI."""
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            if commit:
+                self.save(update_fields=['is_read', 'read_at', 'updated_at'])
+        return self
     
     @property
     def is_successful(self):
