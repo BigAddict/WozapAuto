@@ -1,5 +1,38 @@
 /* Connections module styles */
 
+/* Connection Header - Responsive */
+.connection-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.connection-header__content {
+    flex: 1;
+}
+
+.connection-header__info {
+    min-width: 0; /* Allow text truncation */
+}
+
+.connection-header__actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+@media (min-width: 768px) {
+    .connection-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    
+    .connection-header__actions {
+        flex-wrap: nowrap;
+    }
+}
+
 .connection-avatar {
     width: 72px;
     height: 72px;
@@ -11,6 +44,16 @@
     justify-content: center;
     font-size: 2rem;
     color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+    .connection-avatar {
+        width: 56px;
+        height: 56px;
+        font-size: 1.5rem;
+        border-radius: 16px;
+    }
 }
 
 .connection-avatar__img {
@@ -21,7 +64,15 @@
 
 .connection-overview {
     display: grid;
-    gap: var(--space-lg);
+    gap: var(--space-md);
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 576px) {
+    .connection-overview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-lg);
+    }
 }
 
 @media (min-width: 768px) {
@@ -44,10 +95,29 @@
     color: var(--text-primary);
 }
 
+.connection-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+}
+
+@media (min-width: 576px) {
+    .connection-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 992px) {
+    .connection-stats-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
 .connection-stats .surface-card {
     display: flex;
     align-items: center;
     gap: var(--space-md);
+    min-height: 80px; /* Ensure touch-friendly height */
 }
 
 .connection-stat__icon {
@@ -2233,4 +2303,15 @@
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     margin: 0;
+}
+
+/* Test Results Content */
+.test-results-content {
+    padding: var(--space-md);
+}
+
+@media (max-width: 768px) {
+    .test-results-content {
+        padding: var(--space-sm);
+    }
 }

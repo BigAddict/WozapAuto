@@ -1,6 +1,6 @@
 # WozapAuto UI/UX Design Playbook
 
-Updated: 2025-11-05
+Updated: 2025-11-09
 
 This living document consolidates our UI/UX vision, design system, implementation backlog, and tracking for reusable components across the product. Treat it as the single source of truth for visual, interaction, accessibility, and performance guardrails.
 
@@ -19,10 +19,10 @@ This living document consolidates our UI/UX vision, design system, implementatio
 | Pillar | Focus Areas | Current Signals | Next Opportunities |
 | --- | --- | --- | --- |
 | **Visual Design** | Token-driven palette, typographic rhythm, balanced density | Tokens in `main.css`; “moon kiss” surfaces used on dashboard/profile/business | Externalize tokens for Bootstrap theming; prune gradients; normalize icon set & spacing scale |
-| **Interaction Design** | Predictable navigation, clear CTA hierarchy, responsive patterns | App shell + onboarding checklist; skip link & focus states present | Collapse sidebar duplication; promote primary actions via reusable CTA bar; streamline wizard steps |
-| **Accessibility** | WCAG 2.1 AA contrast, semantic flow, focus management | Skip link, landmarks, reduced motion handling live | Fix mobile sidebar focus trap; audit icon-only controls for aria-labels; add keyboard traps to modals |
+| **Interaction Design** | Predictable navigation, clear CTA hierarchy, responsive patterns | App shell + onboarding checklist; skip link & focus states present; connection detail page fully responsive (mobile/tablet/desktop) | Collapse sidebar duplication; promote primary actions via reusable CTA bar; streamline wizard steps |
+| **Accessibility** | WCAG 2.1 AA contrast, semantic flow, focus management | Skip link, landmarks, reduced motion handling live; toast notifications with ARIA labels and keyboard support | Fix mobile sidebar focus trap; audit icon-only controls for aria-labels; add keyboard traps to modals |
 | **Performance** | Lean asset loading, motion budgets, Core Web Vitals | JS deferred, animations respect `prefers-reduced-motion` | Evaluate critical CSS + lazy loading for heavy knowledge views; trim unused CSS bundles |
-| **Feedback & Guidance** | Onboarding cues, progressive disclosure, analytics loop | Checklist progress counters; consistent empty states | Add celebration state on onboarding completion; wire CTA analytics + tooltip hints |
+| **Feedback & Guidance** | Onboarding cues, progressive disclosure, analytics loop | Checklist progress counters; consistent empty states; modern toast notification system with auto-dismiss | Add celebration state on onboarding completion; wire CTA analytics + tooltip hints |
 
 ---
 
@@ -66,6 +66,10 @@ Primary journeys to optimize for density & clarity:
 - Require every new component to document tokens used + responsive behaviors in this playbook.
 - Use Figma tokens (future) to sync with SCSS token build.
 
+**Component Documentation Standards**
+- ✅ **Alert/Toast**: Uses `--space-*`, `--border-radius-*`, `--shadow-*`, `--success-color`, `--error-color`, `--info-color`, `--warning-color` tokens. Responsive: top-right (desktop), top-center (mobile). Breakpoints: 768px. Location: `static/js/main.js` (`showToast()`), `static/css/alerts.css`.
+- ✅ **Connection Detail Page**: Uses `--space-*`, `--font-size-*`, `--border-radius-*` tokens. Responsive breakpoints: 576px (tablet), 768px (desktop). Grid layouts: 1→2→4 columns. Touch targets: min 80px height. Location: `connections/templates/connections/connection_detail.html`, `static/css/connections.css`.
+
 ---
 
 ## 5. Component Library Tracker
@@ -79,7 +83,7 @@ Primary journeys to optimize for density & clarity:
 | Stat Card | `components/stat_card.py` | `card`, `badge` | ⚠️ Needs refactor | Reduce chrome, support compact mode |
 | Connection Card | `components/connection_card.py` | `card`, `list-group` | 🚧 Experimental | Document states (connected/pending/error); add focus styles |
 | Layout Shell | `core/templates/core/base.html` | `navbar`, `offcanvas`, `container` | ✅ Live | Shared nav tag + mobile offcanvas + desktop sidebar |
-| Alert / Toast | `static/css/main.css` inline | `alert`, `toast` | ❌ Missing component | Build reusable partial; include auto-dismiss + persistent variants |
+| Alert / Toast | `static/css/alerts.css`, `static/js/main.js` | `alert`, `toast` | ✅ Live | Uses design tokens; supports success/error/info/warning variants; auto-dismiss + manual dismiss; ARIA labels; responsive positioning |
 | Tabs / Pills | scattered templates | `nav`, `tab-content` | ❌ Missing component | Create component with ARIA roles, keyboard support |
 | Data Table | `business` templates | `table`, `responsive` | ⚠️ Needs refactor | Standardize table density; add empty + loading states |
 | Wizard Stepper | onboarding CSS | `nav` + custom classes | ❌ Missing component | Build stepper component with progress + description slots |
@@ -154,7 +158,7 @@ Implementation guardrails: reuse centralized analytics helper, annotate events w
 
 ### B. Componentization
 - [ ] Convert dashboard checklist into `django_components` component with success state.
-- [ ] Ship alert/toast component with accessibility attributes.
+- [x] Ship alert/toast component with accessibility attributes. ✅ Implemented in `static/js/main.js` with `showToast()` function; CSS in `static/css/alerts.css`; uses design tokens, ARIA labels, responsive positioning.
 - [ ] Standardize form fields + validation messaging.
 - [ ] Build wizard stepper component reused by onboarding + multi-step forms.
 
@@ -184,5 +188,8 @@ Implementation guardrails: reuse centralized analytics helper, annotate events w
 | 2025-11-05 | Navigation planning | Identified duplication issues; earmarked offcanvas migration. |
 | 2025-11-05 | Density audit | Profile edit, dashboard, and knowledge base flagged for simplification. |
 | 2025-11-05 | Accessibility backlog | Captured focus trap + icon labeling issues for prioritization. |
+| 2025-11-09 | Alert/Toast Component | Implemented modern toast notification system in `static/js/main.js` (`showToast()` function) and `static/css/alerts.css`. Features: design token-based styling, success/error/info/warning variants, auto-dismiss (5s default), manual dismiss, ARIA labels, responsive positioning (top-right desktop, top-center mobile), slide-in/out animations. Moved from `connections.css` to dedicated `alerts.css` for global use. |
+| 2025-11-09 | Connection Detail Page | Refactored connection detail page for full responsiveness. Mobile-first approach: header stacks vertically on mobile, avatar scales (56px mobile, 72px desktop), overview grid (1→2→4 columns), stats grid (1→2→4 columns), touch-friendly targets (min 80px height). Uses Bootstrap responsive utilities and design tokens throughout. |
+| 2025-11-09 | Responsive Patterns | Enhanced connection page with mobile-first responsive design. Breakpoints: <576px (mobile), 576-768px (tablet), >768px (desktop). All grids and layouts adapt fluidly. Buttons wrap properly on mobile with icon-only fallbacks. |
 
 Append entries as UI/UX initiatives progress. Ensure each change links to commits, tickets, or design artifacts.

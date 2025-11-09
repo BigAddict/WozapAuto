@@ -10,10 +10,10 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-xl-10">
+        <div class="col-12 col-xl-10">
             <div class="surface-card surface-card--muted mb-4">
-                <div class="surface-section__header">
-                    <div class="d-flex align-items-center gap-3">
+                <div class="surface-section__header connection-header">
+                    <div class="connection-header__content d-flex align-items-center gap-3 flex-wrap">
                         <div class="connection-avatar">
                             {% if instance_data.profile_pic_url %}
                                 <img src="{{ instance_data.profile_pic_url }}" 
@@ -25,19 +25,23 @@
                                 </div>
                             {% endif %}
                         </div>
-                        <div>
+                        <div class="connection-header__info flex-grow-1">
                             <h1 class="surface-section__title mb-1">WhatsApp Connection</h1>
                             <p class="surface-section__description mb-0">Manage the live connection powering your automation.</p>
                         </div>
                     </div>
-                    <div class="surface-actions">
-                        <button class="btn-outline-mint btn--sm" onclick="window.history.back()">← Back</button>
+                    <div class="surface-actions connection-header__actions">
+                        <button class="btn-outline-mint btn--sm" onclick="window.history.back()">
+                            <i class="bi bi-arrow-left d-md-none"></i>
+                            <span class="d-none d-md-inline">← Back</span>
+                        </button>
                         <button class="btn-outline-mint btn--sm" data-action="refresh">
-                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-            </button>
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            <span class="d-none d-md-inline">Refresh</span>
+                        </button>
                         <button class="btn-gradient btn--sm" data-action="test-connection" id="testConnectionBtn">
-                <i class="bi bi-check-circle me-1"></i>Test Connection
-            </button>
+                            <i class="bi bi-check-circle me-1"></i>Test Connection
+                        </button>
                     </div>
         </div>
 
@@ -67,7 +71,7 @@
                 </div>
             </div>
             
-            <div class="surface-grid surface-grid--two connection-stats">
+            <div class="surface-grid connection-stats connection-stats-grid">
                 <div class="surface-card surface-list__item">
                     <div class="connection-stat__icon"><i class="bi bi-chat-dots"></i></div>
                     <div class="connection-stat__content">
@@ -102,7 +106,7 @@
                 <div class="surface-section__header">
                     <h3 class="surface-section__title"><i class="bi bi-check-circle me-2"></i>Test Results</h3>
                 </div>
-                <div id="testResultsContent"></div>
+                <div id="testResultsContent" class="test-results-content"></div>
             </div>
         </div>
     </div>
@@ -110,7 +114,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/connections.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Simple refresh functionality
@@ -146,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const data = await response.json();
                 
-                // Show test results
+                // Show test results in card
                 testResultsCard.style.display = 'block';
                 
                 if (data.status === 'success') {
@@ -157,6 +160,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${data.message || 'Connection test completed successfully.'}
                         </div>
                     `;
+                    // Show modern toast notification
+                    showToast(`<strong>Test Successful!</strong><br>${data.message || 'Connection test completed successfully.'}`, 'success');
                 } else {
                     testResultsContent.innerHTML = `
                         <div class="alert alert-danger">
@@ -165,6 +170,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${data.message || 'Connection test failed.'}
                         </div>
                     `;
+                    // Show modern toast notification
+                    showToast(`<strong>Test Failed!</strong><br>${data.message || 'Connection test failed.'}`, 'error');
                 }
                 
             } catch (error) {
@@ -177,6 +184,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         An error occurred while testing the connection. Please try again.
                     </div>
                 `;
+                // Show modern toast notification
+                showToast('<strong>Test Error!</strong><br>An error occurred while testing the connection. Please try again.', 'error');
             } finally {
                 // Re-enable button
                 testBtn.disabled = false;

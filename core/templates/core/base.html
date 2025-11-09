@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="{% static 'css/layout.css' %}">
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
     <link rel="stylesheet" href="{% static 'css/effects.css' %}">
+    <link rel="stylesheet" href="{% static 'css/alerts.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -125,6 +126,9 @@
         </div>
     </nav>
 
+    <!-- Alert Toast Container (Global) -->
+    <div id="alertToastContainer" class="alert-toast-container" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Mobile Navigation Offcanvas -->
     <div class="offcanvas offcanvas-start text-bg-dark" tabindex="-1" id="mobileNav" aria-labelledby="mobileNavLabel">
         <div class="offcanvas-header">
@@ -145,17 +149,14 @@
 
         <div class="app-main">
             <main id="main-content" class="main-content" role="main" tabindex="-1">
-                    <!-- Messages -->
+                    <!-- Messages - Hidden, will be converted to toast notifications -->
                     {% if messages %}
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                {% for message in messages %}
-                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                        {{ message }}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                    </div>
-                                {% endfor %}
-                            </div>
+                        <div id="django-messages" style="display: none;">
+                            {% for message in messages %}
+                                <div data-message-tag="{{ message.tags }}" data-message-text="{{ message|escapejs }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
                         </div>
                     {% endif %}
 
@@ -233,14 +234,37 @@
     <script>
         // Enhanced Mobile Navigation
         document.addEventListener('DOMContentLoaded', function() {
-            // Auto-hide only success alerts after 5 seconds (keep warnings/errors visible)
-            setTimeout(function() {
-                const alerts = document.querySelectorAll('.alert.alert-success');
-                alerts.forEach(function(alert) {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                });
-            }, 5000);
+            // Convert Django messages to modern toast notifications
+            // Wait for showToast function to be available (main.js is deferred)
+            function convertMessagesToToast() {
+                const messagesContainer = document.getElementById('django-messages');
+                if (messagesContainer && typeof showToast !== 'undefined') {
+                    const messageElements = messagesContainer.querySelectorAll('[data-message-tag]');
+                    messageElements.forEach(function(element) {
+                        const tag = element.getAttribute('data-message-tag');
+                        const text = element.getAttribute('data-message-text');
+                        
+                        // Map Django message tags to toast types
+                        let toastType = 'info';
+                        if (tag === 'success') {
+                            toastType = 'success';
+                        } else if (tag === 'error' || tag === 'danger') {
+                            toastType = 'error';
+                        } else if (tag === 'warning') {
+                            toastType = 'warning';
+                        }
+                        
+                        // Show toast notification
+                        showToast(text, toastType, 5000);
+                    });
+                } else if (messagesContainer && typeof showToast === 'undefined') {
+                    // Retry after a short delay if showToast is not yet loaded
+                    setTimeout(convertMessagesToToast, 100);
+                }
+            }
+            
+            // Try to convert messages immediately, or wait for showToast to load
+            convertMessagesToToast();
 
             // Add touch support for mobile
             if ('ontouchstart' in window) {

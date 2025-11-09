@@ -816,3 +816,95 @@ function initNotificationCenter() {
         });
     });
 }
+
+// Modern Alert Toast System
+function showToast(message, type = 'info', duration = 5000) {
+    const container = getOrCreateToastContainer();
+    const toast = createToastElement(message, type);
+    container.appendChild(toast);
+    
+    // Auto-dismiss
+    if (duration > 0) {
+        setTimeout(() => dismissToast(toast), duration);
+    }
+    
+    return toast;
+}
+
+function getOrCreateToastContainer() {
+    let container = document.getElementById('alertToastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'alertToastContainer';
+        container.className = 'alert-toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'true');
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
+function createToastElement(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `alert-toast alert-toast--${type}`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    
+    const iconMap = {
+        success: 'bi-check-circle-fill',
+        error: 'bi-exclamation-circle-fill',
+        warning: 'bi-exclamation-triangle-fill',
+        info: 'bi-info-circle-fill'
+    };
+    
+    const icon = iconMap[type] || iconMap.info;
+    
+    // Parse message - support title and message format
+    let title = '';
+    let messageText = message;
+    if (message.includes('<br>') || message.includes('\n')) {
+        const parts = message.split(/<br>|\n/);
+        title = parts[0].replace(/<strong>|<\/strong>/g, '').trim();
+        messageText = parts.slice(1).join(' ').trim();
+    } else if (message.includes('<strong>')) {
+        const match = message.match(/<strong>(.*?)<\/strong>/);
+        if (match) {
+            title = match[1];
+            messageText = message.replace(/<strong>.*?<\/strong>\s*<br>\s*/, '').trim();
+        }
+    }
+    
+    toast.innerHTML = `
+        <i class="bi ${icon} alert-toast__icon" aria-hidden="true"></i>
+        <div class="alert-toast__content">
+            ${title ? `<div class="alert-toast__title">${escapeHtml(title)}</div>` : ''}
+            <div class="alert-toast__message">${escapeHtml(messageText || message)}</div>
+        </div>
+        <button type="button" class="alert-toast__dismiss" aria-label="Dismiss alert" onclick="dismissToast(this.closest('.alert-toast'))">
+            <i class="bi bi-x" aria-hidden="true"></i>
+        </button>
+    `;
+    
+    return toast;
+}
+
+function dismissToast(toast) {
+    if (!toast) return;
+    
+    toast.classList.add('alert-toast--dismissing');
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 300);
+}
+
+// Helper function to escape HTML (already exists in main.js, but ensure it's available)
+if (typeof escapeHtml === 'undefined') {
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
