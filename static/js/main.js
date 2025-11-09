@@ -597,6 +597,81 @@ function initNotificationDropdown() {
     });
 }
 
+// Format notification context to user-friendly format
+function formatNotificationContext(context, notificationType) {
+    if (!context || typeof context !== 'object') {
+        return '<p class="text-muted mb-0">No additional details available.</p>';
+    }
+
+    let html = '<div class="notification-details">';
+    
+    // Handle connection success notifications
+    if (notificationType === 'WhatsApp Connection Success' || context.instance_name || context.connection_id) {
+        html += '<div class="mb-3">';
+        html += '<h6 class="fw-semibold mb-2"><i class="bi bi-check-circle me-2 text-success"></i>Connection Information</h6>';
+        html += '<ul class="list-unstyled mb-0">';
+        
+        if (context.instance_name) {
+            html += `<li class="mb-2"><strong>Business:</strong> ${escapeHtml(context.instance_name)}</li>`;
+        }
+        if (context.owner_phone || context.phone_number) {
+            const phone = context.owner_phone || context.phone_number;
+            html += `<li class="mb-2"><strong>Phone Number:</strong> ${escapeHtml(phone)}</li>`;
+        }
+        if (context.connection_status) {
+            const statusClass = context.connection_status === 'open' ? 'success' : 'secondary';
+            html += `<li class="mb-2"><strong>Status:</strong> <span class="badge bg-${statusClass}">${escapeHtml(context.connection_status)}</span></li>`;
+        }
+        if (context.site_name) {
+            html += `<li class="mb-2"><strong>Platform:</strong> ${escapeHtml(context.site_name)}</li>`;
+        }
+        html += '</ul></div>';
+    }
+    
+    // Handle user-related notifications
+    if (context.username || context.user_id) {
+        if (!html.includes('Connection Information')) {
+            html += '<div class="mb-3">';
+            html += '<h6 class="fw-semibold mb-2"><i class="bi bi-person me-2 text-primary"></i>User Information</h6>';
+            html += '<ul class="list-unstyled mb-0">';
+        }
+        if (context.username) {
+            html += `<li class="mb-2"><strong>Username:</strong> ${escapeHtml(context.username)}</li>`;
+        }
+        if (!html.includes('Connection Information')) {
+            html += '</ul></div>';
+        }
+    }
+    
+    // Show other relevant fields in a generic format
+    const shownKeys = new Set(['instance_name', 'owner_phone', 'phone_number', 'connection_status', 'site_name', 'username', 'user_id', 'connection_id', 'instance_id']);
+    const otherKeys = Object.keys(context).filter(key => !shownKeys.has(key));
+    
+    if (otherKeys.length > 0) {
+        html += '<div class="mt-3 pt-3 border-top">';
+        html += '<h6 class="fw-semibold mb-2 small text-muted">Additional Information</h6>';
+        html += '<ul class="list-unstyled mb-0 small">';
+        otherKeys.forEach(key => {
+            const value = context[key];
+            if (value !== null && value !== undefined && value !== '') {
+                const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                html += `<li class="mb-1"><strong>${escapeHtml(displayKey)}:</strong> ${escapeHtml(String(value))}</li>`;
+            }
+        });
+        html += '</ul></div>';
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Notification detail modal
 function initNotificationCenter() {
     const modalElement = document.getElementById('notificationModal');
@@ -721,10 +796,11 @@ function initNotificationCenter() {
                         readEl.textContent = '';
                     }
 
+                    // Convert technical JSON to user-friendly format
                     const context = data.context && Object.keys(data.context).length
-                        ? JSON.stringify(data.context, null, 2)
-                        : 'No additional context available.';
-                    contextEl.textContent = context;
+                        ? formatNotificationContext(data.context, data.type)
+                        : 'No additional details available.';
+                    contextEl.innerHTML = context;
 
                     contentState.classList.remove('d-none');
 

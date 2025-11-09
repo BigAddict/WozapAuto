@@ -8,151 +8,191 @@
     <div class="row">
         <div class="col-12">
             <!-- Business Header -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h1 class="h3 mb-2">{{ business.name }}</h1>
-                            <p class="text-muted mb-3">{{ business.business_type.display_name }}</p>
+            <div class="card business-header-card border-0 shadow mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="business-header-icon">
+                                    <i class="bi bi-building text-primary fs-2"></i>
+                                </div>
+                                <div>
+                                    <h1 class="h3 mb-1 fw-bold text-primary">{{ business.name }}</h1>
+                                    <p class="text-muted mb-0 small">{{ business.business_type.display_name }}</p>
+                                </div>
+                            </div>
                             {% if business.description %}
-                            <p class="mb-3">{{ business.description }}</p>
+                            <p class="mb-4 text-secondary">{{ business.description }}</p>
                             {% endif %}
                             
-                            <div class="row">
+                            <div class="row g-4">
                                 <div class="col-md-6">
-                                    <h6 class="text-muted">Contact Information</h6>
-                                    <ul class="list-unstyled">
-                                        {% if business.phone_number %}
-                                        <li><i class="bi bi-telephone me-2"></i>{{ business.phone_number }}</li>
-                                        {% endif %}
-                                        {% if business.email %}
-                                        <li><i class="bi bi-envelope me-2"></i>{{ business.email }}</li>
-                                        {% endif %}
-                                        {% if business.website %}
-                                        <li><i class="bi bi-globe me-2"></i><a href="{{ business.website }}" target="_blank">{{ business.website }}</a></li>
-                                        {% endif %}
-                                        {% if business.whatsapp_number %}
-                                        <li><i class="bi bi-whatsapp me-2 text-success"></i>{{ business.whatsapp_number }}</li>
-                                        {% endif %}
-                                    </ul>
+                                    <div class="business-info-section">
+                                        <h6 class="fw-semibold mb-3 d-flex align-items-center">
+                                            <i class="bi bi-telephone-fill me-2 text-primary"></i>Contact Information
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            {% if business.phone_number %}
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-telephone me-2 text-muted"></i>
+                                                <span>{{ business.phone_number }}</span>
+                                            </li>
+                                            {% endif %}
+                                            {% if business.email %}
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-envelope me-2 text-muted"></i>
+                                                <span>{{ business.email }}</span>
+                                            </li>
+                                            {% endif %}
+                                            {% if business.website %}
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-globe me-2 text-muted"></i>
+                                                <a href="{{ business.website }}" target="_blank" class="text-decoration-none">{{ business.website }}</a>
+                                            </li>
+                                            {% endif %}
+                                            {% if business.whatsapp_number %}
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-whatsapp me-2 text-success"></i>
+                                                <span>{{ business.whatsapp_number }}</span>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <h6 class="text-muted">Settings</h6>
-                                    <ul class="list-unstyled">
-                                        <li><i class="bi bi-currency-exchange me-2"></i>{{ business.get_currency_name }} ({{ business.get_currency_symbol }})</li>
-                                        <li><i class="bi bi-clock me-2"></i>{{ business.timezone }}</li>
-                                        <li><i class="bi bi-translate me-2"></i>{{ business.language|upper }}</li>
-                                        <li>
-                                            <i class="bi bi-robot me-2"></i>
-                                            Bot: <span class="badge bg-{{ business.bot_active|yesno:'success,secondary' }}">
-                                                {{ business.bot_active|yesno:'Active,Inactive' }}
-                                            </span>
-                                        </li>
-                                    </ul>
+                                    <div class="business-info-section">
+                                        <h6 class="fw-semibold mb-3 d-flex align-items-center">
+                                            <i class="bi bi-gear-fill me-2 text-primary"></i>Settings
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-currency-exchange me-2 text-muted"></i>
+                                                <span>{{ business.get_currency_name }} ({{ business.get_currency_symbol }})</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-clock me-2 text-muted"></i>
+                                                <span>{{ business.timezone }}</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-translate me-2 text-muted"></i>
+                                                <span>{{ business.language|upper }}</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="bi bi-robot me-2 text-muted"></i>
+                                                <span>Bot: <span class="badge bg-{{ business.bot_active|yesno:'success,secondary' }} ms-1">
+                                                    {{ business.bot_active|yesno:'Active,Inactive' }}
+                                                </span></span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="text-end">
-                            <a href="{% url 'business:business_edit' %}" class="btn btn-outline-primary me-2">
-                                <i class="bi bi-pencil me-1"></i>Edit
-                            </a>
-                            <a href="{% url 'business:business_delete' %}" class="btn btn-outline-danger">
-                                <i class="bi bi-trash me-1"></i>Delete
-                            </a>
+                        <div class="business-header-actions">
+                            <div class="d-flex flex-column gap-2">
+                                <a href="{% url 'business:business_edit' %}" class="btn btn-outline-primary">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </a>
+                                <a href="{% url 'business:business_delete' %}" class="btn btn-outline-danger">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Stats Cards -->
-            <div class="row mb-4">
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
+            <div class="row mb-4 g-3">
+                <div class="col-lg-3 col-md-6">
+                    <a href="{% url 'business:category_list' %}" class="text-decoration-none">
+                        <div class="card stat-card-clickable h-100 border-0 shadow-sm hover-lift" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                            <div class="card-body text-white d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h4 class="mb-0">{{ products_count }}</h4>
-                                    <p class="mb-0">Products</p>
-                                </div>
-                                <i class="bi bi-box display-4 opacity-50"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card bg-success text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">{{ services_count }}</h4>
-                                    <p class="mb-0">Services</p>
-                                </div>
-                                <i class="bi bi-gear display-4 opacity-50"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0">{{ categories_count }}</h4>
-                                    <p class="mb-0">Categories</p>
+                                    <h4 class="mb-1 fw-bold">{{ categories_count }}</h4>
+                                    <p class="mb-0 small opacity-90">Categories</p>
                                 </div>
                                 <i class="bi bi-tags display-4 opacity-50"></i>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
+                <div class="col-lg-3 col-md-6">
+                    <a href="{% url 'business:product_list' %}" class="text-decoration-none">
+                        <div class="card stat-card-clickable h-100 border-0 shadow-sm hover-lift" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);">
+                            <div class="card-body text-white d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h4 class="mb-0">{{ appointments_count }}</h4>
-                                    <p class="mb-0">Appointments</p>
+                                    <h4 class="mb-1 fw-bold">{{ products_count }}</h4>
+                                    <p class="mb-0 small opacity-90">Products</p>
+                                </div>
+                                <i class="bi bi-box display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <a href="{% url 'business:service_list' %}" class="text-decoration-none">
+                        <div class="card stat-card-clickable h-100 border-0 shadow-sm hover-lift" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);">
+                            <div class="card-body text-white d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="mb-1 fw-bold">{{ services_count }}</h4>
+                                    <p class="mb-0 small opacity-90">Services</p>
+                                </div>
+                                <i class="bi bi-gear display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <a href="{% url 'business:appointment_list' %}" class="text-decoration-none">
+                        <div class="card stat-card-clickable h-100 border-0 shadow-sm hover-lift" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);">
+                            <div class="card-body text-white d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="mb-1 fw-bold">{{ appointments_count }}</h4>
+                                    <p class="mb-0 small opacity-90">Appointments</p>
                                 </div>
                                 <i class="bi bi-calendar display-4 opacity-50"></i>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
             <!-- Quick Actions -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Quick Actions</h5>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent border-bottom">
+                            <h5 class="mb-0 fw-semibold">
+                                <i class="bi bi-lightning-charge me-2 text-primary"></i>Quick Actions
+                            </h5>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3 mb-2">
-                                    <a href="{% url 'business:product_list' %}" class="btn btn-outline-primary w-100">
-                                        <i class="bi bi-box me-2"></i>Manage Products
-                                    </a>
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <a href="{% url 'business:service_list' %}" class="btn btn-outline-success w-100">
-                                        <i class="bi bi-gear me-2"></i>Manage Services
-                                    </a>
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <a href="{% url 'business:appointment_list' %}" class="btn btn-outline-info w-100">
-                                        <i class="bi bi-calendar me-2"></i>Manage Appointments
-                                    </a>
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <a href="{% url 'business:category_list' %}" class="btn btn-outline-warning w-100">
+                            <div class="row g-2">
+                                <div class="col-md-3 col-sm-6 mb-2">
+                                    <a href="{% url 'business:category_list' %}" class="btn btn-outline-info w-100 d-flex align-items-center justify-content-center">
                                         <i class="bi bi-tags me-2"></i>Manage Categories
                                     </a>
                                 </div>
+                                <div class="col-md-3 col-sm-6 mb-2">
+                                    <a href="{% url 'business:product_list' %}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-box me-2"></i>Manage Products
+                                    </a>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-2">
+                                    <a href="{% url 'business:service_list' %}" class="btn btn-outline-success w-100 d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-gear me-2"></i>Manage Services
+                                    </a>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-2">
+                                    <a href="{% url 'business:appointment_list' %}" class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-calendar me-2"></i>Manage Appointments
+                                    </a>
+                                </div>
                             </div>
-                            <div class="row mt-2">
-                                <div class="col-md-3 mb-2">
-                                    <a href="{% url 'business:business_hours_list' %}" class="btn btn-outline-secondary w-100">
+                            <div class="row g-2 mt-2">
+                                <div class="col-md-3 col-sm-6 mb-2">
+                                    <a href="{% url 'business:business_hours_list' %}" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center">
                                         <i class="bi bi-clock me-2"></i>Manage Hours
                                     </a>
                                 </div>

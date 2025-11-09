@@ -300,14 +300,29 @@ class KnowledgeBaseService:
             # Clean up file from disk
             if file_path:
                 try:
-                    # Try multiple approaches to ensure file deletion
+                    # Get the file path as a string (FieldFile objects need .name attribute)
+                    # Handle both FieldFile objects and string paths
+                    if hasattr(file_path, 'name'):
+                        file_path_str = file_path.name
+                    elif hasattr(file_path, 'path'):
+                        file_path_str = file_path.path
+                    else:
+                        file_path_str = str(file_path)
+                    
+                    # Ensure we have a string, not a FieldFile object
+                    if not isinstance(file_path_str, str):
+                        file_path_str = str(file_path_str)
+                    
                     file_deleted = False
                     
-                    # Method 1: Use Django's default storage
-                    if default_storage.exists(file_path):
-                        default_storage.delete(file_path)
-                        file_deleted = True
-                        logger.info(f"Deleted file using default_storage: {file_path}")
+                    # Method 1: Use Django's default storage (works with FieldFile or string path)
+                    try:
+                        if default_storage.exists(file_path_str):
+                            default_storage.delete(file_path_str)
+                            file_deleted = True
+                            logger.info(f"Deleted file using default_storage: {file_path_str}")
+                    except Exception as e:
+                        logger.debug(f"default_storage deletion failed, trying direct path: {e}")
                     
                     # Method 2: Direct file system deletion as backup
                     if not file_deleted:
@@ -315,22 +330,22 @@ class KnowledgeBaseService:
                         from pathlib import Path
                         
                         # Try absolute path
-                        full_path = os.path.join(settings.MEDIA_ROOT, str(file_path))
+                        full_path = os.path.join(settings.MEDIA_ROOT, file_path_str)
                         if os.path.exists(full_path):
                             os.remove(full_path)
                             file_deleted = True
                             logger.info(f"Deleted file using direct path: {full_path}")
                         
                         # Try relative path from MEDIA_ROOT
-                        elif os.path.exists(str(file_path)):
-                            os.remove(str(file_path))
+                        elif os.path.exists(file_path_str):
+                            os.remove(file_path_str)
                             file_deleted = True
-                            logger.info(f"Deleted file using relative path: {file_path}")
+                            logger.info(f"Deleted file using relative path: {file_path_str}")
                     
                     if not file_deleted:
-                        logger.warning(f"File not found for deletion: {file_path}")
+                        logger.warning(f"File not found for deletion: {file_path_str}")
                     else:
-                        logger.info(f"Successfully deleted file: {file_path}")
+                        logger.info(f"Successfully deleted file: {file_path_str}")
                         
                 except Exception as e:
                     logger.error(f"Failed to delete file {file_path}: {e}")

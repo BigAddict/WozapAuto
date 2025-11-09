@@ -410,3 +410,113 @@
     padding-right: var(--space-sm);
 }
 
+/* Business Header Card Styling */
+.business-header-card {
+    background: var(--gradient-hero);
+    border: 1px solid rgba(37, 211, 102, 0.15) !important;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md) !important;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.business-header-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
+    opacity: 0.8;
+}
+
+.business-header-card:hover {
+    box-shadow: var(--shadow-lg) !important;
+    transform: translateY(-2px);
+}
+
+.business-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: rgba(37, 211, 102, 0.1);
+    border-radius: var(--border-radius-md);
+    border: 2px solid rgba(37, 211, 102, 0.2);
+}
+
+.business-info-section {
+    padding: var(--space-md);
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(37, 211, 102, 0.1);
+    transition: var(--transition);
+}
+
+.business-info-section:hover {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(37, 211, 102, 0.2);
+}
+
+.business-info-section h6 {
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    letter-spacing: 0.02em;
+}
+
+.business-info-section ul li {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.business-info-section ul li i {
+    width: 20px;
+    text-align: center;
+}
+
+.business-header-actions {
+    min-width: 120px;
+}
+
+.business-header-actions .btn {
+    white-space: nowrap;
+    transition: var(--transition);
+}
+
+.business-header-actions .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+    .business-header-card {
+        border-radius: var(--border-radius-md);
+    }
+    
+    .business-header-icon {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .business-header-icon i {
+        font-size: 1.5rem !important;
+    }
+    
+    .business-header-actions {
+        width: 100%;
+        margin-top: var(--space-md);
+    }
+    
+    .business-header-actions .d-flex {
+        flex-direction: row;
+        justify-content: flex-start;
+    }
+    
+    .business-info-section {
+        margin-bottom: var(--space-md);
+    }
+}
+
