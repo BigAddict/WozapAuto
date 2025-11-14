@@ -159,24 +159,24 @@ class ChatAssistant:
             if not messages:
                 return handler(request)
             
-            # Check if any messages have multimodal content (images)
-            def has_multimodal_content(msg: BaseMessage) -> bool:
-                """Check if message has images or other multimodal content."""
-                if hasattr(msg, 'content_blocks') and msg.content_blocks:
-                    return any(block.get('type') in ('image', 'audio', 'video') 
-                             for block in msg.content_blocks)
-                # Check content if it's a list (multimodal format)
-                if isinstance(msg.content, list):
-                    return any(isinstance(item, dict) and item.get('type') in ('image', 'audio', 'video')
-                             for item in msg.content)
-                return False
+            # # Check if any messages have multimodal content (images)
+            # def has_multimodal_content(msg: BaseMessage) -> bool:
+            #     """Check if message has images or other multimodal content."""
+            #     if hasattr(msg, 'content_blocks') and msg.content_blocks:
+            #         return any(block.get('type') in ('image', 'audio', 'video') 
+            #                  for block in msg.content_blocks)
+            #     # Check content if it's a list (multimodal format)
+            #     if isinstance(msg.content, list):
+            #         return any(isinstance(item, dict) and item.get('type') in ('image', 'audio', 'video')
+            #                  for item in msg.content)
+            #     return False
             
-            # Find the index of the most recent message with images
-            last_image_msg_idx = None
-            for i in range(len(messages) - 1, -1, -1):
-                if has_multimodal_content(messages[i]):
-                    last_image_msg_idx = i
-                    break
+            # # Find the index of the most recent message with images
+            # last_image_msg_idx = None
+            # for i in range(len(messages) - 1, -1, -1):
+            #     if has_multimodal_content(messages[i]):
+            #         last_image_msg_idx = i
+            #         break
             
             # Trim messages to max 2000 tokens, keeping the most recent ones
             # Use endOn to ensure we keep complete message boundaries
@@ -191,20 +191,20 @@ class ChatAssistant:
                 end_on=["human", "tool", "ai"]
             )
             
-            # Ensure the most recent message with images is preserved
-            if last_image_msg_idx is not None:
-                image_msg = messages[last_image_msg_idx]
-                # Check if the trimmed list still contains the image message
-                if image_msg not in trimmed:
-                    # Image message was removed, add it back
-                    # Insert before the last message to maintain context
-                    if len(trimmed) > 0:
-                        # Insert the image message before the last message
-                        trimmed.insert(-1, image_msg)
-                        logger.info(f"Preserved message with image at index {last_image_msg_idx}")
-                    else:
-                        trimmed.append(image_msg)
-                        logger.info(f"Preserved message with image at index {last_image_msg_idx}")
+            # # Ensure the most recent message with images is preserved
+            # if last_image_msg_idx is not None:
+            #     image_msg = messages[last_image_msg_idx]
+            #     # Check if the trimmed list still contains the image message
+            #     if image_msg not in trimmed:
+            #         # Image message was removed, add it back
+            #         # Insert before the last message to maintain context
+            #         if len(trimmed) > 0:
+            #             # Insert the image message before the last message
+            #             trimmed.insert(-1, image_msg)
+            #             logger.info(f"Preserved message with image at index {last_image_msg_idx}")
+            #         else:
+            #             trimmed.append(image_msg)
+            #             logger.info(f"Preserved message with image at index {last_image_msg_idx}")
             
             # Only modify request if messages were actually trimmed
             if len(trimmed) != len(messages) or trimmed != messages:
