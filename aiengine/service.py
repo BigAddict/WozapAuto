@@ -29,6 +29,7 @@ load_dotenv()
 os.environ['GOOGLE_API_KEY'] = get_env_variable('GEMINI_API_KEY')
 os.environ['LANGSMITH_TRACING'] = get_env_variable('LANGSMITH_TRACING')
 os.environ['LANGSMITH_API_KEY'] = get_env_variable('LANGSMITH_API_KEY')
+os.environ['LANGSMITH_PROJECT'] = get_env_variable('LANGSMITH_PROJECT')
 
 class State(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
