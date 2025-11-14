@@ -16,6 +16,7 @@ reportlab
 psycopg2-binary
 pgvector
 
+langchain
 langchain-google-genai
 langchain-text-splitters
 langchain-postgres
