@@ -1,13 +1,12 @@
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, trim_messages
+from langchain_core.messages.utils import count_tokens_approximately
 from langchain_google_genai import ChatGoogleGenerativeAI
-from typing import Sequence, Optional, Dict, Any
 from langchain.agents import create_agent, AgentState
 from langchain.agents.middleware import before_model
+from typing import Sequence, Optional, Dict, Any
 from langgraph.graph import add_messages
 from langgraph.runtime import Runtime
-from typing import List
 
-from aiengine.prompts import personalized_prompt
 from aiengine.checkpointer import DatabaseCheckpointSaver
 from knowledgebase.service import KnowledgeBaseService
 from aiengine.models import AIResponse, AgentContext
@@ -15,6 +14,7 @@ from aiengine.memory_tools import MemorySearchTool
 from typing_extensions import Annotated, TypedDict
 from knowledgebase.tools import KnowledgeBaseTool
 from aiengine.memory_service import MemoryService
+from aiengine.prompts import personalized_prompt
 from audit.services import AuditService
 from dotenv import load_dotenv
 import logging
@@ -178,7 +178,7 @@ class ChatAssistant:
             trimmed = trim_messages(
                 messages=messages,
                 max_tokens=1000,
-                token_counter=self.model,
+                token_counter=count_tokens_approximately,
                 strategy="last",
                 allow_partial=True,
                 include_system=True,

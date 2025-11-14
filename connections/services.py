@@ -91,7 +91,7 @@ class EvolutionAPIService:
                 "webhook": {
                     "url": webhook_url,
                     "byEvents": False,
-                    "base64": False,
+                    "base64": True,
                     "events": ["MESSAGES_UPSERT"]
                 }
             }
