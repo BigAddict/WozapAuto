@@ -182,17 +182,17 @@ class EvolutionWebhookView(View):
             except Exception as e:
                 logger.warning(f"Failed to update webhook structured fields: {e}")
 
-            # Only send to WhatsApp if needs_reply
-            if needs_reply:
-                success, _ = evolution_api_service.send_text_message(
-                    instance_name=data.instance,
-                    number=data.remote_jid,
-                    message=response_text,
-                    reply_to_message_id=data.message_id
-                )
-                if not success:
-                    logger.error(f"Failed to send message to {data.remote_jid}")
-                    return False
+            # # Only send to WhatsApp if needs_reply
+            # if needs_reply:
+            success, _ = evolution_api_service.send_text_message(
+                instance_name=data.instance,
+                number=data.remote_jid,
+                message=response_text,
+                reply_to_message_id=data.message_id
+            )
+            if not success:
+                logger.error(f"Failed to send message to {data.remote_jid}")
+                return False
             return True
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")

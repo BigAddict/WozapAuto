@@ -2,8 +2,8 @@ from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, trim_m
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import create_agent, AgentState
-from langchain.agents.middleware import before_model
-from typing import Sequence, Optional, Dict, Any
+from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
+from typing import Sequence, Optional, Dict, Any, Callable
 from langgraph.graph import add_messages
 from langgraph.runtime import Runtime
 
@@ -143,16 +143,21 @@ class ChatAssistant:
         
         logger.info(f"Creating agent with {len(tools)} tools")
         
-        # Create message trimming middleware
-        @before_model
-        def trim_message_history(state: AgentState, runtime: Runtime) -> dict[str, Any] | None:
+        # Create message trimming middleware using wrap_model_call
+        # This modifies what's sent to the model without changing state
+        @wrap_model_call
+        def trim_message_history(
+            request: ModelRequest,
+            handler: Callable[[ModelRequest], ModelResponse]
+        ) -> ModelResponse:
             """Trim messages to fit within token limit before each model call.
-            Preserves messages with images/multimodal content."""
-            messages = state["messages"]
+            Preserves messages with images/multimodal content.
+            This is transient - only affects what's sent to the model, not state."""
+            messages = request.messages
             
             # Only trim if we have messages
             if not messages:
-                return None
+                return handler(request)
             
             # Check if any messages have multimodal content (images)
             def has_multimodal_content(msg: BaseMessage) -> bool:
@@ -173,11 +178,11 @@ class ChatAssistant:
                     last_image_msg_idx = i
                     break
             
-            # Trim messages to max 1000 tokens, keeping the most recent ones
+            # Trim messages to max 2000 tokens, keeping the most recent ones
             # Use endOn to ensure we keep complete message boundaries
             trimmed = trim_messages(
                 messages=messages,
-                max_tokens=1000,
+                max_tokens=2000,
                 token_counter=count_tokens_approximately,
                 strategy="last",
                 allow_partial=True,
@@ -201,12 +206,14 @@ class ChatAssistant:
                         trimmed.append(image_msg)
                         logger.info(f"Preserved message with image at index {last_image_msg_idx}")
             
-            # Only return update if messages were actually trimmed or modified
+            # Only modify request if messages were actually trimmed
             if len(trimmed) != len(messages) or trimmed != messages:
-                logger.info(f"Trimmed messages from {len(messages)} to {len(trimmed)}")
-                return {"messages": trimmed}
+                logger.info(f"Trimmed messages from {len(messages)} to {len(trimmed)} for model call")
+                # Override the messages in the request
+                modified_request = request.override(messages=trimmed)
+                return handler(modified_request)
             
-            return None
+            return handler(request)
         
         # Create agent with tools and middleware
         self.app = create_agent(
@@ -220,10 +227,6 @@ class ChatAssistant:
     def send_message(self) -> AIMessage:
         """Send message and get AI response using LangChain agent."""
         message = self.context.webhook_data.conversation
-
-        base64_file = self.context.webhook_data.base64_file
-        if base64_file:
-            mime_type = self.context.webhook_data.mime_type
 
         start_time = time.time()
         
