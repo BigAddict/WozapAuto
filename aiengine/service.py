@@ -1,23 +1,25 @@
-from langchain.agents import create_agent
-from langgraph.graph import add_messages
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, trim_messages
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, trim_messages
 from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import Sequence, Optional, Dict, Any
+from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import before_model
+from langgraph.graph import add_messages
+from langgraph.runtime import Runtime
 from typing import List
 
-from aiengine.prompts import internal_system_instruction
+from aiengine.prompts import personalized_prompt
 from aiengine.checkpointer import DatabaseCheckpointSaver
-from aiengine.memory_service import MemoryService
-from aiengine.memory_tools import MemorySearchTool
 from knowledgebase.service import KnowledgeBaseService
-from knowledgebase.tools import KnowledgeBaseTool
-from audit.services import AuditService
+from aiengine.models import AIResponse, AgentContext
+from aiengine.memory_tools import MemorySearchTool
 from typing_extensions import Annotated, TypedDict
-from typing import Sequence, Optional, Dict
-from aiengine.models import AIResponse
+from knowledgebase.tools import KnowledgeBaseTool
+from aiengine.memory_service import MemoryService
+from audit.services import AuditService
 from dotenv import load_dotenv
 import logging
-import os
 import time
+import os
 
 from base.env_config import get_env_variable
 
@@ -32,40 +34,37 @@ class State(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
 
 class ChatAssistant:
-    def __init__(self, thread_id: str, system_instructions: str, user=None, agent=None, remote_jid: str = None):
+    def __init__(self, agent_context: AgentContext):
         """
         Initialize the ChatAssistant.
 
         Args:
-            thread_id (str): The ID of the conversation thread.
-            system_instructions (str): The system instructions for the agent.
-            user (optional): The user object associated with the conversation.
-            agent (optional): The agent object to use for responses.
-            remote_jid (str, optional): The remote JID of the conversation.
+            agent_context (AgentContext): The context of the agent.
         """
-        logger.info(f"Initializing ChatAssistant for thread: {thread_id}")
-
-        self.thread_id = thread_id
-        self.system_prompt = system_instructions
-        self.config = {"configurable": {"thread_id": thread_id}}
+        self.context = agent_context
+        self.config = {"configurable": {"thread_id": self.context.webhook_data.remote_jid}}
         
         # Initialize tool usage tracking flags
         self._knowledge_base_used = False
         self._search_performed = False
         
         # Get business from agent or user
-        self.business = None
-        if agent and hasattr(agent, 'business') and agent.business:
-            self.business = agent.business
-            logger.info(f"Business found in agent: {self.business.name}")
-        elif user and hasattr(user, 'business_profile'):
-            self.business = user.business_profile
-            logger.info(f"Business found in user: {self.business.name}")
+        if self.context.get_business():
+            self.business = self.context.get_business()
+            logger.info(f"Business found in agent context: {self.business.name}")
+        else:
+            self.business = None
+            if self.context.agent and hasattr(self.context.agent, 'business') and self.context.agent.business:
+                self.business = self.context.agent.business
+                logger.info(f"Business found in agent: {self.business.name}")
+            elif self.context.user and hasattr(self.context.user, 'business_profile'):
+                self.business = self.context.user.business_profile
+                logger.info(f"Business found in user: {self.business.name}")
 
         self.business_id = str(self.business.id) if self.business else None
         
         # Initialize services
-        self._init_services(user, agent, remote_jid)
+        self._init_services()
 
         # Initialize model
         self.model = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
@@ -73,17 +72,17 @@ class ChatAssistant:
         # Create agent using LangChain v3 patterns
         self._create_agent()
 
-    def _init_services(self, user, agent, remote_jid):
+    def _init_services(self):
         """Initialize memory, checkpointer, and knowledge base services."""
-        logger.info(f"Initializing services for user: {user.username}, agent: {agent.id}, remote_jid: {remote_jid[:3]}...{remote_jid[-3:]}")
+        logger.info(f"Initializing services for user: {self.context.user.username}, agent: {self.context.agent.id}, remote_jid: {self.context.webhook_data.remote_jid[:3]}...{self.context.webhook_data.remote_jid[-3:]}")
 
-        if user and agent and remote_jid:
+        if self.context.user and self.context.agent and self.context.webhook_data.remote_jid:
             try:
-                self.checkpointer = DatabaseCheckpointSaver(user, agent.id, remote_jid)
+                self.checkpointer = DatabaseCheckpointSaver(self.context.user, self.context.agent.id, self.context.webhook_data.remote_jid)
                 self.memory_service = MemoryService(self.checkpointer.thread)
                 self.memory_tools = MemorySearchTool(self.memory_service)
-                self.knowledge_base_service = KnowledgeBaseService(user=user)
-                self.knowledge_base_tool = KnowledgeBaseTool(user=user, callback=self._tool_callback)
+                self.knowledge_base_service = KnowledgeBaseService(user=self.context.user)
+                self.knowledge_base_tool = KnowledgeBaseTool(user=self.context.user, callback=self._tool_callback)
                 # Get the conversation thread for this user and remote_jid
                 # from aiengine.models import ConversationThread
                 # try:
@@ -93,9 +92,9 @@ class ChatAssistant:
                 
                 self.business_tool = None
                 # self.business_tool = BusinessTool(user=user, thread=thread, callback=self._tool_callback)
-                self.user = user
-                self.agent = agent
-                logger.info(f"Initialized services for user: {user.username}")
+                self.user = self.context.user
+                self.agent = self.context.agent
+                logger.info(f"Initialized services for user: {self.context.user.username}")
             except Exception as e:
                 logger.error(f"Error initializing services: {e}")
                 self._init_fallback_services()
@@ -122,13 +121,6 @@ class ChatAssistant:
         elif tool_type == 'search_performed':
             self._search_performed = used
     
-    def _get_internal_system_instructions(self) -> str:
-        """Get the complete system instructions with user's timezone."""
-        return internal_system_instruction(
-            user=self.user if hasattr(self, 'user') else None,
-            business=self.business if hasattr(self, 'business') else None
-        )
-    
     def _create_agent(self):
         """Create agent using LangGraph's create_agent function."""
         tools = []
@@ -150,18 +142,50 @@ class ChatAssistant:
         
         logger.info(f"Creating agent with {len(tools)} tools")
         
-        # Create agent with tools
+        # Create message trimming middleware
+        @before_model
+        def trim_message_history(state: AgentState, runtime: Runtime) -> dict[str, Any] | None:
+            """Trim messages to fit within token limit before each model call."""
+            messages = state["messages"]
+            
+            # Only trim if we have messages
+            if not messages:
+                return None
+            
+            # Trim messages to max 1000 tokens, keeping the most recent ones
+            trimmed = trim_messages(
+                messages=messages,
+                max_tokens=1000,
+                token_counter=self.model,
+                strategy="last",
+                allow_partial=True,
+                include_system=True
+            )
+            
+            # Only return update if messages were actually trimmed
+            if len(trimmed) < len(messages):
+                logger.info(f"Trimmed messages from {len(messages)} to {len(trimmed)}")
+                return {"messages": trimmed}
+            
+            return None
+        
+        # Create agent with tools and middleware
         self.app = create_agent(
             model=self.model,
             tools=tools,
-            system_prompt = self._get_internal_system_instructions(),
+            middleware=[personalized_prompt, trim_message_history],
             response_format=AIResponse,
             checkpointer=self.checkpointer
         )
 
-    def send_message(self, message: str, base64_file: Optional[str] = None, mime_type: Optional[str] = None) -> AIMessage:
+    def send_message(self) -> AIMessage:
         """Send message and get AI response using LangChain agent."""
-        logger.info(f"Processing message: {message[:50]}...")
+        message = self.context.webhook_data.conversation
+
+        base64_file = self.context.webhook_data.base64_file
+        if base64_file:
+            mime_type = self.context.webhook_data.mime_type
+
         start_time = time.time()
         
         # Reset tool usage flags
@@ -169,30 +193,18 @@ class ChatAssistant:
         self._search_performed = False
         
         # Store human message
-        self._store_human_message(message)
-        
-        # Create messages with system instructions
-        system_message = SystemMessage(content=self.system_prompt)
+        self._store_human_message(self.context.webhook_data.conversation)
 
-        if base64_file:
-            # Gemini API requires mime_type for base64 image data
-            if not mime_type:
-                logger.warning("base64_file provided but mime_type is missing. Defaulting to image/jpeg")
-                mime_type = "image/jpeg"
-            
-            human_message = HumanMessage(content=[
-                {"type": "text", "text": message},
-                {"type": "image", "base64": base64_file, "mime_type": mime_type}
-            ])
-        else:
-            human_message = HumanMessage(content=message)
+        human_message = self._get_human_message()
 
-        messages = self.message_trimmer([system_message, human_message])
-        
-        # Get the agent response
-        output = self.app.invoke({"messages": messages}, self.config)
+        # Get the agent response - trimming is handled by middleware
+        output = self.app.invoke(
+            {"messages": human_message},
+            self.config,
+            context=self.context
+        )
 
-        ai_response_message = output["messages"][-1]
+        ai_response_message: AIMessage = output["messages"][-1]
         structured_output: AIResponse = output["structured_response"]
         
         # Calculate response time
@@ -228,12 +240,12 @@ class ChatAssistant:
         self.memory_service.add_message('ai', response.content, token_usage=token_usage)
         
         # Audit logging
-        if hasattr(self, 'user') and self.user:
+        if self.context.user and self.context.agent and self.context.webhook_data.remote_jid:
             AuditService.log_ai_conversation(
-                user=self.user,
-                agent_id=self.agent.id if hasattr(self, 'agent') else None,
-                thread_id=self.thread_id,
-                remote_jid=getattr(self.memory_service.thread, 'remote_jid', ''),
+                user=self.context.user,
+                agent_id=self.context.agent.id,
+                thread_id=self.context.webhook_data.remote_jid,
+                remote_jid=self.context.webhook_data.remote_jid,
                 message_type='ai',
                 input_tokens=token_usage.get('input_tokens') if token_usage else None,
                 output_tokens=token_usage.get('output_tokens') if token_usage else None,
@@ -257,14 +269,17 @@ class ChatAssistant:
                     'model_name': response.response_metadata.get('model_name', 'gemini-2.5-flash')
                 }
         return None
-    
-    def message_trimmer(self, messages: List[BaseMessage]) -> list[BaseMessage]:
-        """Trim messages to have at most 2000 tokens."""
-        return trim_messages(
-            messages=messages,
-            max_tokens=2000,
-            token_counter=self.model,
-            strategy="last",
-            allow_partial=True,
-            include_system=True
-        )
+
+    def _get_human_message(self) -> list[BaseMessage]:
+        message = self.context.webhook_data.conversation
+        customer_name = self.context.webhook_data.push_name
+        customer_phone = self.context.webhook_data.remote_jid.split('@')[0]
+
+        prompt = f"Customer Name: {customer_name}\nCustomer Phone: {customer_phone}\n\n{message}"
+        if self.context.webhook_data.base64_file:
+            return [HumanMessage(content=[
+                {"type": "text", "text": prompt},
+                {"type": "image", "base64": self.context.webhook_data.base64_file, "mime_type": self.context.webhook_data.mime_type}
+            ])]
+        else:
+            return [HumanMessage(content=prompt)]

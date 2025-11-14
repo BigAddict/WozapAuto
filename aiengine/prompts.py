@@ -1,13 +1,18 @@
+from langchain.agents.middleware import dynamic_prompt, ModelRequest
 from django.utils import timezone as django_timezone
+from django.contrib.auth.models import User
+from typing import Optional
 import zoneinfo
 
-def _get_user_time(user=None, business=None) -> str:
+from business.models import BusinessProfile
+from core.utils import get_user_display_name
+
+def _get_user_time(user: User) -> str:
     """
     Get current time formatted in user's timezone.
     
     Args:
-        user: Optional User object
-        business: Optional BusinessProfile object
+        user: User object
         
     Returns:
         Formatted time string in user's timezone
@@ -17,23 +22,10 @@ def _get_user_time(user=None, business=None) -> str:
     timezone_name = 'UTC'
     
     try:
-        if business and hasattr(business, 'timezone'):
-            timezone_name = business.timezone
-            user_timezone = zoneinfo.ZoneInfo(business.timezone)
-        elif user and hasattr(user, 'business_profile'):
-            timezone_name = user.business_profile.timezone
-            user_timezone = zoneinfo.ZoneInfo(user.business_profile.timezone)
-    except (AttributeError, zoneinfo.ZoneInfoNotFoundError) as e:
-        import logging
-        logger = logging.getLogger("aiengine.prompts")
-        logger.warning(f"Could not get user timezone, using UTC: {e}")
+        timezone_name = user.business_profile.timezone
+        user_timezone = zoneinfo.ZoneInfo(timezone_name)
+    except (AttributeError, zoneinfo.ZoneInfoNotFoundError):
         user_timezone = zoneinfo.ZoneInfo('UTC')
-        timezone_name = 'UTC'
-    
-    # If no timezone found, default to UTC
-    if not user_timezone:
-        user_timezone = zoneinfo.ZoneInfo('UTC')
-        timezone_name = 'UTC'
     
     # Get current time in user's timezone
     now = django_timezone.now().astimezone(user_timezone)
@@ -91,7 +83,8 @@ To add inline code to your message, place a backtick on both sides of the messag
 `text`
 """
 
-def internal_system_instruction(user=None, business=None) -> str:
+@dynamic_prompt
+def personalized_prompt(request: ModelRequest) -> str:
     """
     Create comprehensive system instructions for the AI agent with user's timezone.
     
@@ -102,11 +95,16 @@ def internal_system_instruction(user=None, business=None) -> str:
     Returns:
         Complete system instructions string with user's timezone.
     """
+    user: User = request.runtime.context.user
+
+    business_name = get_user_display_name(user)
+
     # Get current time in user's timezone
-    current_time = _get_user_time(user, business)
+    current_time = _get_user_time(user)
     
     system_instructions = f"""
-    You are a helpful Customer Support Agent for a business. You respond to customer inquiries in a friendly, natural and helpful manner. All conversations are happening on WhatsApp.
+    You are a helpful Customer Support Agent for {business_name}. You respond to customer inquiries in a friendly, natural and helpful manner.
+    All conversations are happening on WhatsApp.
 
     Current time: {current_time}
 

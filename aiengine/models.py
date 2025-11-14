@@ -1,10 +1,12 @@
+from django.contrib.auth.models import User
+from pgvector.django import VectorField
+from pydantic import BaseModel, Field
+from dataclasses import dataclass
 from datetime import datetime
 from django.db import models
-from django.contrib.auth.models import User
-from pydantic import BaseModel, Field
-from pgvector.django import VectorField
 from typing import Optional
-import json
+
+from business.models import BusinessProfile
 
 class Agent(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='owned_agents')
@@ -173,3 +175,18 @@ class AIResponse(BaseModel):
                 "response_text": "Hello! How can I help you today?"
             }
         }
+
+@dataclass
+class AgentContext:
+    user: User
+    agent: Agent
+    webhook_data: Optional[EvolutionWebhookData] = None
+
+    def get_business(self) -> BusinessProfile:
+        """Get business profile from agent context"""
+        if self.agent and self.agent.business:
+            return self.agent.business
+        elif self.user and self.user.business_profile:
+            return self.user.business_profile
+        else:
+            raise ValueError("Business not found in agent context")

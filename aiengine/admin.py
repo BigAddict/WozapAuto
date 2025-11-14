@@ -3,7 +3,7 @@ from django.contrib import messages as django_messages
 from django.db import transaction
 from django.utils.html import format_html
 
-from .models import WebhookData, Agent, ConversationThread, ConversationMessage
+from .models import WebhookData, Agent, ConversationThread, ConversationMessage, ConversationCheckpoint
 
 @admin.register(WebhookData)
 class WebhookDataAdmin(admin.ModelAdmin):
@@ -410,3 +410,4 @@ class ConversationMessageAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Agent)
+admin.site.register(ConversationCheckpoint)

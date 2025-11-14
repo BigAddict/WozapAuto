@@ -1,18 +1,19 @@
-from django.http import HttpRequest, JsonResponse
+from connections.services import evolution_api_service
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.http import HttpRequest, JsonResponse
+from django.contrib.auth.models import User
 from datetime import datetime, timezone
-from aiengine.models import EvolutionWebhookData, WebhookData, Agent
 from django.views import View
+from typing import Optional
 import logging
 import json
-from typing import Optional
-from django.contrib.auth.models import User
 
 from aiengine.service import ChatAssistant
 from aiengine.memory_utils import get_memory_statistics, get_user_conversation_summary, cleanup_old_conversations
 from aiengine.token_utils import get_token_statistics, get_user_token_summary, get_top_token_users
-from aiengine.models import ConversationThread, ConversationMessage
+from aiengine.models import ConversationThread, ConversationMessage, AgentContext
+from aiengine.models import EvolutionWebhookData, WebhookData, Agent
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -35,7 +36,6 @@ class EvolutionWebhookView(View):
     def post(self, request: HttpRequest):
         try:
             data = json.loads(request.body.decode('utf-8'))
-            print(len(data.keys()))
             if not data and not data.get('event', ''):
                 logger.warning("No data or event in webhook request. Skipping...")
                 return JsonResponse({'success': True})
@@ -146,27 +146,23 @@ class EvolutionWebhookView(View):
             if not user_agent:
                 logger.error(f"User agent not found for user id: {self._get_user_from_instance_id(data.instance_id).id}")
                 return False
-            print(user_agent)
             
-            from connections.services import evolution_api_service
             # Get user from instance
             user = self._get_user_from_instance_id(data.instance_id)
             if not user:
                 logger.error(f"User not found for instance: {data.instance_id}")
                 return False
             
-            # Create ChatAssistant with database-backed memory
-            chat_assistant = ChatAssistant(
-                thread_id=data.remote_jid,
-                system_instructions=user_agent.system_prompt,
+            agent_context = AgentContext(
                 user=user,
                 agent=user_agent,
-                remote_jid=data.remote_jid
+                webhook_data=data
             )
-            if data.base64_file:
-                response = chat_assistant.send_message(data.conversation, data.base64_file, data.mime_type)
-            else:
-                response = chat_assistant.send_message(data.conversation)
+
+            # Create ChatAssistant with database-backed memory
+            chat_assistant = ChatAssistant(agent_context)
+            response = chat_assistant.send_message()
+            
             needs_reply = getattr(response, 'needs_reply', True)
             response_text = getattr(response, 'response_text', response.content)
 
