@@ -33,16 +33,21 @@ def limit_checkpoints_per_thread(sender, instance, created, **kwargs):
         # Calculate how many to delete
         checkpoints_to_delete = checkpoint_count - MAX_CHECKPOINTS_PER_THREAD
         
-        # Get the oldest checkpoints to delete
-        old_checkpoints = checkpoints[:checkpoints_to_delete]
+        # Get the IDs of the oldest checkpoints to delete (can't use slice with delete())
+        old_checkpoint_ids = list(
+            checkpoints.values_list('id', flat=True)[:checkpoints_to_delete]
+        )
+        old_checkpoint_checkpoint_ids = list(
+            checkpoints.values_list('checkpoint_id', flat=True)[:checkpoints_to_delete]
+        )
         
-        # Delete the oldest checkpoints
-        deleted_count = old_checkpoints.count()
-        old_checkpoint_ids = list(old_checkpoints.values_list('checkpoint_id', flat=True))
-        old_checkpoints.delete()
+        # Delete the oldest checkpoints by their primary keys
+        deleted_count, _ = ConversationCheckpoint.objects.filter(
+            id__in=old_checkpoint_ids
+        ).delete()
         
         logger.info(
             f"Deleted {deleted_count} old checkpoints for thread {thread.thread_id}. "
             f"Remaining: {MAX_CHECKPOINTS_PER_THREAD} checkpoints. "
-            f"Deleted checkpoint IDs: {old_checkpoint_ids[:5]}{'...' if len(old_checkpoint_ids) > 5 else ''}"
+            f"Deleted checkpoint IDs: {old_checkpoint_checkpoint_ids[:5]}{'...' if len(old_checkpoint_checkpoint_ids) > 5 else ''}"
         )
