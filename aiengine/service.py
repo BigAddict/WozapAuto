@@ -146,25 +146,63 @@ class ChatAssistant:
         # Create message trimming middleware
         @before_model
         def trim_message_history(state: AgentState, runtime: Runtime) -> dict[str, Any] | None:
-            """Trim messages to fit within token limit before each model call."""
+            """Trim messages to fit within token limit before each model call.
+            Preserves messages with images/multimodal content."""
             messages = state["messages"]
             
             # Only trim if we have messages
             if not messages:
                 return None
             
+            # Check if any messages have multimodal content (images)
+            def has_multimodal_content(msg: BaseMessage) -> bool:
+                """Check if message has images or other multimodal content."""
+                if hasattr(msg, 'content_blocks') and msg.content_blocks:
+                    return any(block.get('type') in ('image', 'audio', 'video') 
+                             for block in msg.content_blocks)
+                # Check content if it's a list (multimodal format)
+                if isinstance(msg.content, list):
+                    return any(isinstance(item, dict) and item.get('type') in ('image', 'audio', 'video')
+                             for item in msg.content)
+                return False
+            
+            # Find the index of the most recent message with images
+            last_image_msg_idx = None
+            for i in range(len(messages) - 1, -1, -1):
+                if has_multimodal_content(messages[i]):
+                    last_image_msg_idx = i
+                    break
+            
             # Trim messages to max 1000 tokens, keeping the most recent ones
+            # Use endOn to ensure we keep complete message boundaries
             trimmed = trim_messages(
                 messages=messages,
                 max_tokens=1000,
                 token_counter=self.model,
                 strategy="last",
                 allow_partial=True,
-                include_system=True
+                include_system=True,
+                start_on="human",
+                end_on=["human", "tool", "ai"]
             )
             
-            # Only return update if messages were actually trimmed
-            if len(trimmed) < len(messages):
+            # Ensure the most recent message with images is preserved
+            if last_image_msg_idx is not None:
+                image_msg = messages[last_image_msg_idx]
+                # Check if the trimmed list still contains the image message
+                if image_msg not in trimmed:
+                    # Image message was removed, add it back
+                    # Insert before the last message to maintain context
+                    if len(trimmed) > 0:
+                        # Insert the image message before the last message
+                        trimmed.insert(-1, image_msg)
+                        logger.info(f"Preserved message with image at index {last_image_msg_idx}")
+                    else:
+                        trimmed.append(image_msg)
+                        logger.info(f"Preserved message with image at index {last_image_msg_idx}")
+            
+            # Only return update if messages were actually trimmed or modified
+            if len(trimmed) != len(messages) or trimmed != messages:
                 logger.info(f"Trimmed messages from {len(messages)} to {len(trimmed)}")
                 return {"messages": trimmed}
             
@@ -278,9 +316,15 @@ class ChatAssistant:
 
         prompt = f"Customer Name: {customer_name}\nCustomer Phone: {customer_phone}\n\n{message}"
         if self.context.webhook_data.base64_file:
+            # Gemini API requires mime_type for base64 image data
+            mime_type = self.context.webhook_data.mime_type
+            if not mime_type:
+                logger.warning("base64_file provided but mime_type is missing. Defaulting to image/jpeg")
+                mime_type = "image/jpeg"
+            
             return [HumanMessage(content=[
                 {"type": "text", "text": prompt},
-                {"type": "image", "base64": self.context.webhook_data.base64_file, "mime_type": self.context.webhook_data.mime_type}
+                {"type": "image", "base64": self.context.webhook_data.base64_file, "mime_type": mime_type}
             ])]
         else:
             return [HumanMessage(content=prompt)]
