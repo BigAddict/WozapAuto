@@ -86,9 +86,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'django.middleware.cache.UpdateCacheMiddleware',
-    # 'django.middleware.cache.FetchFromCacheMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware'
 ]
 
 STORAGES = {
@@ -223,15 +221,15 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {pathname}:{lineno} {message}',
             'style': '{',
         },
         'simple': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '{levelname} {asctime} {module} {pathname}:{lineno} {message}',
             'style': '{',
         },
         'json': {
-            'format': '{"level": "%(levelname)s", "time": "%(asctime)s", "module": "%(module)s", "message": "%(message)s", "user": "%(user)s", "request_id": "%(request_id)s"}',
+            'format': '{"level": "%(levelname)s", "time": "%(asctime)s", "module": "%(module)s", "pathname": "%(pathname)s", "lineno": %(lineno)d, "message": "%(message)s", "user": "%(user)s", "request_id": "%(request_id)s"}',
         },
     },
     'filters': {

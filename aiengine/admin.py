@@ -305,7 +305,7 @@ class ConversationMessageAdmin(admin.ModelAdmin):
     
     def has_embedding(self, obj):
         """Check if message has embedding"""
-        if obj.embedding and len(obj.embedding) > 0:
+        if obj.embedding is not None and len(obj.embedding) > 0:
             return format_html('<span style="color: green;">✓ ({} dims)</span>', len(obj.embedding))
         return format_html('<span style="color: red;">✗</span>')
     has_embedding.short_description = 'Embedding'

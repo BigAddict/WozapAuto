@@ -63,6 +63,22 @@ class EvolutionWebhookView(View):
             remote_jid = key.get('remoteJid', '')
             is_group = remote_jid.endswith('@g.us')
 
+            base64_file = ''
+            mime_type = ''
+            if payload.get('messageType') == 'imageMessage':
+                base64_file = payload.get('message', {}).get('base64', '')
+                if not base64_file:
+                    logger.warning("No base64 file in webhook request. Skipping...")
+                conversation = payload.get('message', {}).get('imageMessage', {}).get('caption', '')
+                mime_type = payload.get('message', {}).get('imageMessage', {}).get('mimetype', '')
+                logger.info(f"Base64 file: {base64_file[:100]}...")
+                logger.info(f"Mime type: {mime_type}")
+                if not conversation:
+                    logger.warning("No caption in image message. Skipping...")
+                    conversation = ""
+            else:
+                conversation = payload.get('message', {}).get('conversation', '')
+
             evolution_webhook_data = EvolutionWebhookData(
                 message_id=key.get('id', payload.get('id', '')),
                 event=data.get('event', ''),
@@ -71,13 +87,15 @@ class EvolutionWebhookView(View):
                 from_me=key.get('fromMe', False),
                 push_name=payload.get('pushName', ''),
                 status=payload.get('status', ''),
-                conversation=payload.get('message', {}).get('conversation', ''),
+                conversation=conversation,
                 message_type=payload.get('messageType', ''),
                 instance_id=payload.get('instanceId', ''),
                 date_time=date_time_ext,
                 sender=data.get('sender', ''),
                 quoted_message=quoted_message,
-                is_group=is_group
+                is_group=is_group,
+                base64_file=base64_file,
+                mime_type=mime_type
             )
             # Validate that instance belongs to user_id from query (if possible)
             try:
@@ -145,7 +163,10 @@ class EvolutionWebhookView(View):
                 agent=user_agent,
                 remote_jid=data.remote_jid
             )
-            response = chat_assistant.send_message(data.conversation)
+            if data.base64_file:
+                response = chat_assistant.send_message(data.conversation, data.base64_file, data.mime_type)
+            else:
+                response = chat_assistant.send_message(data.conversation)
             needs_reply = getattr(response, 'needs_reply', True)
             response_text = getattr(response, 'response_text', response.content)
 
@@ -203,7 +224,9 @@ class EvolutionWebhookView(View):
                         'date_time': data.date_time,
                         'sender': data.sender,
                         'quoted_message': data.quoted_message,
-                        'is_group': data.is_group
+                        'is_group': data.is_group,
+                        'base64_file': data.base64_file,
+                        'mime_type': data.mime_type
                     }
                 )
                 

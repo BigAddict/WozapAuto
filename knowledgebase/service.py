@@ -12,7 +12,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import pypdf
 import numpy as np
 

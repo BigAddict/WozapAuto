@@ -16,9 +16,12 @@ reportlab
 psycopg2-binary
 pgvector
 
-langchain[google-genai]
+langchain-google-genai
+langchain-text-splitters
 langchain-postgres
 langchain-core
 langgraph
 python-dotenv
 sentence-transformers
+
+pycryptodome

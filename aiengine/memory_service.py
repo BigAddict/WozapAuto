@@ -1,14 +1,14 @@
 """
 Memory service for semantic search and context window management.
 """
-import numpy as np
-from typing import List, Optional, Tuple, Dict, Any
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from typing import List, Optional, Dict, Any
 from django.db.models import Q
+import numpy as np
 import logging
 
 from .models import ConversationThread, ConversationMessage
 from .model_cache import model_cache
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 
 logger = logging.getLogger("aiengine.memory_service")
 

@@ -1,18 +1,14 @@
 """
 Custom LangGraph checkpointer that uses Django database for persistent storage.
 """
-import json
-import uuid
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-from datetime import datetime, timezone
-
 from langgraph.checkpoint.base import BaseCheckpointSaver, Checkpoint, CheckpointMetadata, CheckpointTuple
-from langgraph.errors import GraphRecursionError
+from typing import Any, Dict, Optional, Sequence, Iterator
 from langchain_core.runnables import RunnableConfig
-from typing import Union, Optional, Iterator, Dict, Any, Sequence
+from django.contrib.auth.models import User
+from datetime import datetime, timezone
+import uuid
 
 from .models import ConversationThread, ConversationCheckpoint
-from django.contrib.auth.models import User
 import logging
 
 logger = logging.getLogger(__name__)

@@ -52,6 +52,9 @@ class WebhookData(models.Model):
     response_text = models.TextField(null=True, blank=True)
     needs_reply = models.BooleanField(default=True)
 
+    base64_file = models.TextField(null=True, blank=True)
+    mime_type = models.CharField(max_length=255, null=True, blank=True)
+
     class Meta:
         ordering = ['-date_time']
         verbose_name = 'Webhook Data'
@@ -69,22 +72,6 @@ class WebhookData(models.Model):
         """Eligible for re-engagement if no reply was needed or previous processing failed."""
         processing_error = getattr(self, 'processing_error', None)
         return (not self.needs_reply) or (not self.is_processed) or bool(processing_error)
-
-class EvolutionWebhookData(BaseModel):
-    message_id: str
-    event: str
-    instance: str
-    remote_jid: str
-    from_me: bool
-    push_name: str
-    status: str
-    conversation: str
-    message_type: str
-    instance_id: str
-    date_time: datetime
-    sender: str
-    quoted_message: dict
-    is_group: bool
 
 class ConversationThread(models.Model):
     """Represents a conversation thread between a user and the agent"""
@@ -114,7 +101,7 @@ class ConversationMessage(models.Model):
     thread = models.ForeignKey(ConversationThread, on_delete=models.CASCADE, related_name='messages')
     message_type = models.CharField(max_length=10, choices=MESSAGE_TYPES)
     content = models.TextField()
-    embedding = VectorField(dimensions=384, null=True, blank=True)  # Using 384 dimensions for all-MiniLM-L6-v2
+    embedding = VectorField(dimensions=384, null=True, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     
     # Token usage tracking
@@ -147,3 +134,42 @@ class ConversationCheckpoint(models.Model):
     
     def __str__(self):
         return f"Checkpoint {self.checkpoint_id} for {self.thread.thread_id}"
+
+class EvolutionWebhookData(BaseModel):
+    message_id: str
+    event: str
+    instance: str
+    remote_jid: str
+    from_me: bool
+    push_name: str
+    status: str
+    conversation: str
+    message_type: str
+    instance_id: str
+    date_time: datetime
+    sender: str
+    quoted_message: dict
+    is_group: bool
+    base64_file: Optional[str] = None
+    mime_type: Optional[str] = None
+
+class AIResponse(BaseModel):
+    """
+    Structured output model for AI responses.
+    """
+    needs_reply: bool = Field(
+        description="Whether the AI agent should send a reply to WhatsApp",
+        default=True
+    )
+    response_text: str = Field(
+        description="The message to send to WhatsApp or explanation why no reply is needed",
+        min_length=1
+    )
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "needs_reply": True,
+                "response_text": "Hello! How can I help you today?"
+            }
+        }

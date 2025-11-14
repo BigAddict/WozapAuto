@@ -1,22 +1,19 @@
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from langgraph.graph import add_messages
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, trim_messages
-from langchain_core.language_models import BaseChatModel
-from langchain.chat_models import init_chat_model
+from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import List
 
-from aiengine.prompts import create_prompt_template
+from aiengine.prompts import internal_system_instruction
 from aiengine.checkpointer import DatabaseCheckpointSaver
 from aiengine.memory_service import MemoryService
 from aiengine.memory_tools import MemorySearchTool
-from aiengine.models import ConversationThread, Agent
-from aiengine.structured_output import AIResponse
 from knowledgebase.service import KnowledgeBaseService
 from knowledgebase.tools import KnowledgeBaseTool
-from business.tools import BusinessTool
 from audit.services import AuditService
 from typing_extensions import Annotated, TypedDict
-from typing import Sequence, Optional, Dict, Any
+from typing import Sequence, Optional, Dict
+from aiengine.models import AIResponse
 from dotenv import load_dotenv
 import logging
 import os
@@ -36,9 +33,20 @@ class State(TypedDict):
 
 class ChatAssistant:
     def __init__(self, thread_id: str, system_instructions: str, user=None, agent=None, remote_jid: str = None):
+        """
+        Initialize the ChatAssistant.
+
+        Args:
+            thread_id (str): The ID of the conversation thread.
+            system_instructions (str): The system instructions for the agent.
+            user (optional): The user object associated with the conversation.
+            agent (optional): The agent object to use for responses.
+            remote_jid (str, optional): The remote JID of the conversation.
+        """
+        logger.info(f"Initializing ChatAssistant for thread: {thread_id}")
+
         self.thread_id = thread_id
         self.system_prompt = system_instructions
-        self.model = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
         self.config = {"configurable": {"thread_id": thread_id}}
         
         # Initialize tool usage tracking flags
@@ -49,22 +57,26 @@ class ChatAssistant:
         self.business = None
         if agent and hasattr(agent, 'business') and agent.business:
             self.business = agent.business
+            logger.info(f"Business found in agent: {self.business.name}")
         elif user and hasattr(user, 'business_profile'):
             self.business = user.business_profile
-        
+            logger.info(f"Business found in user: {self.business.name}")
+
         self.business_id = str(self.business.id) if self.business else None
         
         # Initialize services
         self._init_services(user, agent, remote_jid)
+
+        # Initialize model
+        self.model = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
         
         # Create agent using LangChain v3 patterns
         self._create_agent()
-        
-        self.prompt_template = self.get_prompt_template()
-        self.trimmer = self.message_trimmer()
 
     def _init_services(self, user, agent, remote_jid):
         """Initialize memory, checkpointer, and knowledge base services."""
+        logger.info(f"Initializing services for user: {user.username}, agent: {agent.id}, remote_jid: {remote_jid[:3]}...{remote_jid[-3:]}")
+
         if user and agent and remote_jid:
             try:
                 self.checkpointer = DatabaseCheckpointSaver(user, agent.id, remote_jid)
@@ -73,11 +85,11 @@ class ChatAssistant:
                 self.knowledge_base_service = KnowledgeBaseService(user=user)
                 self.knowledge_base_tool = KnowledgeBaseTool(user=user, callback=self._tool_callback)
                 # Get the conversation thread for this user and remote_jid
-                from aiengine.models import ConversationThread
-                try:
-                    thread = ConversationThread.objects.get(user=user, remote_jid=remote_jid)
-                except ConversationThread.DoesNotExist:
-                    thread = None
+                # from aiengine.models import ConversationThread
+                # try:
+                #     thread = ConversationThread.objects.get(user=user, remote_jid=remote_jid)
+                # except ConversationThread.DoesNotExist:
+                #     thread = None
                 
                 self.business_tool = None
                 # self.business_tool = BusinessTool(user=user, thread=thread, callback=self._tool_callback)
@@ -110,45 +122,44 @@ class ChatAssistant:
         elif tool_type == 'search_performed':
             self._search_performed = used
     
-    def _get_system_instructions(self) -> str:
+    def _get_internal_system_instructions(self) -> str:
         """Get the complete system instructions with user's timezone."""
-        from aiengine.prompts import create_system_instructions
-        return create_system_instructions(
-            self.system_prompt, 
+        return internal_system_instruction(
             user=self.user if hasattr(self, 'user') else None,
             business=self.business if hasattr(self, 'business') else None
         )
     
     def _create_agent(self):
-        """Create agent using LangGraph's create_react_agent."""
+        """Create agent using LangGraph's create_agent function."""
         tools = []
         
         # Add memory tools if available
         if self.memory_tools:
             tools.extend(self.memory_tools.get_tools())
+            logger.info(f"Added memory tools: {len(self.memory_tools.get_tools())}")
         
         # Add knowledge base tool if available
         if hasattr(self, 'knowledge_base_tool') and self.knowledge_base_tool:
             tools.append(self.knowledge_base_tool.get_tool())
-        
+            logger.info(f"Added knowledge base tool")
+
         # Add business tools if available
         if hasattr(self, 'business_tool') and self.business_tool:
             tools.extend(self.business_tool.get_tools())
+            logger.info(f"Added business tools: {len(self.business_tool.get_tools())}")
         
         logger.info(f"Creating agent with {len(tools)} tools")
         
-        # Debug: Log the system instructions being used
-        logger.info(f"System instructions: {self.system_prompt[:100]}...")
-        logger.info(f"Prompt template created with system instructions")
-        
-        # Create agent with tools (without structured output at model level)
-        self.app = create_react_agent(
+        # Create agent with tools
+        self.app = create_agent(
             model=self.model,
             tools=tools,
+            system_prompt = self._get_internal_system_instructions(),
+            response_format=AIResponse,
             checkpointer=self.checkpointer
         )
 
-    def send_message(self, message: str) -> AIMessage:
+    def send_message(self, message: str, base64_file: Optional[str] = None, mime_type: Optional[str] = None) -> AIMessage:
         """Send message and get AI response using LangChain agent."""
         logger.info(f"Processing message: {message[:50]}...")
         start_time = time.time()
@@ -160,54 +171,43 @@ class ChatAssistant:
         # Store human message
         self._store_human_message(message)
         
-        # Cleanup old messages if needed
-        self._cleanup_messages_if_needed()
-        
         # Create messages with system instructions
-        system_message = SystemMessage(content=self._get_system_instructions())
-        user_message = HumanMessage(content=message)
-        input_messages = [system_message, user_message]
-        
-        logger.info(f"Sending to agent: {message[:100]}...")
-        logger.debug(f"System instructions: {self.system_prompt[:200]}...")
-        logger.debug(f"User message: {message}")
+        system_message = SystemMessage(content=self.system_prompt)
+
+        if base64_file:
+            # Gemini API requires mime_type for base64 image data
+            if not mime_type:
+                logger.warning("base64_file provided but mime_type is missing. Defaulting to image/jpeg")
+                mime_type = "image/jpeg"
+            
+            human_message = HumanMessage(content=[
+                {"type": "text", "text": message},
+                {"type": "image", "base64": base64_file, "mime_type": mime_type}
+            ])
+        else:
+            human_message = HumanMessage(content=message)
+
+        messages = self.message_trimmer([system_message, human_message])
         
         # Get the agent response
-        output = self.app.invoke({"messages": input_messages}, self.config)
-        ai_response = output["messages"][-1]
+        output = self.app.invoke({"messages": messages}, self.config)
 
-        # Parse structured output from the AI response
-        needs_reply = True
-        response_text = str(ai_response.content) if ai_response.content else "No response generated"
-        
-        try:
-            import json
-            # Try to parse JSON from the response
-            parsed_response = json.loads(response_text)
-            if isinstance(parsed_response, dict) and "needs_reply" in parsed_response and "response_text" in parsed_response:
-                needs_reply = bool(parsed_response.get("needs_reply", True))
-                response_text = str(parsed_response.get("response_text", ""))
-                logger.info(f"Parsed structured response: needs_reply={needs_reply}")
-            else:
-                logger.warning("Response is JSON but missing required fields")
-        except (json.JSONDecodeError, TypeError):
-            # Not JSON, use the raw response
-            logger.info("Response is not JSON, using raw content")
-            pass
+        ai_response_message = output["messages"][-1]
+        structured_output: AIResponse = output["structured_response"]
         
         # Calculate response time
         response_time_ms = int((time.time() - start_time) * 1000)
         
         # Store AI response with audit logging
         ai_response = AIMessage(
-            content=response_text, 
-            response_metadata=getattr(ai_response, 'response_metadata', {})
+            content=structured_output.response_text,
+            response_metadata=getattr(ai_response_message, 'response_metadata', {})
         )
         self._store_ai_response(ai_response, response_time_ms)
         
         # Attach structured fields to the message for callers to use
-        setattr(ai_response, "needs_reply", needs_reply)
-        setattr(ai_response, "response_text", response_text)
+        setattr(ai_response, "needs_reply", structured_output.needs_reply)
+        setattr(ai_response, "response_text", structured_output.response_text)
         return ai_response
 
     def _store_human_message(self, message: str):
@@ -258,54 +258,13 @@ class ChatAssistant:
                 }
         return None
     
-    def _cleanup_messages_if_needed(self):
-        """Cleanup old messages to prevent memory issues."""
-        if self.memory_service:
-            try:
-                self.memory_service.cleanup_old_messages(keep_recent=50)
-            except Exception as e:
-                logger.warning(f"Failed to cleanup messages: {e}")
-
-    def get_prompt_template(self) -> ChatPromptTemplate:
-        """Get prompt template for the agent with user's timezone."""
-        logger.info("Building prompt template")
-        return create_prompt_template(
-            self.system_prompt,
-            user=self.user if hasattr(self, 'user') else None,
-            business=self.business if hasattr(self, 'business') else None
-        )
-    
-    def message_trimmer(
-            self,
-            max_tokens: int = 2000,  # Increased from 65 to handle longer conversations
-            strategy: str = "last",
-            token_counter: Optional[BaseChatModel] = None,
-            include_system: bool = True,
-            allow_partial: bool = False,
-            start_on: str ="human",
-    ):
-        if token_counter is None:
-            token_counter = self.model
+    def message_trimmer(self, messages: List[BaseMessage]) -> list[BaseMessage]:
+        """Trim messages to have at most 2000 tokens."""
         return trim_messages(
-            max_tokens=max_tokens,
-            strategy=strategy,
-            token_counter=token_counter,
-            include_system=include_system,
-            allow_partial=allow_partial,
-            start_on=start_on
+            messages=messages,
+            max_tokens=2000,
+            token_counter=self.model,
+            strategy="last",
+            allow_partial=True,
+            include_system=True
         )
-    
-    
-    
-if __name__ == '__main__':
-    # Test system instructions
-    test_system_prompt = "You are a helpful AI assistant. Always respond with 'I understand' followed by the user's message."
-    assistant = ChatAssistant("test_thread", test_system_prompt)
-    
-    # Test the system instructions
-    test_message = "Hello, how are you?"
-    print(f"Testing with message: {test_message}")
-    print(f"System prompt: {assistant.system_prompt}")
-    
-    response = assistant.send_message(test_message)
-    print(f"Response: {response.content}")
