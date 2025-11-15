@@ -146,7 +146,6 @@ class ChatAssistant:
         
         # Create message trimming middleware using wrap_model_call
         # This modifies what's sent to the model without changing state
-        @traceable(run_type="llm")
         @wrap_model_call
         def trim_message_history(
             request: ModelRequest,
