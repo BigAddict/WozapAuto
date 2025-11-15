@@ -6,6 +6,7 @@ from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResp
 from typing import Sequence, Optional, Dict, Any, Callable
 from langgraph.graph import add_messages
 from langgraph.runtime import Runtime
+from langsmith import traceable
 
 from aiengine.checkpointer import DatabaseCheckpointSaver
 from knowledgebase.service import KnowledgeBaseService
@@ -145,6 +146,7 @@ class ChatAssistant:
         
         # Create message trimming middleware using wrap_model_call
         # This modifies what's sent to the model without changing state
+        @traceable(run_type="llm")
         @wrap_model_call
         def trim_message_history(
             request: ModelRequest,
